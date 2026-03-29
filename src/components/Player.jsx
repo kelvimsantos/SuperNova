@@ -14,11 +14,11 @@ export const Player = () => {
   const [isGrounded, setIsGrounded] = useState(true);
   const setPlayerRigidBody = useGameStore((state) => state.setPlayerRigidBody);
   const currentAnim = useRef('Idle');
+  const isNight = useGameStore((state) => state.isNight);
 
   const { scene, animations } = useGLTF(MODEL_PATH);
   const { actions } = useAnimations(animations, visualRef);
   
-  // Força sombras no modelo do player
   useEffect(() => {
     scene.traverse((child) => {
       if (child.isMesh) {
@@ -64,16 +64,19 @@ export const Player = () => {
       playAnimation('Run');
     }
 
-    const cameraDir = new Vector3(0, 0, 0);
-    camera.getWorldDirection(cameraDir);
-    cameraDir.y = 0;
-    cameraDir.normalize();
-
-    const rightDir = new Vector3().crossVectors(cameraDir, new Vector3(0, 1, 0)).normalize();
-
-    const moveVector = new Vector3()
-      .copy(cameraDir).multiplyScalar(dz)
-      .add(rightDir.clone().multiplyScalar(dx));
+    const cameraDirection = new Vector3();
+    camera.getWorldDirection(cameraDirection);
+    cameraDirection.y = 0;
+    cameraDirection.normalize();
+    
+    const right = new Vector3(-cameraDirection.z, 0, cameraDirection.x);
+    const moveVector = new Vector3();
+    moveVector.x += cameraDirection.x * dz;
+    moveVector.z += cameraDirection.z * dz;
+    moveVector.x += right.x * dx;
+    moveVector.z += right.z * dx;
+    
+    if (moveVector.length() > 0) moveVector.normalize();
 
     const speed = 2;
     rigidBodyRef.current.setLinvel(
@@ -97,19 +100,26 @@ export const Player = () => {
     <RigidBody
       ref={rigidBodyRef}
       mass={1}
-      position={[0, 1.5, 0]}  // ← AJUSTADO para ficar em cima do terreno
+      position={[0, 1.5, 0]}
       linearDamping={0.5}
       enabledRotations={[false, false, false]}
     >
-      <CapsuleCollider args={[0.3, 0.4]} />  // ← AJUSTADO
-
+      <CapsuleCollider args={[0.3, 0.4]} />
       <group>
+        {isNight && (
+          <pointLight
+            intensity={3.2}
+            distance={2}
+            decay={5}
+            color={0xffaa66}
+            position={[0, 0.5, 0]}
+          />
+        )}
         <mesh visible={false}>
           <boxGeometry args={[0.2, 0.5, 0.2]} />
           <meshStandardMaterial color="hotpink" />
         </mesh>
-
-        <group ref={visualRef} scale={0.25} position={[0, -0.3, 0]}>  // ← AJUSTADO
+        <group ref={visualRef} scale={0.25} position={[0, -0.7, 0]}>
           <primitive object={scene} />
         </group>
       </group>

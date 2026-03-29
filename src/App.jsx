@@ -1,68 +1,57 @@
 import { Canvas } from '@react-three/fiber';
-import { XR, ARButton } from '@react-three/xr';
 import { Physics } from '@react-three/rapier';
+import { OrbitControls } from '@react-three/drei';
 import ARScene from './components/ARScene';
 import { JoystickVisual } from './components/JoystickVisual';
 import { JoystickOverlay } from './components/JoystickOverlay';
+import { KeyboardControls } from './components/KeyboardControls';
+import { SmoothTarget } from './components/SmoothTarget';
+import useGameStore from './hooks/useGameStore';
+import { useState } from 'react';
 import './App.css';
 
 function App() {
+  const followMode = useGameStore((state) => state.followMode);
+  const [smoothTarget, setSmoothTarget] = useState([0, 1, 0]);
+
   return (
     <>
-      <ARButton
-        style={{
-          position: 'absolute',
-          top: 20,
-          left: 20,
-          zIndex: 10000,
-          padding: '12px 24px',
-          background: '#007bff',
-          color: 'white',
-          border: 'none',
-          borderRadius: 8,
-          fontSize: 18,
-          cursor: 'pointer',
-        }}
-        sessionInit={{
-          requiredFeatures: ['hit-test'],
-          optionalFeatures: ['dom-overlay'],
-          domOverlay: { root: document.body },
-        }}
-      />
-
+      <KeyboardControls />
       <JoystickVisual side="left" />
       <JoystickVisual side="right" />
       <JoystickOverlay />
 
       <Canvas
         shadows
-        gl={{ alpha: true }}
+        camera={{ position: [8, 6, 12], fov: 60 }}
         style={{
           width: '100vw',
           height: '100vh',
-          background: 'transparent',
           position: 'fixed',
           top: 0,
           left: 0,
-          pointerEvents: 'none',
           zIndex: 1,
         }}
-        camera={{ near: 0.1, far: 1000, position: [0, 5, 5], rotation: [-1, 0, 0] }}
       >
-        {/* REMOVIDA a luz direcional fixa - só mantém a ambiente básica */}
         <ambientLight intensity={0.5} />
-        
-        <XR
-          sessionInit={{
-            requiredFeatures: ['hit-test'],
-            optionalFeatures: ['dom-overlay'],
-            domOverlay: { root: document.body },
-          }}
-        >
-          <Physics gravity={[0, -9.81, 0]}>
-            <ARScene />
-          </Physics>
-        </XR>
+
+        <Physics gravity={[0, -9.81, 0]}>
+          <ARScene />
+        </Physics>
+
+        <SmoothTarget onTargetUpdate={setSmoothTarget} />
+
+        <OrbitControls
+          enabled={!followMode}
+          target={smoothTarget}
+          enablePan={false}
+          enableZoom={true}
+          enableRotate={true}
+          zoomSpeed={0.6}
+          rotateSpeed={0.5}
+          enableDamping={true}
+          dampingFactor={0.05}
+        />
       </Canvas>
     </>
   );

@@ -75,11 +75,11 @@ export const VolumetricFog = ({
   
   const geometry = useMemo(() => {
     // Plano fixo no mundo — NÃO ACOMPANHA A CÂMERA
-    const width = 65;
-    const heightPlane = 22;
-    const geometry = new THREE.PlaneGeometry(width, heightPlane, 160, 160);
+    const width = 50;
+    const heightPlane = 50;
+    const geometry = new THREE.PlaneGeometry(width, heightPlane, 80, 80);
     geometry.rotateX(-Math.PI / 2);
-    geometry.translate(0, 1.8, 0);
+    geometry.translate(0, 1.8, -8);
     return geometry;
   }, []);
   

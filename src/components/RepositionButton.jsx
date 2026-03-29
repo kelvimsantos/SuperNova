@@ -1,142 +1,152 @@
 import { Html } from '@react-three/drei';
 import { useThree, useFrame } from '@react-three/fiber';
-import { useRapier } from '@react-three/rapier';
 import { Vector3, Quaternion } from 'three';
 import useGameStore from '../hooks/useGameStore';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 export const RepositionButton = () => {
   const { camera } = useThree();
-  const { world } = useRapier();
-  const { playerPosition } = useGameStore();
-  const [followMode, setFollowMode] = useState(false); // modo de seguimento contínuo
-  const [manualMode, setManualMode] = useState(false); // opcional: manter modo manual separado
+  const { playerPosition, followMode, toggleFollowMode } = useGameStore();
+  const [visible, setVisible] = useState(false);
 
-  // Offset desejado no espaço da câmera: (direita, cima, frente) - ajuste conforme necessário
-  const desiredOffset = new Vector3(0, 1, -6); // 2m frente, 1m abaixo
+  // Offset e orientação capturados ao ativar o modo seguir
+  const cameraOffset = useRef(new Vector3());
+  const cameraQuat = useRef(new Quaternion());
 
-  // Suavidade do movimento (lerp)
-  const FOLLOW_SPEED = 5; // quanto maior, mais rápido (unidades por segundo? na verdade fator de interpolação)
+  // Posição e orientação suavizadas (apenas para suavidade)
+  const currentCameraPos = useRef(new Vector3());
+  const currentCameraQuat = useRef(new Quaternion());
 
-  // Função para mover todos os corpos de uma só vez (útil para reposicionamento manual)
-  const applyDeltaToAllBodies = (delta) => {
-    world.bodies.forEach(body => {
-      const currentPos = body.translation();
-      body.setTranslation(
-        { x: currentPos.x + delta.x, y: currentPos.y + delta.y, z: currentPos.z + delta.z },
-        true
-      );
-    });
-  };
+  const FOLLOW_SMOOTHNESS = 0.1; // ajuste conforme preferência
 
-  // Reposicionamento manual instantâneo (botão "Aproximar")
+  // Tecla Q: mostra/oculta o botão flutuante
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'q' || e.key === 'Q') {
+        setVisible(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Botão "Aproximar" – reposiciona a câmera atrás do jogador
   const handleManualReposition = () => {
-    const cameraPos = camera.position.clone();
+    if (!playerPosition) return;
     const playerPos = new Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
+    const defaultOffset = new Vector3(0, 6, 8); // atrás e acima
+    const targetPos = playerPos.clone().add(defaultOffset);
+    camera.position.copy(targetPos);
+    camera.lookAt(playerPos); // orienta para o jogador
+    currentCameraPos.current.copy(targetPos);
+    currentCameraQuat.current.copy(camera.quaternion);
 
-    // Calcula onde o jogador deveria estar com base no offset desejado
-    const targetPos = cameraPos.clone().add(desiredOffset.clone().applyQuaternion(camera.quaternion));
-
-    const delta = new Vector3().subVectors(targetPos, playerPos);
-    applyDeltaToAllBodies(delta);
-    console.log('🔍 Reposicionamento manual aplicado. Delta:', delta);
+    // Se estivermos no modo seguir, atualiza o offset e a orientação capturados
+    if (followMode) {
+      cameraOffset.current.copy(camera.position).sub(playerPos);
+      cameraQuat.current.copy(camera.quaternion);
+    }
+    console.log('🔍 Câmera aproximada');
   };
 
-  // Seguimento contínuo (executado a cada frame se followMode ativo)
-  useFrame(() => {
-    if (!followMode) return;
+  // Alterna o modo seguir
+  const handleToggleFollow = () => {
+    if (!followMode) {
+      // Ativa o modo seguir: captura o offset e a orientação atuais
+      const playerPos = new Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
+      cameraOffset.current.copy(camera.position).sub(playerPos);
+      cameraQuat.current.copy(camera.quaternion);
+      currentCameraPos.current.copy(camera.position);
+      currentCameraQuat.current.copy(camera.quaternion);
+      toggleFollowMode();
+      console.log('🟢 Modo seguir ATIVADO – orientação mantida');
+    } else {
+      toggleFollowMode();
+      console.log('🔴 Modo seguir DESATIVADO');
+    }
+  };
 
-    const cameraPos = camera.position.clone();
-    const playerPos = new Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
-
-    // Posição desejada do jogador no mundo: cameraPos + offset rotacionado pela câmera
-    const targetPos = cameraPos.clone().add(desiredOffset.clone().applyQuaternion(camera.quaternion));
-
-    // Vetor erro (para onde o jogador precisa se mover)
-    const error = new Vector3().subVectors(targetPos, playerPos);
-
-    // Se o erro for muito pequeno, não faz nada
-    if (error.length() < 0.001) return;
-
-    // Movimento suave: move uma fração do erro (baseado em FOLLOW_SPEED e deltaTime)
-    // Usamos um fator de interpolação exponencial: 1 - exp(-FOLLOW_SPEED * deltaTime)
-    // Isso dá uma sensação mais natural e independente de framerate.
-    const deltaTime = 1/60; // aproximado, mas podemos usar o clock do useFrame (segundo argumento)
-    // Na verdade o useFrame fornece deltaTime, então vamos usar:
-  });
-
-  // Precisamos do deltaTime do useFrame, então vamos reescrever o useFrame com o parâmetro
+  // Modo seguir: mantém o offset e a orientação capturados
   useFrame((_, deltaTime) => {
-    if (!followMode) return;
+    if (!followMode || !playerPosition) return;
 
-    const cameraPos = camera.position.clone();
     const playerPos = new Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
+    const targetPos = playerPos.clone().add(cameraOffset.current);
 
-    // Posição desejada do jogador no mundo
-    const targetPos = cameraPos.clone().add(desiredOffset.clone().applyQuaternion(camera.quaternion));
+    // Suaviza a posição
+    currentCameraPos.current.lerp(targetPos, FOLLOW_SMOOTHNESS);
+    // Suaviza a orientação (slerp)
+    currentCameraQuat.current.slerp(cameraQuat.current, FOLLOW_SMOOTHNESS);
 
-    // Vetor erro
-    const error = new Vector3().subVectors(targetPos, playerPos);
-
-    if (error.length() < 0.001) return;
-
-    // Fator de interpolação: quanto mais próximo de 1, mais rápido. Usamos 1 - exp(-FOLLOW_SPEED * deltaTime)
-    const factor = 1 - Math.exp(-FOLLOW_SPEED * deltaTime);
-    const move = error.clone().multiplyScalar(factor);
-
-    // Aplica o movimento a todos os corpos
-    applyDeltaToAllBodies(move);
+    camera.position.copy(currentCameraPos.current);
+    camera.quaternion.copy(currentCameraQuat.current);
   });
 
-  const toggleFollowMode = () => {
-    setFollowMode(prev => !prev);
-    console.log(followMode ? '🔴 Seguimento contínuo DESATIVADO' : '🟢 Seguimento contínuo ATIVADO');
-  };
+  if (!visible || !playerPosition) return null;
+
+  // Posição do botão flutuante sobre a cabeça do jogador
+  const buttonPosition = [playerPosition.x, playerPosition.y + 1.8, playerPosition.z];
 
   return (
     <Html
-      style={{
-        position: 'absolute',
-        bottom: '80px',
-        right: '20px',
-        zIndex: 10002,
-        pointerEvents: 'auto',
+      position={buttonPosition}
+      style={{ pointerEvents: 'auto' }}
+      transform={false}
+      occlude={false}
+      zIndex={1000}
+    >
+      <div style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '10px',
-      }}
-      transform={false}
-    >
-      <button
-        onClick={handleManualReposition}
-        style={{
-          padding: '12px 24px',
-          background: 'rgba(255,255,255,0.9)',
-          border: '2px solid #007bff',
-          borderRadius: '8px',
-          color: '#333',
-          fontSize: '18px',
-          cursor: 'pointer',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
-        }}
-      >
-        🔍 Aproximar (manual)
-      </button>
-      <button
-        onClick={toggleFollowMode}
-        style={{
-          padding: '12px 24px',
-          background: followMode ? 'rgba(76, 175, 80, 0.9)' : 'rgba(255,255,255,0.9)',
-          border: `2px solid ${followMode ? '#4CAF50' : '#007bff'}`,
-          borderRadius: '8px',
-          color: followMode ? 'white' : '#333',
-          fontSize: '18px',
-          cursor: 'pointer',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
-        }}
-      >
-        {followMode ? '🎯 Seguir ON' : '📌 Seguir OFF'}
-      </button>
+        gap: '8px',
+        alignItems: 'center',
+        background: 'rgba(0,0,0,0.7)',
+        backdropFilter: 'blur(8px)',
+        padding: '8px 12px',
+        borderRadius: '40px',
+        border: '1px solid rgba(255,255,255,0.3)',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
+        pointerEvents: 'auto',
+      }}>
+        <button
+          onClick={handleManualReposition}
+          style={{
+            padding: '6px 12px',
+            background: 'rgba(0,150,100,0.8)',
+            border: 'none',
+            borderRadius: '30px',
+            color: 'white',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            fontFamily: 'monospace',
+            whiteSpace: 'nowrap',
+          }}
+          onMouseEnter={(e) => (e.target.style.background = 'rgba(0,180,120,0.9)')}
+          onMouseLeave={(e) => (e.target.style.background = 'rgba(0,150,100,0.8)')}
+        >
+          🔍 Aproximar
+        </button>
+        <button
+          onClick={handleToggleFollow}
+          style={{
+            padding: '6px 12px',
+            background: followMode ? 'rgba(0,150,100,0.8)' : 'rgba(0,0,0,0.7)',
+            border: 'none',
+            borderRadius: '30px',
+            color: 'white',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            fontFamily: 'monospace',
+            whiteSpace: 'nowrap',
+          }}
+          onMouseEnter={(e) => (e.target.style.background = followMode ? 'rgba(0,180,120,0.9)' : 'rgba(50,50,70,0.9)')}
+          onMouseLeave={(e) => (e.target.style.background = followMode ? 'rgba(0,150,100,0.8)' : 'rgba(0,0,0,0.7)')}
+        >
+          {followMode ? '🎯 Seguir ON' : '📌 Seguir OFF'}
+        </button>
+      </div>
     </Html>
   );
 };

@@ -2,9 +2,6 @@ import React, { useRef, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// =============================================================================
-// TEXTURA 3D DE RUÍDO (SIMPLIFICADA, MAS EFICAZ)
-// =============================================================================
 let cachedTexture = null;
 
 function createNoiseTexture3D() {
@@ -21,14 +18,11 @@ function createNoiseTexture3D() {
         const ny = y / size - 0.5;
         const nz = z / size - 0.5;
         
-        // Forma de nuvem esférica com ruído
         const radius = Math.sqrt(nx*nx + ny*ny + nz*nz);
         let density = 0;
         
         if (radius < 0.6) {
-          // Núcleo denso
           density = 1.0 - radius * 1.2;
-          // Ruído para dar forma de nuvem
           density *= 0.6 + 0.4 * Math.sin(nx * 10) * Math.sin(ny * 10) * Math.sin(nz * 10);
           density = Math.max(0, Math.min(1, density));
         }
@@ -52,9 +46,6 @@ function createNoiseTexture3D() {
   return texture;
 }
 
-// =============================================================================
-// SHADER SIMPLIFICADO - FORÇA BRANCO
-// =============================================================================
 const vertexShader = `
   varying vec3 vOrigin;
   varying vec3 vDirection;
@@ -74,12 +65,13 @@ const fragmentShader = `
   uniform float uTime;
   uniform vec3 uTextureOffset;
   uniform float uTextureTiling;
+  uniform int uQuality;
   
   varying vec3 vOrigin;
   varying vec3 vDirection;
   
-  const int MAX_STEPS = 64;
-  const float STEP_SIZE = 0.08;
+  int MAX_STEPS = 48;
+  float STEP_SIZE = 0.12;
   
   vec2 hitBox(vec3 orig, vec3 dir) {
     const vec3 box_min = vec3(-0.5);
@@ -102,6 +94,10 @@ const fragmentShader = `
   }
   
   void main() {
+    // Ajusta qualidade baseado no uniform
+    MAX_STEPS = uQuality;
+    STEP_SIZE = 0.12 * (64.0 / float(uQuality));
+    
     vec3 rayDir = normalize(vDirection);
     vec2 bounds = hitBox(vOrigin, rayDir);
     if (bounds.x >= bounds.y) discard;
@@ -114,11 +110,11 @@ const fragmentShader = `
     vec3 accumulatedColor = vec3(0.0);
     float transmittance = 1.0;
     
-    for (int i = 0; i < MAX_STEPS; i++) {
+    for (int i = 0; i < 96; i++) {
+      if (i >= MAX_STEPS) break;
       float density = getDensity(p);
       
       if (density > 0.05) {
-        // COR BRANCA FORÇADA
         vec3 whiteColor = vec3(1.0, 0.98, 0.95);
         float brightness = density * stepSize * 2.5;
         accumulatedColor += whiteColor * brightness * transmittance;
@@ -136,9 +132,6 @@ const fragmentShader = `
   }
 `;
 
-// =============================================================================
-// COMPONENTE
-// =============================================================================
 export const VolumetricClouds = ({ 
   density = 5.0,
   tiling = 1.5,
@@ -153,6 +146,7 @@ export const VolumetricClouds = ({
   const texture = useMemo(() => createNoiseTexture3D(), []);
   const timeRef = useRef(0);
   const offsetRef = useRef(new THREE.Vector3(0, 0, 0));
+  const qualityRef = useRef(64);
   
   const material = useMemo(() => {
     console.log('🎨 Criando nuvem branca densa...');
@@ -164,6 +158,7 @@ export const VolumetricClouds = ({
         uTextureOffset: { value: new THREE.Vector3(0, 0, 0) },
         uTextureTiling: { value: tiling },
         cameraPos: { value: camera.position },
+        uQuality: { value: 64 },
       },
       vertexShader,
       fragmentShader,
@@ -179,6 +174,19 @@ export const VolumetricClouds = ({
     timeRef.current += 0.016;
     offsetRef.current.x += 0.008 * speed;
     offsetRef.current.z += 0.005 * speed;
+    
+    // ===== LOD POR DISTÂNCIA =====
+    const distToCamera = camera.position.distanceTo(meshRef.current.position);
+    let quality = 48;
+    if (distToCamera < 15) quality = 72;
+    else if (distToCamera < 30) quality = 56;
+    else if (distToCamera < 50) quality = 40;
+    else quality = 32;
+    
+    if (qualityRef.current !== quality) {
+      qualityRef.current = quality;
+      materialRef.current.uniforms.uQuality.value = quality;
+    }
     
     materialRef.current.uniforms.uTime.value = timeRef.current;
     materialRef.current.uniforms.uTextureOffset.value = offsetRef.current;

@@ -41,6 +41,11 @@ export const GameGrass = ({
   const timeRef = useRef(0);
   const playerPosition = useGameStore((state) => state.playerPosition);
   
+  // Luz do store (vem do WeatherController)
+  const lightDir = useGameStore((state) => state.lightDir);
+  const lightIntensity = useGameStore((state) => state.lightIntensity);
+  const ambientIntensity = 0.5; // valor fixo, pode ser ajustado
+  
   const currentWindStrength = useRef(getWindStrength());
   const currentWindSpeed = useRef(getWindSpeed());
 
@@ -103,6 +108,9 @@ export const GameGrass = ({
         interactionStrength: { value: 0.7 },
         windSpeed: { value: currentWindSpeed.current },
         windStrength: { value: currentWindStrength.current },
+        uLightDir: { value: lightDir.clone() },
+        uLightIntensity: { value: lightIntensity },
+        uAmbientIntensity: { value: ambientIntensity },
       },
       vertexShader: `
         attribute float rotation;
@@ -132,18 +140,16 @@ export const GameGrass = ({
           rotatedPos.y = pos.y;
           rotatedPos.z = pos.x * s + pos.z * c;
 
-          float wind = sin(offset.x * 0.5 + time * windSpeed * 1.5) * cos(offset.z * 0.3 + time * windSpeed * 1.2);
-          wind += sin(offset.x * 1.2 - time * windSpeed * 2.0) * 0.5;
-          wind += cos(offset.z * 0.8 + time * windSpeed * 1.8) * 0.3;
+          float wind = sin(offset.x * 0.8 + time * windSpeed * 1.2) * cos(offset.z * 0.5 + time * windSpeed * 1.0);
+          wind += sin(offset.x * 1.5 - time * windSpeed * 1.8) * 0.4;
           wind = wind * windStrength * vHeight;
           
-          // REDUZIDO: 0.6 -> 0.35 e 0.4 -> 0.25 (menos esticamento)
           rotatedPos.x += wind * 0.35;
           rotatedPos.z += wind * 0.25;
 
           vec3 worldPos = rotatedPos + offset;
-          float dx = worldPos.x - playerPosition.x;
-          float dz = worldPos.z - playerPosition.z;
+          float dx = worldPos.x - (playerPosition.x + 0.0);
+          float dz = worldPos.z - (playerPosition.z + 8.8);
           float dist = sqrt(dx*dx + dz*dz);
           
           float bend = 0.0;
@@ -167,6 +173,9 @@ export const GameGrass = ({
         varying vec2 vUv;
         varying float vHeight;
         uniform float time;
+        uniform vec3 uLightDir;
+        uniform float uLightIntensity;
+        uniform float uAmbientIntensity;
 
         void main() {
           vec3 greenBase = vec3(0.12, 0.45, 0.10);
@@ -177,8 +186,17 @@ export const GameGrass = ({
           color += variation;
           color += pow(vHeight, 1.2) * 0.15;
           
+          // Iluminação com fator de redução para evitar estouro
+          vec3 normal = vec3(0.0, 1.0, 0.0);
+          float diff = max(dot(normal, normalize(uLightDir)), 0.0);
+          float lightFactor = 0.2; // ← ajuste este valor (menor = menos brilho no dia)
+          vec3 diffuse = diff * uLightIntensity * lightFactor * color;
+          vec3 ambient = uAmbientIntensity * color;
+          
+          vec3 finalColor = clamp(ambient + diffuse, 0.0, 1.0);
+          
           float alpha = 0.92 - vHeight * 0.12;
-          gl_FragColor = vec4(color, alpha);
+          gl_FragColor = vec4(finalColor, alpha);
         }
       `,
       side: THREE.DoubleSide,
@@ -188,6 +206,17 @@ export const GameGrass = ({
 
   useFrame(() => {
     if (!meshRef.current || !material) return;
+    
+    // Culling por distância
+    if (playerPosition && meshRef.current.parent) {
+      const worldPos = meshRef.current.parent.position;
+      const dx = worldPos.x - playerPosition.x;
+      const dz = worldPos.z - playerPosition.z;
+      const dist = Math.sqrt(dx*dx + dz*dz);
+      const shouldRender = dist < 40;
+      meshRef.current.visible = shouldRender;
+      if (!shouldRender) return;
+    }
     
     const newWindStrength = getWindStrength();
     const newWindSpeed = getWindSpeed();
@@ -211,6 +240,11 @@ export const GameGrass = ({
         playerPosition.z
       );
     }
+
+    // Atualiza uniformes de luz (vêm do store)
+    material.uniforms.uLightDir.value.copy(lightDir);
+    material.uniforms.uLightIntensity.value = lightIntensity;
+    // uAmbientIntensity permanece fixo ou pode ser obtido do store
   });
 
   useEffect(() => {
