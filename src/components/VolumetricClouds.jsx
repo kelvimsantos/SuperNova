@@ -137,7 +137,7 @@ export const VolumetricClouds = ({
   tiling = 1.5,
   speed = 0.05,
   scale = 14,
-  position = [0, 2.2, -1.5],
+  position = [0, 5.2, -1.5],
   enabled = true
 }) => {
   const { camera } = useThree();
@@ -165,6 +165,7 @@ export const VolumetricClouds = ({
       transparent: true,
       side: THREE.BackSide,
       depthWrite: false,
+       depthTest: false,
     });
   }, [texture, density, tiling]);
   

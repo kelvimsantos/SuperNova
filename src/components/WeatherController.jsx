@@ -14,7 +14,7 @@ const weatherList = {
     fogDensity: 0.10, fogColor: [0.70, 0.74, 0.80], fogHeight: 0.45,
     lightning: false
   },
-  cloudy: { 
+  cloudy: {   
     name: '☁️ NUBLADO', wind: 0.5, 
     skyColor: [0.55, 0.65, 0.85],
     particles: null, particleIntensity: 0,

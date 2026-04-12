@@ -11,6 +11,7 @@ import { Html } from '@react-three/drei';
 import { WeatherController } from './WeatherController';
 import { VolumetricClouds } from './VolumetricClouds';
 import { StarField } from './StarField';
+import { WaterExperience } from './water/WaterExperience';
 
 const weatherNames = {
   clear: '☀️ Claro',
@@ -22,12 +23,12 @@ const weatherNames = {
 };
 
 const cloudConfig = {
-  clear:   { enabled: false, density: 0,    tiling: 4.6, speed: 2.08, scale: 10, position: [0, 0.5, 0.2] },
-  cloudy:  { enabled: true,  density: 2.2,  tiling: 4.6, speed: 2.08, scale: 10, position: [0, 4.5, 3.2] },
-  foggy:   { enabled: false, density: 0,    tiling: 4.6, speed: 2.08, scale: 10, position: [0, 4.5, 3.2] },
-  windy:   { enabled: true,  density: 2.0,  tiling: 4.6, speed: 3.5,  scale: 10, position: [0, 4.5, 3.2] },
-  rainy:   { enabled: true,  density: 2.5,  tiling: 4.6, speed: 2.5,  scale: 10, position: [0, 4.5, 3.2] },
-  snowy:   { enabled: true,  density: 2.3,  tiling: 4.6, speed: 1.8,  scale: 10, position: [0, 4.5, 3.2] },
+  clear:   { enabled: false, density: 0,    tiling: 5.6, speed: 2.08, scale: 70, position: [0, 0.5, 0.2] },
+  cloudy:  { enabled: true,  density: 1.7 ,  tiling: 5.6, speed: 1.08, scale: 70, position: [0, 20.5, 3.2] },
+  foggy:   { enabled: false, density: 0,    tiling: 5.6, speed: 2.08, scale: 70, position: [0, 20.5, 3.2] },
+  windy:   { enabled: true,  density: 2.0,  tiling: 5.6, speed: 1.5,  scale: 70, position: [0, 20.5, 3.2] },
+  rainy:   { enabled: true,  density: 2.5,  tiling: 5.6, speed: 2.5,  scale: 70, position: [0, 20.5, 3.2] },
+  snowy:   { enabled: true,  density: 2.3,  tiling: 5.6, speed: 1.8,  scale: 70, position: [0, 20.5, 3.2] },
 };
 
 const ARScene = () => {
@@ -89,7 +90,37 @@ const ARScene = () => {
       onNightChange={handleNightChange}
     >
       {showStars && <StarField enabled={true} />}
-      {cloud.enabled && (
+      
+     <group ref={worldGroupRef} position={[0, -1, -9]} userData={{ isWorldGroup: true }}>
+  <World />
+
+  {sceneData && <LoadedScene sceneData={sceneData} />}
+
+  {grassData && heightmap && (
+    <GameGrass
+      instances={grassData}
+      heightmap={heightmap}
+      terrainSize={terrainSize}
+      terrainResolution={terrainResolution}
+    />
+  )}
+
+  {/* 🌊 ÁGUA VINDO DO JSON */}
+  {sceneData?.water?.map(water => (
+    <WaterExperience
+      key={water.id}
+      obj={water}
+    />
+  ))}
+
+  <Player />
+
+
+      
+</group>
+
+
+  {cloud.enabled && (
         <VolumetricClouds
           density={cloud.density}
           tiling={cloud.tiling}
@@ -97,21 +128,11 @@ const ARScene = () => {
           scale={cloud.scale * 2}
           position={[0, 5.8, -8.2]}
           enabled={true}
+          renderOrder={999}
         />
       )}
-      <group ref={worldGroupRef} position={[0, -1, -9]} userData={{ isWorldGroup: true }}>
-        <World />
-        {sceneData && <LoadedScene sceneData={sceneData} />}
-        {grassData && heightmap && (
-          <GameGrass
-            instances={grassData}
-            heightmap={heightmap}
-            terrainSize={terrainSize}
-            terrainResolution={terrainResolution}
-          />
-        )}
-        <Player />
-      </group>
+      
+
       <RepositionButton />
 
       <Html transform={false}>

@@ -83,6 +83,7 @@ export const CloudFog = ({ intensity = 1.0, enabled = true }) => {
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
+       depthTest: false,
     });
   }, []);
   
