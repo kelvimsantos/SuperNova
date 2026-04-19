@@ -1,0 +1,279 @@
+/* components/inventory/Inventory.css */
+.inventory-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.inventory-container {
+  width: 800px;
+  max-width: 90vw;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.inventory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.inventory-header h2 {
+  margin: 0;
+  color: white;
+  font-size: 1.5rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.inventory-content {
+  display: flex;
+  padding: 20px;
+  gap: 20px;
+  min-height: 400px;
+}
+
+.inventory-slots {
+  flex: 2;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+  align-content: start;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.inventory-slots::-webkit-scrollbar {
+  width: 6px;
+}
+
+.inventory-slots::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.inventory-slots::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.inventory-slot {
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid #444;
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.inventory-slot:hover {
+  transform: translateY(-2px);
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.inventory-slot.selected {
+  border-color: #ffaa44;
+  background: rgba(255, 170, 68, 0.1);
+  box-shadow: 0 0 10px rgba(255, 170, 68, 0.3);
+}
+
+.item-icon {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 32px;
+}
+
+.quantity {
+  position: absolute;
+  bottom: -4px;
+  right: -8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 11px;
+  padding: 2px 5px;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+.item-name {
+  font-size: 12px;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-details {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.item-details-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.item-details-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.item-details-header h3 {
+  margin: 8px 0 4px;
+  font-size: 18px;
+}
+
+.item-rarity {
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.item-description {
+  color: #aaa;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.item-value, .item-stat {
+  color: #ffd700;
+  font-size: 12px;
+  margin: 8px 0;
+}
+
+.item-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.item-actions button {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.btn-use {
+  background: #4caf50;
+  color: white;
+}
+
+.btn-use:hover {
+  background: #45a049;
+}
+
+.btn-equip {
+  background: #2196f3;
+  color: white;
+}
+
+.btn-equip:hover {
+  background: #0b7dda;
+}
+
+.btn-discard {
+  background: #f44336;
+  color: white;
+}
+
+.btn-discard:hover {
+  background: #da190b;
+}
+
+.inventory-footer {
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #888;
+}
+
+.hint {
+  color: #666;
+}
+
+kbd {
+  background: #222;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.empty-inventory {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  grid-column: 1 / -1;
+}
+
+.empty-inventory p {
+  margin: 8px 0;
+}
+
+.empty-inventory .hint {
+  font-size: 12px;
+}

@@ -304432,12 +304432,13 @@
       0.654590904712677
     ]
   },
+    
   "portals": [
     {
       "id": 1,
-      "position": [5, 14, 2],
+      "position": [8, 14, 5],
       "targetScene": "deserto",
-      "spawn": [0, 20, 0]
+      "spawn": [0, 30, 0]
     }
   ],
 

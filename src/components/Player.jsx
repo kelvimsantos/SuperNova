@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { RigidBody, CapsuleCollider } from '@react-three/rapier';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
-import { Vector3 } from 'three';
+import { Vector3, Raycaster } from 'three';
 import useGameStore from '../hooks/useGameStore';
 
 const MODEL_PATH = '/models/player.glb';
@@ -15,6 +15,9 @@ export const Player = () => {
   const setPlayerRigidBody = useGameStore((state) => state.setPlayerRigidBody);
   const currentAnim = useRef('Idle');
   const isNight = useGameStore((state) => state.isNight);
+  const currentScene = useGameStore((state) => state.currentScene);
+  const worldGroupRef = useGameStore((state) => state.worldGroupRef);
+  const [isAdjusting, setIsAdjusting] = useState(false);
 
   const { scene, animations } = useGLTF(MODEL_PATH);
   const { actions } = useAnimations(animations, visualRef);
@@ -44,6 +47,111 @@ export const Player = () => {
   };
 
   const setPlayerPosition = useGameStore((state) => state.setPlayerPosition);
+
+  // 🔥 FUNÇÃO PARA ENCONTRAR O CHÃO COM RAYCAST SUBINDO GRADUALMENTE
+  const findGroundAndAdjust = () => {
+    if (!rigidBodyRef.current || !worldGroupRef?.current || isAdjusting) return;
+
+    setIsAdjusting(true);
+    
+    const currentPos = rigidBodyRef.current.translation();
+    const raycaster = new Raycaster();
+    
+    // Tenta encontrar o chão de diferentes alturas (de 5 em 5 até 100)
+    const tryFindGround = (startY) => {
+      return new Promise((resolve) => {
+        let foundGround = false;
+        let groundY = null;
+        
+        // Tenta de 5 em 5 unidades até 100
+        for (let yOffset = 0; yOffset <= 100; yOffset += 5) {
+          const origin = new Vector3(currentPos.x, startY + yOffset, currentPos.z);
+          const direction = new Vector3(0, -1, 0);
+          raycaster.set(origin, direction);
+          
+          // Coleta todos os objetos do grupo mundial
+          const allObjects = [];
+          const collectObjects = (obj) => {
+            if (obj.isMesh && obj.visible) {
+              allObjects.push(obj);
+            }
+            if (obj.children) {
+              obj.children.forEach(child => collectObjects(child));
+            }
+          };
+          
+          if (worldGroupRef.current) {
+            collectObjects(worldGroupRef.current);
+          }
+          
+          // Faz raycast em todos os objetos
+          for (const obj of allObjects) {
+            const intersects = raycaster.intersectObject(obj, true);
+            if (intersects.length > 0) {
+              const hitPoint = intersects[0].point;
+              if (groundY === null || hitPoint.y > groundY) {
+                groundY = hitPoint.y;
+                foundGround = true;
+              }
+            }
+          }
+          
+          if (foundGround) break;
+        }
+        
+        resolve({ foundGround, groundY });
+      });
+    };
+    
+    // Executa a busca
+    tryFindGround(currentPos.y).then(({ foundGround, groundY }) => {
+      if (foundGround && groundY !== null) {
+        const newY = groundY + 1.5; // Altura do player
+        console.log(`✅ Chão encontrado em Y=${groundY.toFixed(2)}. Ajustando player para Y=${newY.toFixed(2)}`);
+        rigidBodyRef.current.setTranslation({ x: currentPos.x, y: newY, z: currentPos.z }, true);
+      } else {
+        // Se não encontrou, sobe mais 20 unidades
+        const newY = currentPos.y + 20;
+        console.log(`⚠️ Chão não encontrado. Subindo player para Y=${newY}`);
+        rigidBodyRef.current.setTranslation({ x: currentPos.x, y: newY, z: currentPos.z }, true);
+        
+        // Tenta novamente após 500ms
+        setTimeout(() => {
+          setIsAdjusting(false);
+          findGroundAndAdjust();
+        }, 500);
+        return;
+      }
+      
+      setIsAdjusting(false);
+    });
+  };
+
+  // 🔥 EXECUTA QUANDO A CENA MUDA OU O PLAYER É CRIADO
+  useEffect(() => {
+    // Aguarda o mundo carregar
+    const timer = setTimeout(() => {
+      if (rigidBodyRef.current && worldGroupRef?.current) {
+        console.log(`🔍 Buscando chão na cena: ${currentScene}`);
+        findGroundAndAdjust();
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [currentScene, worldGroupRef]);
+
+  // 🔥 VERIFICA SE O PLAYER ESTÁ CAINDO (Y muito baixo)
+  useFrame(() => {
+    if (!rigidBodyRef.current || isAdjusting) return;
+    
+    const pos = rigidBodyRef.current.translation();
+    
+    // Se o player estiver abaixo de Y = -10, ajusta novamente
+    if (pos.y < -10) {
+      console.log('⚠️ Player caiu muito baixo, procurando chão novamente...');
+      findGroundAndAdjust();
+    }
+  });
 
   useFrame(({ camera }) => {
     if (!rigidBodyRef.current) return;
@@ -100,7 +208,7 @@ export const Player = () => {
     <RigidBody
       ref={rigidBodyRef}
       mass={1}
-      position={[0, 1.5, 0]}
+      position={[0, 50, 0]}
       linearDamping={0.5}
       enabledRotations={[false, false, false]}
     >

@@ -2,7 +2,6 @@ import { useRef, useEffect, useState } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Player } from './Player';
-import { LoadedScene } from './LoadedScene';
 import { RepositionButton } from './RepositionButton';
 import useGameStore from '../hooks/useGameStore';
 import { World } from './World';
@@ -12,6 +11,10 @@ import { WeatherController } from './WeatherController';
 import { VolumetricClouds } from './VolumetricClouds';
 import { StarField } from './StarField';
 import { WaterExperience } from './water/WaterExperience';
+import { Portal } from './Portal';
+import { ItemPickup } from './items/ItemPickup';
+import { EnemySpawner } from './enemies/EnemySpawner';
+import { sceneItems } from '../config/sceneEnemies';
 
 const weatherNames = {
   clear: '☀️ Claro',
@@ -34,38 +37,77 @@ const cloudConfig = {
 const ARScene = () => {
   const { camera } = useThree();
   const worldGroupRef = useRef(null);
-  const { setWorldGroupRef, playerRigidBody, setIsNight } = useGameStore();
+  const { setWorldGroupRef, playerRigidBody, setIsNight, currentScene, setPlayerPosition } = useGameStore();
   const [sceneData, setSceneData] = useState(null);
   const [grassData, setGrassData] = useState(null);
   const [currentWeather, setCurrentWeather] = useState('clear');
   const [cameraInitialized, setCameraInitialized] = useState(false);
   const [showStars, setShowStars] = useState(false);
   const [isNightUI, setIsNightUI] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setWorldGroupRef(worldGroupRef.current);
+    setWorldGroupRef(worldGroupRef.current);  
   }, [setWorldGroupRef]);
 
-  useEffect(() => {
-    fetch('/scene.json')
-      .then(res => res.json())
-      .then(data => {
-        setSceneData(data);
-        setGrassData(data.grassInstances);
-      })
-      .catch(err => console.error('Erro ao carregar cena:', err));
-  }, []);
+  const renderItemsByScene = () => {
+    const items = sceneItems[currentScene] || [];
+    return items.map((item, index) => (
+      <ItemPickup key={index} itemId={item.id} position={item.position} />
+    ));
+  };
 
   useEffect(() => {
-    if (!cameraInitialized && playerRigidBody) {
+    const loadScene = async () => {
+      setIsLoading(true);
+      try {
+        let jsonPath;
+        if (currentScene === 'default') {
+          jsonPath = '/scene.json';
+        } else {
+          jsonPath = `/scenes/${currentScene}/scene.json`;
+        }
+        
+        console.log(`📂 Carregando JSON: ${jsonPath}`);
+        const response = await fetch(jsonPath);
+        const data = await response.json();
+        
+        console.log(`✅ JSON carregado:`, data);
+        setSceneData(data);
+        setGrassData(data.grassInstances);
+        
+        if (playerRigidBody && data.spawnPoint) {
+          const spawnPos = Array.isArray(data.spawnPoint) 
+            ? { x: data.spawnPoint[0], y: data.spawnPoint[1], z: data.spawnPoint[2] }
+            : data.spawnPoint;
+          console.log(`🎮 Teleportando player para:`, spawnPos);
+          playerRigidBody.setTranslation(spawnPos, true);
+          setPlayerPosition(spawnPos);
+          setCameraInitialized(false);
+        } else {
+          console.warn(`⚠️ Sem spawnPoint no JSON da cena: ${currentScene}`);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar cena:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadScene();
+  }, [currentScene, playerRigidBody, setPlayerPosition]);
+
+  useEffect(() => {
+    if (!cameraInitialized && playerRigidBody && !isLoading) {
       const pos = playerRigidBody.translation();
-      if (pos && (pos.x !== 0 || pos.z !== 0)) {
-        camera.position.set(pos.x + 5, 6, pos.z + 8);
+      if (pos) {
+        console.log(`📷 Posição do player para câmera:`, pos);
+        camera.position.set(pos.x + 5, pos.y + 3, pos.z + 8);
         camera.lookAt(pos.x, pos.y + 0.8, pos.z);
         setCameraInitialized(true);
       }
     }
-  }, [playerRigidBody, camera, cameraInitialized]);
+  }, [playerRigidBody, camera, cameraInitialized, isLoading]);
 
   const teleportUp = () => {
     if (!playerRigidBody) return;
@@ -83,6 +125,22 @@ const ARScene = () => {
     setIsNight(isNight);
   };
 
+  if (isLoading) {
+    return (
+      <Html center>
+        <div style={{
+          background: 'rgba(0,0,0,0.8)',
+          padding: '20px 40px',
+          borderRadius: '10px',
+          color: 'white',
+          fontSize: '18px'
+        }}>
+          Carregando {currentScene}...
+        </div>
+      </Html>
+    );
+  }
+
   return (
     <WeatherController
       onWeatherChange={setCurrentWeather}
@@ -90,37 +148,32 @@ const ARScene = () => {
       onNightChange={handleNightChange}
     >
       {showStars && <StarField enabled={true} />}
-      
-     <group ref={worldGroupRef} position={[0, -1, -9]} userData={{ isWorldGroup: true }}>
-  <World />
+      <group ref={worldGroupRef} position={[0, 0, 0]} userData={{ isWorldGroup: true }}>
+        <World />
+        {sceneData?.portals?.map(portal => (
+          <Portal key={portal.id} data={portal} />
+        ))}
+        {grassData && heightmap && (
+          <GameGrass
+            instances={grassData}
+            heightmap={heightmap}
+            terrainSize={terrainSize}
+            terrainResolution={terrainResolution}
+          />
+        )}
+        {sceneData?.water?.map(water => (
+          <WaterExperience key={water.id} obj={water} />
+        ))}
 
-  {sceneData && <LoadedScene sceneData={sceneData} />}
+        {/* 🔥 SPAWNER DE INIMIGOS COM RESPAWN */}
+        <EnemySpawner currentScene={currentScene} />
+        
+        {/* 🔥 ITENS POR CENA */}
+        {renderItemsByScene()}
 
-  {grassData && heightmap && (
-    <GameGrass
-      instances={grassData}
-      heightmap={heightmap}
-      terrainSize={terrainSize}
-      terrainResolution={terrainResolution}
-    />
-  )}
-
-  {/* 🌊 ÁGUA VINDO DO JSON */}
-  {sceneData?.water?.map(water => (
-    <WaterExperience
-      key={water.id}
-      obj={water}
-    />
-  ))}
-
-  <Player />
-
-
-      
-</group>
-
-
-  {cloud.enabled && (
+        <Player />
+      </group>                                         
+      {cloud.enabled && (
         <VolumetricClouds
           density={cloud.density}
           tiling={cloud.tiling}
@@ -131,10 +184,7 @@ const ARScene = () => {
           renderOrder={999}
         />
       )}
-      
-
       <RepositionButton />
-
       <Html transform={false}>
         <div style={{
           position: 'fixed',
@@ -167,7 +217,6 @@ const ARScene = () => {
             ⬆️ Teleportar
           </button>
         </div>
-
         <div style={{ 
           position: 'fixed', 
           top: 20, 
@@ -195,7 +244,7 @@ const ARScene = () => {
               currentWeather === 'snowy' ? '❄️' : '🌫️'
             )}
           </span>
-          <span>{weatherNames[currentWeather] || '☀️ Claro'}</span>
+          <span>{weatherNames[currentWeather] || '☀️ Claro'} - {currentScene}</span>
           {cloud.enabled && <span style={{ color: '#88ff88', marginLeft: 8 }}>☁️</span>}
         </div>
       </Html>

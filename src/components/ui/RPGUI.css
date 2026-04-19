@@ -1,0 +1,253 @@
+/* components/ui/RPGUI.css */
+.rpg-ui {
+  position: fixed;
+  bottom: 30px;
+  left: 20px;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 280px;
+  font-family: 'Courier New', monospace;
+  pointer-events: none;
+}
+
+/* Player Portrait */
+.player-portrait {
+  position: relative;
+  margin-bottom: 5px;
+}
+
+.portrait-frame {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #1a1a2e, #0f0f1a);
+  border: 3px solid #ffd700;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 0 15px rgba(0,0,0,0.5);
+}
+
+.portrait-icon {
+  font-size: 36px;
+}
+
+.level-badge {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  background: #ffd700;
+  color: #000;
+  font-size: 14px;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 2px solid #fff;
+}
+
+.skill-points-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #ff6b35;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 20px;
+  border: 2px solid #fff;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Stat Bars */
+.stat-bar-container {
+  background: rgba(0,0,0,0.6);
+  border-radius: 8px;
+  padding: 4px 8px;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.stat-bar-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 4px;
+  font-weight: bold;
+}
+
+.stat-icon {
+  font-size: 12px;
+}
+
+.stat-value {
+  color: #fff;
+  text-shadow: 0 0 3px black;
+}
+
+.stat-bar {
+  height: 16px;
+  background: rgba(0,0,0,0.5);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  position: relative;
+  border-radius: 8px;
+}
+
+.health-fill {
+  background: linear-gradient(90deg, #ff3333, #ff6666);
+  box-shadow: 0 0 5px #ff3333;
+}
+
+.mana-fill {
+  background: linear-gradient(90deg, #3366ff, #6699ff);
+  box-shadow: 0 0 5px #3366ff;
+}
+
+.health-bar.flash .health-fill {
+  animation: healthFlash 0.3s ease;
+}
+
+.mana-bar.flash .mana-fill {
+  animation: manaFlash 0.3s ease;
+}
+
+@keyframes healthFlash {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.5); box-shadow: 0 0 15px #ff0000; }
+}
+
+@keyframes manaFlash {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.5); box-shadow: 0 0 15px #0066ff; }
+}
+
+.bar-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* XP Bar */
+.xp-bar-container {
+  background: rgba(0,0,0,0.5);
+  border-radius: 8px;
+  padding: 4px 8px;
+  margin-top: 4px;
+}
+
+.xp-bar-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  margin-bottom: 3px;
+  color: #ffd700;
+}
+
+.xp-bar {
+  height: 8px;
+  background: rgba(0,0,0,0.5);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffd700, #ffaa00);
+  transition: width 0.3s ease;
+  border-radius: 4px;
+  position: relative;
+}
+
+.xp-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 2s infinite;
+}
+
+/* Level Up Notification */
+.level-up-notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, #ffd700, #ffaa00);
+  color: #000;
+  padding: 20px 40px;
+  border-radius: 20px;
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+  z-index: 20000;
+  animation: levelUpFloat 2s ease-out forwards;
+  box-shadow: 0 0 30px rgba(255,215,0,0.5);
+  border: 2px solid #fff;
+}
+
+.level-up-points {
+  display: block;
+  font-size: 14px;
+  margin-top: 8px;
+  color: #333;
+}
+
+.level-up-glow {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background: radial-gradient(circle, rgba(255,215,0,0.3), transparent);
+  border-radius: 30px;
+  animation: pulse 0.5s infinite;
+}
+
+@keyframes levelUpFloat {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+  40% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.5);
+    visibility: hidden;
+  }
+}

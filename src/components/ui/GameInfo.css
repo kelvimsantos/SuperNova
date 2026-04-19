@@ -1,0 +1,293 @@
+/* components/ui/GameInfo.css */
+
+/* Botão de toggle - LADO DIREITO */
+.game-info-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #2a1a3e, #1a0f2e);
+  border: 1px solid rgba(200, 100, 200, 0.5);
+  border-radius: 40px;
+  padding: 10px 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Courier New', monospace;
+  backdrop-filter: blur(8px);
+}
+
+.game-info-toggle:hover {
+  transform: scale(1.05);
+  border-color: #c86eff;
+  box-shadow: 0 0 15px rgba(200, 100, 200, 0.3);
+}
+
+.game-info-toggle.active {
+  background: linear-gradient(135deg, #c86eff, #a855d6);
+  color: #fff;
+}
+
+.toggle-icon {
+  font-size: 20px;
+}
+
+.toggle-text {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Painel principal - LADO DIREITO */
+.game-info-panel {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 380px;
+  max-width: calc(100vw - 40px);
+  max-height: 70vh;
+  background: linear-gradient(135deg, rgba(30, 20, 50, 0.95), rgba(20, 10, 40, 0.95));
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  border: 1px solid rgba(200, 100, 200, 0.4);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+  font-family: 'Courier New', monospace;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(200, 100, 200, 0.3);
+}
+
+.panel-header h3 {
+  margin: 0;
+  color: #d48eff;
+  font-size: 16px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #d48eff;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(200, 100, 200, 0.2);
+  color: #ff88ff;
+}
+
+/* Tabs */
+.panel-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(200, 100, 200, 0.2);
+  flex-wrap: wrap;
+}
+
+.panel-tabs button {
+  background: rgba(200, 100, 200, 0.15);
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  color: #d48eff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: monospace;
+}
+
+.panel-tabs button:hover {
+  background: rgba(200, 100, 200, 0.3);
+  color: #ffb8ff;
+}
+
+.panel-tabs button.active {
+  background: #c86eff;
+  color: #fff;
+}
+
+/* Conteúdo */
+.panel-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  max-height: 50vh;
+  color: #e0cce8;
+}
+
+.panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+  background: rgba(200, 100, 200, 0.1);
+  border-radius: 3px;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+  background: #c86eff;
+  border-radius: 3px;
+}
+
+.tab-content h4 {
+  color: #d48eff;
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  border-left: 3px solid #c86eff;
+  padding-left: 10px;
+}
+
+/* Tabela de informações */
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 16px;
+  color: #e0cce8;
+}
+
+.info-table th {
+  background: rgba(200, 100, 200, 0.2);
+  padding: 6px 8px;
+  text-align: left;
+  color: #d48eff;
+}
+
+.info-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(200, 100, 200, 0.2);
+}
+
+.info-table tr.locked td:last-child {
+  color: #ffaaaa;
+}
+
+.info-table tr.unlocked td:last-child {
+  color: #aaffaa;
+}
+
+kbd {
+  background: #2a1a3e;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 11px;
+  border: 1px solid #c86eff;
+  color: #d48eff;
+}
+
+/* Status do jogador */
+.player-stats {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #e0cce8;
+}
+
+.stat-value {
+  color: #d48eff;
+  font-weight: bold;
+}
+
+.exp-bar-mini {
+  height: 6px;
+  background: #2a1a3e;
+  border-radius: 3px;
+  margin: 8px 0;
+  overflow: hidden;
+}
+
+.exp-fill-mini {
+  height: 100%;
+  background: linear-gradient(90deg, #c86eff, #a855d6);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Lista de dicas */
+.tips-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 12px;
+  color: #e0cce8;
+}
+
+.tips-list li {
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.tips-list li strong {
+  color: #d48eff;
+}
+
+/* Footer */
+.panel-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.5);
+  border-top: 1px solid rgba(200, 100, 200, 0.2);
+  font-size: 10px;
+  color: #aa88bb;
+}
+
+.panel-footer kbd {
+  font-size: 9px;
+}
+
+.skill-note {
+  font-size: 11px;
+  color: #aa88bb;
+  margin-top: 12px;
+  text-align: center;
+}
+
+/* Listas em geral */
+.tab-content ul {
+  color: #e0cce8;
+  font-size: 12px;
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.tab-content ul li {
+  margin-bottom: 6px;
+}

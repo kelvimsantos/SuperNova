@@ -1,0 +1,44 @@
+/* components/ui/CombatText.css */
+.combat-text-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 20000;
+  overflow: visible;
+}
+
+.combat-text {
+  position: fixed;
+  font-size: 20px;
+  font-weight: bold;
+  text-shadow: 0 0 3px black;
+  animation: floatUp 1s ease-out forwards;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
+.combat-text.damage {
+  color: #ff4444;
+}
+
+.combat-text.heal {
+  color: #44ff44;
+}
+
+.combat-text.exp {
+  color: #ffd700;
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(-50px);
+  }
+}
