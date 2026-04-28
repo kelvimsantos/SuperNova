@@ -1,0 +1,128 @@
+/* components/LoadingScreen.css */
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #0a0a2a, #1a1a3e);
+  z-index: 20000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Courier New', monospace;
+}
+
+.loading-container {
+  text-align: center;
+  animation: fadeIn 0.5s ease;
+}
+
+.loading-animation {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 30px;
+}
+
+.loading-spinner {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border: 4px solid rgba(200, 100, 200, 0.2);
+  border-top-color: #c86eff;
+  border-right-color: #d48eff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-orb {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #d48eff;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+}
+
+.loading-message {
+  color: #fff;
+  font-size: 20px;
+  margin-bottom: 30px;
+  letter-spacing: 2px;
+}
+
+.progress-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c86eff, #d48eff);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 10px #c86eff;
+}
+
+.progress-percent {
+  color: #d48eff;
+  font-size: 14px;
+  font-weight: bold;
+  min-width: 45px;
+}
+
+.loading-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 15px 25px;
+  background: rgba(200, 100, 200, 0.1);
+  border-radius: 50px;
+  border: 1px solid rgba(200, 100, 200, 0.3);
+  margin-top: 20px;
+}
+
+.tip-icon {
+  font-size: 20px;
+  animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.loading-tip p {
+  color: #e0cce8;
+  font-size: 14px;
+  margin: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}

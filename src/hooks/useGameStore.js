@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import * as THREE from 'three';
 
-const useGameStore = create((set) => ({
+const useGameStore = create((set, get) => ({
   // 🔥 SISTEMA DE NÍVEL E EXP
   playerLevel: 1,
   playerExp: 0,
@@ -38,6 +38,10 @@ const useGameStore = create((set) => ({
     };
   }),
   
+  setPlayerLevel: (level) => set({ playerLevel: level }),
+  setPlayerExp: (exp) => set({ playerExp: exp }),
+  setSkillPoints: (points) => set({ skillPoints: points }),
+  
   // 🔥 SKILLS DESBLOQUEADAS
   unlockedSkills: [],
   unlockSkill: (skillId) => set((state) => {
@@ -55,6 +59,8 @@ const useGameStore = create((set) => ({
       skillPoints: state.skillPoints - 1
     };
   }),
+  
+  setUnlockedSkills: (skills) => set({ unlockedSkills: skills }),
 
   // 🔥 PLAYER
   playerRigidBody: null,
@@ -91,6 +97,92 @@ const useGameStore = create((set) => ({
   })),
   clearInventory: () => set({ inventory: [] }),
 
+  // 🔥 SISTEMA DE EQUIPAMENTO
+  equippedItems: {
+    weapon: null,
+    shield: null,
+    helmet: null,
+    chest: null,
+    legs: null,
+    boots: null,
+    gloves: null,
+    shoulders: null,
+    belt: null,
+    necklace: null,
+    ring: null,
+    cloak: null,
+    bracers: null,
+    greaves: null,
+  },
+  
+  currentClass: 'warrior',
+  
+  setEquippedItem: (slot, item) => set((state) => ({
+    equippedItems: { ...state.equippedItems, [slot]: item }
+  })),
+  
+  unequipItem: (slot) => set((state) => ({
+    equippedItems: { ...state.equippedItems, [slot]: null }
+  })),
+  
+  setCurrentClass: (classType) => set({ currentClass: classType }),
+  
+  // 🔥 CÁLCULO DE ATRIBUTOS DO JOGADOR
+  getPlayerStats: () => {
+    const state = get();
+    let stats = {
+      strength: 10,
+      agility: 10,
+      intelligence: 10,
+      stamina: 10,
+      spirit: 10,
+      criticalChance: 0.05,
+      attackSpeed: 1.0,
+      moveSpeed: 1.0,
+      magicFind: 0,
+      bonusDamage: 0,
+      bonusDefense: 0,
+    };
+    
+    Object.values(state.equippedItems).forEach(item => {
+      if (item && item.stats) {
+        Object.keys(stats).forEach(stat => {
+          if (item.stats[stat]) {
+            stats[stat] += item.stats[stat];
+          }
+        });
+      }
+      if (item && item.damage) stats.bonusDamage += item.damage;
+      if (item && item.defense) stats.bonusDefense += item.defense;
+    });
+    
+    switch(state.currentClass) {
+      case 'warrior':
+        stats.strength += 5; stats.stamina += 3; stats.bonusDamage += 5;
+        break;
+      case 'mage':
+        stats.intelligence += 5; stats.spirit += 3;
+        break;
+      case 'archer':
+        stats.agility += 5; stats.criticalChance += 0.1; stats.moveSpeed += 0.2;
+        break;
+      case 'tank':
+        stats.stamina += 8; stats.strength += 2; stats.bonusDefense += 10;
+        break;
+      case 'healer':
+        stats.spirit += 5; stats.intelligence += 3;
+        break;
+    }
+    return stats;
+  },
+  
+  getPlayerMaxHealth: () => 100 + (get().getPlayerStats().stamina * 5),
+  
+  getPlayerDamage: () => {
+    const stats = get().getPlayerStats();
+    return Math.floor(15 + (stats.strength * 1.5) + stats.bonusDamage);
+  },
+
   // 🔥 SISTEMA DE COMBATE
   playerHealth: 100,
   playerMaxHealth: 100,
@@ -98,16 +190,36 @@ const useGameStore = create((set) => ({
   playerMaxMana: 50,
   playerDamage: 15,
   
-  setPlayerHealth: (health) => set({ playerHealth: Math.max(0, Math.min(health, 100)) }),
-  setPlayerMana: (mana) => set({ playerMana: Math.max(0, Math.min(mana, 50)) }),
-  
-  takeDamage: (damage) => set((state) => ({ 
-    playerHealth: Math.max(0, state.playerHealth - damage)
+  setPlayerHealth: (health) => set((state) => ({ 
+    playerHealth: Math.max(0, Math.min(health, state.playerMaxHealth))
   })),
+  
+  setPlayerMana: (mana) => set((state) => ({ 
+    playerMana: Math.max(0, Math.min(mana, state.playerMaxMana))
+  })),
+  
+  takeDamage: (damage) => set((state) => {
+    const stats = get().getPlayerStats();
+    const reducedDamage = Math.max(1, damage - stats.bonusDefense);
+    return { playerHealth: Math.max(0, state.playerHealth - reducedDamage) };
+  }),
   
   healPlayer: (amount) => set((state) => ({ 
     playerHealth: Math.min(state.playerMaxHealth, state.playerHealth + amount)
   })),
+
+  // 🔥 SISTEMA DE QUESTS - KILLS
+  playerKills: { slime: 0, scorpion: 0, cactus_monster: 0 },
+  
+  setPlayerKills: (kills) => set({ playerKills: kills }),
+  
+  addKill: (enemyType) => set((state) => ({
+    playerKills: { ...state.playerKills, [enemyType]: (state.playerKills[enemyType] || 0) + 1 }
+  })),
+  
+  getKills: (enemyType) => get().playerKills[enemyType] || 0,
+  
+  resetKills: () => set({ playerKills: { slime: 0, scorpion: 0, cactus_monster: 0 } }),
 
   // 🔥 LUZ
   lightDir: new THREE.Vector3(0.5, 0.8, 0.3),

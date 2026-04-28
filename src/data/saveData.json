@@ -1,0 +1,28 @@
+{
+  "player": {
+    "level": 1,
+    "exp": 0,
+    "skillPoints": 0,
+    "health": 100,
+    "mana": 50,
+    "currentScene": "default",
+    "position": [0, 15, 0]
+  },
+  "inventory": [],
+  "equipment": {
+    "weapon": null,
+    "shield": null,
+    "helmet": null,
+    "chest": null
+  },
+  "quests": {},
+  "unlockedSkills": [],
+  "playerKills": {
+    "slime": 0,
+    "scorpion": 0
+  },
+  "settings": {
+    "volume": 0.7,
+    "graphics": "high"
+  }
+}

@@ -1,0 +1,234 @@
+/* components/quests/QuestMenu.css */
+.quest-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quest-menu-container {
+  width: 800px;
+  max-width: 90vw;
+  height: 600px;
+  max-height: 80vh;
+  background: linear-gradient(135deg, #1a1a2e, #0f0f1a);
+  border-radius: 16px;
+  border: 1px solid rgba(200, 100, 200, 0.4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.quest-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(200, 100, 200, 0.3);
+}
+
+.quest-menu-header h2 {
+  margin: 0;
+  color: #d48eff;
+}
+
+.quest-menu-filters {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(200, 100, 200, 0.2);
+}
+
+.quest-menu-filters button {
+  padding: 6px 16px;
+  background: rgba(200, 100, 200, 0.15);
+  border: none;
+  border-radius: 20px;
+  color: #e0cce8;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quest-menu-filters button:hover {
+  background: rgba(200, 100, 200, 0.3);
+}
+
+.quest-menu-filters button.active {
+  background: #c86eff;
+  color: #fff;
+}
+
+.quest-menu-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.quest-list {
+  width: 280px;
+  border-right: 1px solid rgba(200, 100, 200, 0.2);
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.quest-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.quest-list::-webkit-scrollbar-track {
+  background: rgba(200, 100, 200, 0.1);
+}
+
+.quest-list::-webkit-scrollbar-thumb {
+  background: #c86eff;
+  border-radius: 3px;
+}
+
+.quest-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.quest-item:hover {
+  background: rgba(200, 100, 200, 0.1);
+  transform: translateX(4px);
+}
+
+.quest-item.selected {
+  border-color: #c86eff;
+  background: rgba(200, 100, 200, 0.15);
+}
+
+.quest-icon {
+  font-size: 28px;
+}
+
+.quest-info {
+  flex: 1;
+}
+
+.quest-name {
+  font-size: 14px;
+  font-weight: bold;
+  color: #e0cce8;
+  margin-bottom: 4px;
+}
+
+.quest-status {
+  font-size: 11px;
+}
+
+.empty-quests {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+}
+
+.quest-details-panel {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.quest-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(200, 100, 200, 0.2);
+}
+
+.quest-details-header h3 {
+  margin: 0;
+  color: #ffd700;
+}
+
+.quest-status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.quest-details-description {
+  color: #e0cce8;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.quest-details-requirements, .quest-details-rewards {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.quest-details-requirements h4, .quest-details-rewards h4 {
+  margin: 0 0 8px 0;
+  color: #d48eff;
+  font-size: 13px;
+}
+
+.quest-details-requirements p, .quest-details-rewards ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #e0cce8;
+  font-size: 13px;
+}
+
+.quest-details-actions {
+  margin-top: 20px;
+}
+
+.btn-abandon {
+  width: 100%;
+  padding: 10px;
+  background: rgba(244, 67, 54, 0.2);
+  border: 1px solid #f44336;
+  border-radius: 8px;
+  color: #f44336;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.btn-abandon:hover {
+  background: rgba(244, 67, 54, 0.4);
+}
+
+.quest-menu-footer {
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(200, 100, 200, 0.2);
+  font-size: 11px;
+  color: #888;
+  display: flex;
+  justify-content: space-between;
+}
+
+.quest-menu-footer kbd {
+  background: #2a1a3e;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  color: #d48eff;
+}

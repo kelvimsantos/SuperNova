@@ -4,6 +4,7 @@ import { Sphere, Box, Text, Ring } from '@react-three/drei';
 import * as THREE from 'three';
 import useGameStore from '../../hooks/useGameStore';
 import { ItemDatabase } from '../inventory/ItemTypes';
+import { generateDrops } from '../../config/droppedItems';
 
 export const SlimeEnemy = ({ 
   id,
@@ -30,7 +31,6 @@ export const SlimeEnemy = ({
   
   // 🔥 Função para obter posição da câmera para o texto de dano
   const getScreenPosition = () => {
-    // Retorna uma posição centralizada na tela para o texto de dano
     return { x: window.innerWidth / 2, y: window.innerHeight / 3 };
   };
   
@@ -64,7 +64,6 @@ export const SlimeEnemy = ({
           takeDamage(damage);
           console.log(`💥 Slime atacou! Dano: ${damage}`);
           
-          // 🔥 Evento de dano do inimigo no player
           window.dispatchEvent(new CustomEvent('combatDamage', { 
             detail: { 
               damage: damage, 
@@ -104,7 +103,6 @@ export const SlimeEnemy = ({
     setHitFlash(true);
     setTimeout(() => setHitFlash(false), 150);
     
-    // 🔥 Evento de dano causado pelo player
     window.dispatchEvent(new CustomEvent('combatDamage', { 
       detail: { 
         damage: damageAmount, 
@@ -137,7 +135,6 @@ export const SlimeEnemy = ({
     addExp(expReward);
     console.log(`✨ +${expReward} XP!`);
     
-    // 🔥 Evento de XP ganho
     window.dispatchEvent(new CustomEvent('combatExp', { 
       detail: { 
         amount: expReward, 
@@ -145,20 +142,30 @@ export const SlimeEnemy = ({
       }
     }));
     
-    // 🔥 DROPAR ITENS
-    if (dropItems && dropItems.length > 0) {
-      dropItems.forEach(itemId => {
-        const itemInfo = ItemDatabase[itemId];
-        if (itemInfo) {
+    // 🔥 DROPS ALEATÓRIOS
+    const drops = generateDrops('slime');
+    drops.forEach(drop => {
+      const itemInfo = ItemDatabase[drop.id];
+      if (itemInfo) {
+        for (let i = 0; i < (drop.quantity || 1); i++) {
           addToInventory({
             ...itemInfo,
             quantity: 1,
           });
           console.log(`🎁 Recebeu: ${itemInfo.name}`);
         }
-      });
-    }
+      }
+    });
     
+    // 🔥 REGISTRA KILL PARA QUESTS
+ //const kills = useGameStore.getState().playerKills || {};
+ //const newKills = { ...kills, slime: (kills.slime || 0) + 1 };
+ //useGameStore.getState().setPlayerKills(newKills);
+  
+  const addKill = useGameStore.getState().addKill;
+  addKill('slime');
+  console.log(`📊 Kills de slime: ${useGameStore.getState().getKills('slime')}`);
+  
     // 🔥 NOTIFICAR MORTE PARA RESPAWN
     if (onDeath) {
       onDeath();

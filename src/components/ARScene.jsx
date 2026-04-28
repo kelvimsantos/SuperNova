@@ -15,6 +15,9 @@ import { Portal } from './Portal';
 import { ItemPickup } from './items/ItemPickup';
 import { EnemySpawner } from './enemies/EnemySpawner';
 import { sceneItems } from '../config/sceneEnemies';
+import { DROPPED_ITEMS } from '../config/droppedItems';
+import { QuestNPC } from './quests/QuestNPC';
+
 
 const weatherNames = {
   clear: '☀️ Claro',
@@ -50,10 +53,24 @@ const ARScene = () => {
     setWorldGroupRef(worldGroupRef.current);  
   }, [setWorldGroupRef]);
 
+  // 🔥 ITENS DO JSON (sceneItems)
   const renderItemsByScene = () => {
     const items = sceneItems[currentScene] || [];
     return items.map((item, index) => (
-      <ItemPickup key={index} itemId={item.id} position={item.position} />
+      <ItemPickup key={`scene-item-${index}`} itemId={item.id} position={item.position} autoEquip={false} />
+    ));
+  };
+
+  // 🔥 ITENS DROPADOS NO CHÃO (DROPPED_ITEMS)
+  const renderDroppedItems = () => {
+    const items = DROPPED_ITEMS[currentScene] || [];
+    return items.map((item, index) => (
+      <ItemPickup 
+        key={`dropped-${item.id}-${index}`} 
+        itemId={item.id} 
+        position={item.position} 
+        autoEquip={item.autoEquip || false} 
+      />
     ));
   };
 
@@ -108,6 +125,20 @@ const ARScene = () => {
       }
     }
   }, [playerRigidBody, camera, cameraInitialized, isLoading]);
+
+
+  const renderNPCsFromJSON = () => {
+  const npcs = sceneData?.npcs || [];
+  return npcs.map((npc) => (
+    <QuestNPC
+      key={npc.id}
+      questId={npc.questId}
+      position={npc.position}
+      sceneName={currentScene}
+    />
+  ));
+};
+
 
   const teleportUp = () => {
     if (!playerRigidBody) return;
@@ -168,10 +199,21 @@ const ARScene = () => {
         {/* 🔥 SPAWNER DE INIMIGOS COM RESPAWN */}
         <EnemySpawner currentScene={currentScene} />
         
-        {/* 🔥 ITENS POR CENA */}
+        {/* 🔥 ITENS DO JSON (sceneItems) */}
         {renderItemsByScene()}
+        
+        {/* 🔥 ITENS DROPADOS NO CHÃO (DROPPED_ITEMS) */}
+        {renderDroppedItems()}
+
+
+          {/* deveram ser incluidos em cada mapa pelo arquivo no  json dos mapas 
+          <QuestNPC questId="slime_killer" position={[2, 15, 2]} sceneName={currentScene} />
+          <QuestNPC questId="ancient_key" position={[5, 15, 4]} sceneName={currentScene} />
+            */}
+             {renderNPCsFromJSON()}
 
         <Player />
+       
       </group>                                         
       {cloud.enabled && (
         <VolumetricClouds

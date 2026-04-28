@@ -32,3 +32,47 @@ canvas {
   left: auto;
   right: 40px;
 }
+
+
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #1a1a2e, #0f0f1a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+
+.loading-content {
+  text-align: center;
+}
+
+.loading-content h1 {
+  color: #d48eff;
+  font-size: 32px;
+  margin-bottom: 20px;
+  font-family: 'Courier New', monospace;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(200, 100, 200, 0.3);
+  border-top-color: #c86eff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-content p {
+  color: #e0cce8;
+  font-family: monospace;
+}
