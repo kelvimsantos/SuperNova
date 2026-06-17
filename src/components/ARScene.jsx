@@ -1,7 +1,9 @@
 import { useRef, useEffect, useState } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { Player } from './Player';
+//import { Player } from './Player';
+import { Player } from './AvatarPlayer';
+
 import { RepositionButton } from './RepositionButton';
 import useGameStore from '../hooks/useGameStore';
 import { World } from './World';
