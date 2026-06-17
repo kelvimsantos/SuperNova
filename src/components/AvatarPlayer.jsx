@@ -9,7 +9,9 @@ import useGameStore from '../hooks/useGameStore';
 const AVATAR_MODEL_PATH = '/models/avatar/body.glb';
 const HAIR_BASE_PATH = '/models/avatar/hair/hair-';
 
-// 🔥 RECEBE avatarConfig DIRETAMENTE (NÃO USA O HOOK)
+// 🔥 MESMA ESCALA DA REDE SOCIAL
+const AVATAR_SCALE = 0.008;
+
 export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const rigidBodyRef = useRef();
   const visualRef = useRef();
@@ -28,6 +30,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const playerHealth = useGameStore((state) => state.playerHealth);
   const isDead = playerHealth <= 0;
 
+  // 🔥 CARREGA O MODELO
   const { scene: bodyScene, animations } = useGLTF(AVATAR_MODEL_PATH);
   
   const hairIndex = avatarConfig?.hairIndex ?? -1;
@@ -36,25 +39,28 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   
   const { actions } = useAnimations(animations, bodyModelRef);
 
+  // 🔥 MAPEAMENTO CORRETO DAS ANIMAÇÕES (NOMES EXATOS DO MODELO)
   const animationMap = useMemo(() => ({
-    idle: 'idle2',
-    run: 'Run',
-    fall: 'Fall',
-    jump: 'Jump',
-    hit: 'Hitado',
-    attack1: 'Punching1',
-    attack2: 'Punching2',
-    aim: 'Mira-arco'
+    idle: 'idle2',        // ← NOME EXATO do seu modelo
+    run: 'Run',           // ← NOME EXATO
+    fall: 'Fall',         // ← NOME EXATO
+    jump: 'Jump',         // ← NOME EXATO
+    hit: 'Hitado',        // ← NOME EXATO
+    attack1: 'Punching1', // ← NOME EXATO
+    attack2: 'Punching2', // ← NOME EXATO
+    aim: 'Mira-arco'      // ← NOME EXATO
   }), []);
 
+  // 🔥 DEBUG: Lista animações disponíveis
   useEffect(() => {
     if (animations && animations.length > 0) {
       console.log('🎬 Animações disponíveis no avatar:');
       animations.forEach((anim, i) => {
-        console.log(`  ${i+1}. ${anim.name} (${anim.duration.toFixed(2)}s)`);
+        console.log(`  ${i+1}. "${anim.name}" (${anim.duration.toFixed(2)}s)`);
       });
+      console.log('📌 Mapeamento:', animationMap);
     }
-  }, [animations]);
+  }, [animations, animationMap]);
 
   // 🔥 APLICA COR DA PELE
   useEffect(() => {
@@ -100,33 +106,54 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return () => setPlayerRigidBody(null);
   }, [setPlayerRigidBody]);
 
+  // 🔥 TOCA ANIMAÇÃO (CORRIGIDO)
   const playAnimation = (name) => {
-    if (!actions || isDead) return;
+    if (!actions || isDead) {
+      console.warn('⚠️ Sem actions ou personagem morto');
+      return;
+    }
     
+    // Mapeia o nome
     const mappedName = animationMap[name] || name;
+    console.log(`🎯 Tentando tocar: "${name}" → mapeado para: "${mappedName}"`);
+    
+    // Tenta encontrar a animação
     let action = actions[mappedName];
     
+    // Se não encontrou, tenta busca case-insensitive
     if (!action) {
       const key = Object.keys(actions).find(key => 
-        key.toLowerCase().includes(name.toLowerCase())
+        key.toLowerCase() === mappedName.toLowerCase()
+      );
+      if (key) action = actions[key];
+    }
+    
+    // Se ainda não encontrou, tenta partial match
+    if (!action) {
+      const key = Object.keys(actions).find(key => 
+        key.toLowerCase().includes(mappedName.toLowerCase())
       );
       if (key) action = actions[key];
     }
     
     if (!action) {
-      if (name !== 'idle') {
-        const idleAction = actions['idle2'] || Object.values(actions)[0];
-        if (idleAction && currentAnim.current !== idleAction.name) {
-          Object.values(actions).forEach(a => a.stop());
-          idleAction.reset().play();
-          currentAnim.current = idleAction.name;
-        }
+      console.warn(`⚠️ Animação "${mappedName}" não encontrada!`);
+      // Fallback: usa a primeira animação disponível
+      const firstAction = Object.values(actions)[0];
+      if (firstAction && currentAnim.current !== firstAction.name) {
+        console.log(`🔄 Fallback para: "${firstAction.name}"`);
+        Object.values(actions).forEach(a => a.stop());
+        firstAction.reset().play();
+        currentAnim.current = firstAction.name;
       }
       return;
     }
     
-    if (currentAnim.current === action.name) return;
+    if (currentAnim.current === action.name) {
+      return; // Já está tocando
+    }
     
+    console.log(`▶️ Trocando para: "${action.name}"`);
     Object.values(actions).forEach(a => a.stop());
     action.reset().play();
     currentAnim.current = action.name;
@@ -222,6 +249,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     }
   });
 
+  // 🔥 LOOP PRINCIPAL
   useFrame(({ camera }) => {
     if (!rigidBodyRef.current || loadingAvatar || isDead) return;
 
@@ -235,8 +263,18 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     setIsGrounded(grounded);
 
     const isMoving = dx !== 0 || dz !== 0;
+    
+    // 🔥 LOG PARA DEBUG (só algumas vezes)
+    if (Math.random() < 0.01) {
+      console.log(`🎮 Movendo: ${isMoving}, Grounded: ${grounded}, Anim atual: ${currentAnim.current}`);
+    }
+    
     if (!isMoving) {
-      playAnimation(grounded ? 'idle' : 'fall');
+      if (grounded) {
+        playAnimation('idle');
+      } else {
+        playAnimation('fall');
+      }
     } else {
       playAnimation('run');
     }
@@ -305,7 +343,8 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           />
         )}
         
-        <group ref={visualRef} scale={0.25} position={[0, -0.7, 0]}>
+        {/* 🔥 MESMA ESCALA DA REDE SOCIAL */}
+        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -0.7, 0]}>
           <primitive object={bodyScene} ref={bodyModelRef} />
           
           {hairIndex >= 0 && hairScene && (
