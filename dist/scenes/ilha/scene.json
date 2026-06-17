@@ -304432,26 +304432,13 @@
       0.654590904712677
     ]
   },
+  
   "portals": [
     {
       "id": 1,
-      "position": [5, 14, 2],
-      "targetScene": "deserto",
+      "position": [10, 15, 10],
+      "targetScene": "default",
       "spawn": [0, 20, 0]
-    }
-  ],
-  "npcs": [
-    {
-      "id": "slime_killer",
-      "questId": "slime_killer",
-      "position": [2, 15, 2],
-      "name": "🧙‍♂️ Velho Sábio"
-    },
-    {
-      "id": "ancient_key",
-      "questId": "ancient_key",
-      "position": [5, 15, 4],
-      "name": "🔮 Mestre dos Portais"
     }
   ],
 

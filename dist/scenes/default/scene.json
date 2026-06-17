@@ -304432,15 +304432,8 @@
       0.654590904712677
     ]
   },
-  "portals": [
-    {
-      "id": 1,
-      "position": [5, 14, 2],
-      "targetScene": "deserto",
-      "spawn": [0, 20, 0]
-    }
-  ],
-  "npcs": [
+  
+    "npcs": [
     {
       "id": "slime_killer",
       "questId": "slime_killer",
@@ -304452,6 +304445,15 @@
       "questId": "ancient_key",
       "position": [5, 15, 4],
       "name": "🔮 Mestre dos Portais"
+    }
+  ],
+
+  "portals": [
+    {
+      "id": 1,
+      "position": [8, 14, 5],
+      "targetScene": "deserto",
+      "spawn": [0, 30, 0]
     }
   ],
 

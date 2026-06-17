@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 //import { Player } from './Player';
-import { Player } from './AvatarPlayer';
+import { AvatarPlayer } from './AvatarPlayer';
 
 import { RepositionButton } from './RepositionButton';
 import useGameStore from '../hooks/useGameStore';
@@ -214,8 +214,18 @@ const ARScene = () => {
             */}
              {renderNPCsFromJSON()}
 
-        <Player />
+       {/*  <Player />   */}
        
+        {/* 🔥 AVATAR PLAYER COM userId */}
+        {userId ? (
+          <AvatarPlayer userId={userId} />
+        ) : (
+          // Fallback: se não tiver userId, mostra uma mensagem ou nada
+          <mesh>
+            <boxGeometry args={[0.5, 0.5, 0.5]} />
+            <meshStandardMaterial color="red" />
+          </mesh>
+        )}
       </group>                                         
       {cloud.enabled && (
         <VolumetricClouds
