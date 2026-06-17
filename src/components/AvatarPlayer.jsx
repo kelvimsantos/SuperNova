@@ -5,22 +5,18 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { Vector3, Raycaster } from 'three';
 import useGameStore from '../hooks/useGameStore';
-import { useAvatarLoader } from '../hooks/useAvatarLoader';
 
-// 🔥 CAMINHO DO MODELO COM ANIMAÇÕES
 const AVATAR_MODEL_PATH = '/models/avatar/body.glb';
 const HAIR_BASE_PATH = '/models/avatar/hair/hair-';
 
-export const AvatarPlayer = ({ userId }) => {
+// 🔥 RECEBE avatarConfig DIRETAMENTE (NÃO USA O HOOK)
+export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const rigidBodyRef = useRef();
   const visualRef = useRef();
   const bodyModelRef = useRef(null);
   const hairModelRef = useRef(null);
   const moveDir = useRef({ x: 0, z: 0 });
   const [isGrounded, setIsGrounded] = useState(true);
-  
-  // 🔥 Carrega a configuração do avatar da rede
-  const { avatarConfig, loading, error } = useAvatarLoader(userId);
   
   const setPlayerRigidBody = useGameStore((state) => state.setPlayerRigidBody);
   const currentAnim = useRef('idle');
@@ -32,21 +28,16 @@ export const AvatarPlayer = ({ userId }) => {
   const playerHealth = useGameStore((state) => state.playerHealth);
   const isDead = playerHealth <= 0;
 
-  // 🔥 Carrega o modelo COM TODAS AS ANIMAÇÕES
   const { scene: bodyScene, animations } = useGLTF(AVATAR_MODEL_PATH);
   
-  // 🔥 Carrega o modelo do cabelo (se houver hairIndex)
   const hairIndex = avatarConfig?.hairIndex ?? -1;
   const hairPath = hairIndex >= 0 ? `${HAIR_BASE_PATH}${String(hairIndex + 1).padStart(2, '0')}.glb` : null;
   const { scene: hairScene } = useGLTF(hairPath || '');
   
-  // 🔥 CONFIGURA ANIMAÇÕES (usa o mixer padrão do drei)
   const { actions } = useAnimations(animations, bodyModelRef);
 
-  // 🔥 MAPEIA AS ANIMAÇÕES DO MODELO
-  // As animações disponíveis: idle1, idle2, Run, Fall, Hitado, Jump, Mira-arco, Punching1, Punching2
   const animationMap = useMemo(() => ({
-    idle: 'idle2',      // Usa idle2 como padrão
+    idle: 'idle2',
     run: 'Run',
     fall: 'Fall',
     jump: 'Jump',
@@ -56,7 +47,6 @@ export const AvatarPlayer = ({ userId }) => {
     aim: 'Mira-arco'
   }), []);
 
-  // 🔥 DEBUG: Lista animações disponíveis
   useEffect(() => {
     if (animations && animations.length > 0) {
       console.log('🎬 Animações disponíveis no avatar:');
@@ -76,10 +66,7 @@ export const AvatarPlayer = ({ userId }) => {
       if (child.isMesh && child.material) {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         materials.forEach(mat => {
-          if (mat.color) {
-            mat.color.set(skinColor);
-          }
-          // Remove brilho metálico
+          if (mat.color) mat.color.set(skinColor);
           if (mat.roughness !== undefined) mat.roughness = 1;
           if (mat.metalness !== undefined) mat.metalness = 0;
           mat.needsUpdate = true;
@@ -98,16 +85,13 @@ export const AvatarPlayer = ({ userId }) => {
       if (child.isMesh && child.material) {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         materials.forEach(mat => {
-          if (mat.color) {
-            mat.color.set(hairColor);
-          }
+          if (mat.color) mat.color.set(hairColor);
           mat.needsUpdate = true;
         });
       }
     });
   }, [hairModelRef, avatarConfig]);
 
-  // 🔥 REGISTRA O RIGID BODY
   useEffect(() => {
     if (rigidBodyRef.current) {
       rigidBodyRef.current.currentMoveDir = moveDir;
@@ -116,21 +100,12 @@ export const AvatarPlayer = ({ userId }) => {
     return () => setPlayerRigidBody(null);
   }, [setPlayerRigidBody]);
 
-  // 🔥 TOCA ANIMAÇÃO
   const playAnimation = (name) => {
-    if (!actions) return;
-    if (isDead) {
-      // Se estiver morto, não toca animações
-      return;
-    }
+    if (!actions || isDead) return;
     
-    // Mapeia o nome da animação do jogo para o nome no modelo
     const mappedName = animationMap[name] || name;
-    
-    // Tenta encontrar a animação exata
     let action = actions[mappedName];
     
-    // Se não encontrar, tenta achar qualquer animação com nome similar (case insensitive)
     if (!action) {
       const key = Object.keys(actions).find(key => 
         key.toLowerCase().includes(name.toLowerCase())
@@ -139,7 +114,6 @@ export const AvatarPlayer = ({ userId }) => {
     }
     
     if (!action) {
-      // Se ainda não encontrou, usa idle2 como fallback
       if (name !== 'idle') {
         const idleAction = actions['idle2'] || Object.values(actions)[0];
         if (idleAction && currentAnim.current !== idleAction.name) {
@@ -158,7 +132,7 @@ export const AvatarPlayer = ({ userId }) => {
     currentAnim.current = action.name;
   };
 
-  // 🔥 FUNÇÃO PARA ENCONTRAR O CHÃO (mesma do Player original)
+  // 🔥 FUNÇÃO PARA ENCONTRAR O CHÃO
   const findGroundAndAdjust = () => {
     if (!rigidBodyRef.current || !worldGroupRef?.current || isAdjusting) return;
 
@@ -228,7 +202,6 @@ export const AvatarPlayer = ({ userId }) => {
     });
   };
 
-  // 🔥 EXECUTA QUANDO A CENA MUDA
   useEffect(() => {
     const timer = setTimeout(() => {
       if (rigidBodyRef.current && worldGroupRef?.current) {
@@ -239,7 +212,6 @@ export const AvatarPlayer = ({ userId }) => {
     return () => clearTimeout(timer);
   }, [currentScene, worldGroupRef]);
 
-  // 🔥 VERIFICA SE O PLAYER ESTÁ CAINDO
   useFrame(() => {
     if (!rigidBodyRef.current || isAdjusting) return;
     
@@ -250,9 +222,8 @@ export const AvatarPlayer = ({ userId }) => {
     }
   });
 
-  // 🔥 LOOP PRINCIPAL DO PLAYER
   useFrame(({ camera }) => {
-    if (!rigidBodyRef.current || loading || isDead) return;
+    if (!rigidBodyRef.current || loadingAvatar || isDead) return;
 
     const position = rigidBodyRef.current.translation();
     setPlayerPosition({ x: position.x, y: position.y, z: position.z });
@@ -302,8 +273,7 @@ export const AvatarPlayer = ({ userId }) => {
     }
   });
 
-  // Se estiver carregando, mostra um placeholder
-  if (loading) {
+  if (loadingAvatar) {
     return (
       <RigidBody ref={rigidBodyRef} mass={1} position={[0, 50, 0]}>
         <CapsuleCollider args={[0.3, 0.4]} />
@@ -336,10 +306,8 @@ export const AvatarPlayer = ({ userId }) => {
         )}
         
         <group ref={visualRef} scale={0.25} position={[0, -0.7, 0]}>
-          {/* 🔥 CORPO DO AVATAR (COM ANIMAÇÕES) */}
           <primitive object={bodyScene} ref={bodyModelRef} />
           
-          {/* 🔥 CABELO DO AVATAR (se houver) */}
           {hairIndex >= 0 && hairScene && (
             <primitive object={hairScene} ref={hairModelRef} />
           )}
@@ -349,5 +317,6 @@ export const AvatarPlayer = ({ userId }) => {
   );
 };
 
-// Pré-carrega os modelos
+export default AvatarPlayer;
+
 useGLTF.preload(AVATAR_MODEL_PATH);

@@ -1,4 +1,4 @@
-// App.jsx
+// src/App.jsx
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
@@ -8,10 +8,8 @@ import { LoadingScreen } from './components/LoadingScreen';
 import { useSaveSystem } from './hooks/useSaveSystem';
 import useGameStore from './hooks/useGameStore';
 
-// Carregamento assíncrono do jogo principal (SÓ CARREGA QUANDO PRECISAR)
 const ARScene = lazy(() => import('./components/ARScene'));
 
-// Componentes UI (são leves, carregam normalmente)
 import { KeyboardControls } from './components/KeyboardControls';
 import { JoystickVisual } from './components/JoystickVisual';
 import { JoystickOverlay } from './components/JoystickOverlay';
@@ -30,7 +28,6 @@ import { QuestMenu } from './components/quests/QuestMenu';
 import { SaveMenu } from './components/ui/SaveMenu';
 import './App.css';
 
-// Dicas para a tela de loading
 const loadingTips = [
   '💡 Use [E] ou [I] para abrir o inventário',
   '💡 Clique nos inimigos para atacar',
@@ -45,7 +42,13 @@ const loadingTips = [
 ];
 
 function App() {
-  const [gameState, setGameState] = useState('menu'); // 'menu', 'loading', 'playing'
+  // 🔥 PEGA O userId DA URL SEM react-router-dom
+  const userId = new URLSearchParams(window.location.search).get('userId');
+
+  const [avatarConfig, setAvatarConfig] = useState(null);
+  const [loadingAvatar, setLoadingAvatar] = useState(true);
+
+  const [gameState, setGameState] = useState('menu');
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState('Preparando aventura');
   const [currentTip, setCurrentTip] = useState(loadingTips[0]);
@@ -54,12 +57,47 @@ function App() {
   const followMode = useGameStore((state) => state.followMode);
   const setCurrentScene = useGameStore((state) => state.setCurrentScene);
   const setPlayerPosition = useGameStore((state) => state.setPlayerPosition);
-  const { hasSave, loadGameData, applySaveToGame, getSaveInfo } = useSaveSystem();
+  const { hasSave, loadGameData, applySaveToGame } = useSaveSystem();
   const [smoothTarget, setSmoothTarget] = useState([0, 1, 0]);
 
   useSkillHotkeys();
 
-  // Sorteia uma dica diferente a cada 10% de progresso
+  // 🔥 BUSCA O AVATAR NA API DA REDE SOCIAL
+  useEffect(() => {
+    if (!userId) {
+      setLoadingAvatar(false);
+      return;
+    }
+
+    const fetchAvatar = async () => {
+      try {
+        setLoadingAvatar(true);
+        const response = await fetch(
+          `https://nodejs-passport-login-master.onrender.com/api/avatar-config/${userId}`
+        );
+        
+        if (!response.ok) {
+          throw new Error('Erro ao buscar avatar');
+        }
+        
+        const data = await response.json();
+        console.log('✅ Avatar carregado:', data);
+        setAvatarConfig(data.avatarConfig);
+      } catch (error) {
+        console.error('❌ Erro ao carregar avatar:', error);
+        setAvatarConfig({
+          skinColor: '#f1c27d',
+          hairColor: '#4a2c2c',
+          hairIndex: 0
+        });
+      } finally {
+        setLoadingAvatar(false);
+      }
+    };
+
+    fetchAvatar();
+  }, [userId]);
+
   useEffect(() => {
     if (gameState === 'loading') {
       const tipInterval = setInterval(() => {
@@ -70,12 +108,10 @@ function App() {
     }
   }, [gameState]);
 
-  // 🔥 CARREGAMENTO ASSÍNCRONO DO JOGO
   const startGame = async (loadSave = false) => {
     setGameState('loading');
     setLoadingProgress(0);
     
-    // Simula etapas de carregamento (você pode conectar com carregamento real)
     const steps = [
       { progress: 10, message: 'Inicializando sistemas' },
       { progress: 25, message: 'Carregando recursos gráficos' },
@@ -92,7 +128,6 @@ function App() {
       await new Promise(r => setTimeout(r, 150));
     }
     
-    // Carrega save se necessário
     if (loadSave && hasSave()) {
       const saveData = loadGameData();
       if (saveData) {
@@ -110,7 +145,6 @@ function App() {
   };
 
   const handleNewGame = () => {
-    // Reseta para a cena inicial
     setCurrentScene('default');
     setPlayerPosition({ x: 0, y: 15, z: 0 });
     startGame(false);
@@ -120,12 +154,10 @@ function App() {
     startGame(true);
   };
 
-  // Tela de Menu
   if (gameState === 'menu') {
     return <MenuScreen onStartNewGame={handleNewGame} onLoadGame={handleLoadGame} />;
   }
 
-  // Tela de Loading
   if (gameState === 'loading') {
     return (
       <LoadingScreen 
@@ -136,7 +168,6 @@ function App() {
     );
   }
 
-  // 🔥 JOGO PRINCIPAL (carregado assincronamente com Suspense)
   return (
     <Suspense fallback={
       <LoadingScreen 
@@ -145,7 +176,6 @@ function App() {
         tip="Preparando a magia..." 
       />
     }>
-      {/* UI Elements */}
       <SkillTree />
       <HealthBar />
       <Inventory />
@@ -158,13 +188,11 @@ function App() {
       <QuestDialogGlobal />
       <SaveMenu />
       
-      {/* Controles */}
       <KeyboardControls />
       <JoystickVisual side="left" />
       <JoystickVisual side="right" />
       <JoystickOverlay />
 
-      {/* Canvas 3D */}
       <Canvas
         shadows
         camera={{ position: [8, 6, 12], fov: 60 }}
@@ -180,7 +208,12 @@ function App() {
         <ambientLight intensity={0.5} />
         
         <Physics gravity={[0, -9.81, 0]}>
-          <ARScene />
+          {/* 🔥 PASSA userId E avatarConfig PARA O ARScene */}
+          <ARScene 
+            userId={userId} 
+            avatarConfig={avatarConfig} 
+            loadingAvatar={loadingAvatar} 
+          />
         </Physics>
 
         <SmoothTarget onTargetUpdate={setSmoothTarget} />

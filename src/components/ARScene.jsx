@@ -1,9 +1,8 @@
+// src/components/ARScene.jsx
 import { useRef, useEffect, useState } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-//import { Player } from './Player';
 import { AvatarPlayer } from './AvatarPlayer';
-
 import { RepositionButton } from './RepositionButton';
 import useGameStore from '../hooks/useGameStore';
 import { World } from './World';
@@ -19,7 +18,6 @@ import { EnemySpawner } from './enemies/EnemySpawner';
 import { sceneItems } from '../config/sceneEnemies';
 import { DROPPED_ITEMS } from '../config/droppedItems';
 import { QuestNPC } from './quests/QuestNPC';
-
 
 const weatherNames = {
   clear: '☀️ Claro',
@@ -39,7 +37,8 @@ const cloudConfig = {
   snowy:   { enabled: true,  density: 2.3,  tiling: 5.6, speed: 1.8,  scale: 70, position: [0, 20.5, 3.2] },
 };
 
-const ARScene = () => {
+// 🔥 RECEBE userId E avatarConfig COMO PROPS
+const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
   const { camera } = useThree();
   const worldGroupRef = useRef(null);
   const { setWorldGroupRef, playerRigidBody, setIsNight, currentScene, setPlayerPosition } = useGameStore();
@@ -55,7 +54,6 @@ const ARScene = () => {
     setWorldGroupRef(worldGroupRef.current);  
   }, [setWorldGroupRef]);
 
-  // 🔥 ITENS DO JSON (sceneItems)
   const renderItemsByScene = () => {
     const items = sceneItems[currentScene] || [];
     return items.map((item, index) => (
@@ -63,7 +61,6 @@ const ARScene = () => {
     ));
   };
 
-  // 🔥 ITENS DROPADOS NO CHÃO (DROPPED_ITEMS)
   const renderDroppedItems = () => {
     const items = DROPPED_ITEMS[currentScene] || [];
     return items.map((item, index) => (
@@ -128,19 +125,17 @@ const ARScene = () => {
     }
   }, [playerRigidBody, camera, cameraInitialized, isLoading]);
 
-
   const renderNPCsFromJSON = () => {
-  const npcs = sceneData?.npcs || [];
-  return npcs.map((npc) => (
-    <QuestNPC
-      key={npc.id}
-      questId={npc.questId}
-      position={npc.position}
-      sceneName={currentScene}
-    />
-  ));
-};
-
+    const npcs = sceneData?.npcs || [];
+    return npcs.map((npc) => (
+      <QuestNPC
+        key={npc.id}
+        questId={npc.questId}
+        position={npc.position}
+        sceneName={currentScene}
+      />
+    ));
+  };
 
   const teleportUp = () => {
     if (!playerRigidBody) return;
@@ -198,35 +193,26 @@ const ARScene = () => {
           <WaterExperience key={water.id} obj={water} />
         ))}
 
-        {/* 🔥 SPAWNER DE INIMIGOS COM RESPAWN */}
         <EnemySpawner currentScene={currentScene} />
-        
-        {/* 🔥 ITENS DO JSON (sceneItems) */}
         {renderItemsByScene()}
-        
-        {/* 🔥 ITENS DROPADOS NO CHÃO (DROPPED_ITEMS) */}
         {renderDroppedItems()}
+        {renderNPCsFromJSON()}
 
-
-          {/* deveram ser incluidos em cada mapa pelo arquivo no  json dos mapas 
-          <QuestNPC questId="slime_killer" position={[2, 15, 2]} sceneName={currentScene} />
-          <QuestNPC questId="ancient_key" position={[5, 15, 4]} sceneName={currentScene} />
-            */}
-             {renderNPCsFromJSON()}
-
-       {/*  <Player />   */}
-       
-        {/* 🔥 AVATAR PLAYER COM userId */}
+        {/* 🔥 AVATAR PLAYER COM userId E avatarConfig */}
         {userId ? (
-          <AvatarPlayer userId={userId} />
+          <AvatarPlayer 
+            userId={userId} 
+            avatarConfig={avatarConfig}
+            loadingAvatar={loadingAvatar}
+          />
         ) : (
-          // Fallback: se não tiver userId, mostra uma mensagem ou nada
           <mesh>
             <boxGeometry args={[0.5, 0.5, 0.5]} />
             <meshStandardMaterial color="red" />
           </mesh>
         )}
-      </group>                                         
+      </group>
+
       {cloud.enabled && (
         <VolumetricClouds
           density={cloud.density}
@@ -238,7 +224,9 @@ const ARScene = () => {
           renderOrder={999}
         />
       )}
+      
       <RepositionButton />
+      
       <Html transform={false}>
         <div style={{
           position: 'fixed',
