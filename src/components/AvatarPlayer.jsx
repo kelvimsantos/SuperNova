@@ -327,7 +327,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         )}
         
         {/* 🔥 SÓ MUDEI A POSIÇÃO DO CORPO DE -0.9 PARA -1.2 */}
-        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -5.2, 0]}>
+        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -1.2, 0]}>
           <primitive object={bodyScene} ref={bodyModelRef} />
           
           {hairIndex >= 0 && hairScene && (
