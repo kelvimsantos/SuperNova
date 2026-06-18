@@ -43,7 +43,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   
   // 🔥 ESTADO PARA CONTROLAR ATAQUES
   const [isAttacking, setIsAttacking] = useState(false);
-  const [attackTimer, setAttackTimer] = useState(0);
+  const [isJumping, setIsJumping] = useState(false);
 
   // 🔥 CARREGA O MODELO
   const { scene: bodyScene, animations } = useGLTF(AVATAR_MODEL_PATH);
@@ -54,35 +54,29 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   
   const { actions } = useAnimations(animations, bodyModelRef);
 
-  // 🔥 MAPEAMENTO CORRETO DAS ANIMAÇÕES POR ÍNDICE
+  // 🔥 MAPEAMENTO POR ÍNDICE
   const animationMap = useMemo(() => {
     if (!animations || animations.length === 0) return {};
     
-    // Pega pelo índice
     const getByIndex = (index) => {
       return animations[index]?.name || null;
     };
     
     const map = {
-      idle: getByIndex(0) || 'mixamo.com',      // 1ª animação
-      run: getByIndex(2) || 'Run',              // 3ª animação
-      fall: getByIndex(3) || 'Fall',            // 4ª animação
-      hit: getByIndex(4) || 'Hitado',           // 5ª animação
-      jump: getByIndex(5) || 'Jump',            // 6ª animação
-      aim: getByIndex(6) || 'Mira-arco',        // 7ª animação
-      attack1: getByIndex(7) || 'Punching1',    // 8ª animação
-      attack2: getByIndex(8) || 'Punching2',    // 9ª animação
+      idle: getByIndex(0) || 'mixamo.com',
+      run: getByIndex(2) || 'Run',
+      fall: getByIndex(3) || 'Fall',
+      hit: getByIndex(4) || 'Hitado',
+      jump: getByIndex(5) || 'Jump',
+      aim: getByIndex(6) || 'Mira-arco',
+      attack1: getByIndex(7) || 'Punching1',
+      attack2: getByIndex(8) || 'Punching2',
     };
     
-    console.log('📌 Mapeamento de animações por índice:');
-    console.log(`  Idle (1) → "${map.idle}"`);
-    console.log(`  Run (3) → "${map.run}"`);
-    console.log(`  Fall (4) → "${map.fall}"`);
-    console.log(`  Hitado (5) → "${map.hit}"`);
-    console.log(`  Jump (6) → "${map.jump}"`);
-    console.log(`  Mira-arco (7) → "${map.aim}"`);
-    console.log(`  Punching1 (8) → "${map.attack1}"`);
-    console.log(`  Punching2 (9) → "${map.attack2}"`);
+    console.log('📌 Mapeamento de animações:');
+    Object.entries(map).forEach(([key, value]) => {
+      console.log(`  ${key} → "${value}"`);
+    });
     
     return map;
   }, [animations]);
@@ -92,7 +86,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     if (animations && animations.length > 0) {
       console.log('🎬 Animações disponíveis no avatar:');
       animations.forEach((anim, i) => {
-        console.log(`  ${i+1}. "${anim.name}" (${anim.duration.toFixed(2)}s)`);
+        console.log(`  ${i+1}. "${anim.name}"`);
       });
     }
   }, [animations]);
@@ -166,9 +160,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       hairModelRef.current.rotation.set(0, 0, 0);
       hairModelRef.current.scale.set(1/AVATAR_SCALE, 1/AVATAR_SCALE, 1/AVATAR_SCALE);
       
-      console.log(`💇 Cabelo ancorado no osso: ${headBone.name} (Y=${posY})`);
-    } else {
-      console.warn('⚠️ Osso da cabeça não encontrado!');
+      console.log(`💇 Cabelo ancorado no osso: ${headBone.name}`);
     }
   }, [bodyModelRef, hairModelRef, hairIndex]);
 
@@ -180,11 +172,11 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return () => setPlayerRigidBody(null);
   }, [setPlayerRigidBody]);
 
-  // 🔥 TOCA ANIMAÇÃO
+  // 🔥 TOCA ANIMAÇÃO COM LOG
   const playAnimation = (name) => {
     if (!actions || isDead) return;
     
-    // Se estiver atacando, não interrompe o ataque
+    // Se estiver atacando, só troca se for outra animação de ataque
     if (isAttacking && name !== 'attack1' && name !== 'attack2') {
       return;
     }
@@ -201,17 +193,20 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     }
     
     if (!action) {
+      console.warn(`⚠️ Animação "${mappedName}" não encontrada!`);
       const fallbackAction = Object.values(actions)[0];
       if (fallbackAction && currentAnim.current !== fallbackAction.name) {
         Object.values(actions).forEach(a => a.stop());
         fallbackAction.reset().play();
         currentAnim.current = fallbackAction.name;
+        console.log(`🔄 Fallback para: "${fallbackAction.name}"`);
       }
       return;
     }
     
     if (currentAnim.current === action.name) return;
     
+    console.log(`▶️ Trocando para: "${action.name}" (${name})`);
     Object.values(actions).forEach(a => a.stop());
     action.reset().play();
     currentAnim.current = action.name;
@@ -224,30 +219,32 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     setIsAttacking(true);
     playAnimation(attackType);
     
-    // Duração do ataque (baseado na animação)
     const attackDuration = actions[animationMap[attackType]]?.duration || 0.5;
     
     setTimeout(() => {
       setIsAttacking(false);
       // Volta para idle ou run
-      const pos = rigidBodyRef.current?.translation();
-      if (pos) {
-        const { x: dx, z: dz } = moveDir.current;
-        const isMoving = dx !== 0 || dz !== 0;
-        playAnimation(isMoving ? 'run' : 'idle');
-      }
+      const { x: dx, z: dz } = moveDir.current;
+      const isMoving = dx !== 0 || dz !== 0;
+      playAnimation(isMoving ? 'run' : 'idle');
     }, attackDuration * 1000 + 100);
   };
 
-  // 🔥 EXPOR FUNÇÃO DE ATAQUE PARA O STORE
+  // 🔥 EXPOR FUNÇÃO DE ATAQUE
   useEffect(() => {
-    // Adiciona função de ataque ao store global
     window.gamePlayer = {
       attack: playAttack,
       attack1: () => playAttack('attack1'),
       attack2: () => playAttack('attack2'),
+      jump: () => {
+        if (!isJumping && !isDead) {
+          setIsJumping(true);
+          playAnimation('jump');
+          setTimeout(() => setIsJumping(false), 1000);
+        }
+      }
     };
-  }, [actions, isAttacking]);
+  }, [actions, isAttacking, isDead]);
 
   // 🔥 FUNÇÃO PARA ENCONTRAR O CHÃO
   const findGroundAndAdjust = () => {
@@ -302,8 +299,10 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     
     tryFindGround(currentPos.y).then(({ foundGround, groundY }) => {
       if (foundGround && groundY !== null) {
-        const newY = groundY + 1.5;
+        // 🔥 AJUSTA A ALTURA DO PLAYER (mais baixo)
+        const newY = groundY + 0.8; // antes era 1.5
         rigidBodyRef.current.setTranslation({ x: currentPos.x, y: newY, z: currentPos.z }, true);
+        console.log(`✅ Ajustado para Y=${newY.toFixed(2)}`);
       } else {
         const newY = currentPos.y + 20;
         rigidBodyRef.current.setTranslation({ x: currentPos.x, y: newY, z: currentPos.z }, true);
@@ -322,6 +321,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (rigidBodyRef.current && worldGroupRef?.current) {
+        console.log(`🔍 Ajustando posição na cena: ${currentScene}`);
         findGroundAndAdjust();
       }
     }, 500);
@@ -339,7 +339,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     }
   });
 
-  // 🔥 LOOP PRINCIPAL
+  // 🔥 LOOP PRINCIPAL - COM LOG DE ANIMAÇÃO
   useFrame(({ camera }) => {
     if (!rigidBodyRef.current || loadingAvatar) return;
 
@@ -354,11 +354,13 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
 
     const isMoving = dx !== 0 || dz !== 0;
     
-    // 🔥 GERENCIAMENTO DE ANIMAÇÕES
+    // 🔥 GERENCIAMENTO DE ANIMAÇÕES COM LOG
     if (isDead) {
       playAnimation('fall');
     } else if (isAttacking) {
-      // Mantém a animação de ataque
+      // Mantém ataque
+    } else if (isJumping) {
+      // Mantém pulo
     } else if (!isMoving) {
       playAnimation('idle');
     } else {
@@ -429,7 +431,8 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           />
         )}
         
-        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -0.7, 0]}>
+        {/* 🔥 POSIÇÃO MAIS BAIXA */}
+        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -0.9, 0]}>
           <primitive object={bodyScene} ref={bodyModelRef} />
           
           {hairIndex >= 0 && hairScene && (
