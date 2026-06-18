@@ -24,7 +24,7 @@ const HAIR_POSITIONS = {
 };
 
 // 🔥 AJUSTE DO CABELO (subir no Y) - MEXA AQUI
-const HAIR_Y_OFFSET = -5; // AUMENTE ESTE VALOR PARA SUBIR O CABELO
+const HAIR_Y_OFFSET = -10; // AUMENTE ESTE VALOR PARA SUBIR O CABELO
 
 // 🔥 ESCALA DO CABELO
 const HAIR_SCALE_FACTOR = 0.8;
@@ -270,7 +270,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         <CapsuleCollider args={[0.3, 0.4]} />
         <mesh>
           <boxGeometry args={[0.5, 0.5, 0.5]} />
-          <meshStandardMaterial color="gray" transparent opacity={10.5} />
+          <meshStandardMaterial color="gray" transparent opacity={100.5} />
         </mesh>
       </RigidBody>
     );
