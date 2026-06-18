@@ -336,11 +336,11 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           />
         )}
         
-        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -1.2, 0]}>
+        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, 1.2, 0]}>
           <primitive object={bodyScene} ref={bodyModelRef} />
           
           {hairIndex >= 0 && hairScene && (
-            <primitive object={hairScene} ref={hairModelRef} />
+            <primitive object={hairScene} ref={hairModelRef} position={[0, 1.2, 0]}/>
           )}
         </group>
       </group>
