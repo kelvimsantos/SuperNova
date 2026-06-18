@@ -9,8 +9,8 @@ import useGameStore from '../hooks/useGameStore';
 const AVATAR_MODEL_PATH = '/models/avatar/body.glb';
 const HAIR_BASE_PATH = '/models/avatar/hair/hair-';
 
-// 🔥 MESMA ESCALA DA REDE SOCIAL
-const AVATAR_SCALE = 0.008;
+// 🔥 ESCALA MAIS PEQUENA (0.006 em vez de 0.008)
+const AVATAR_SCALE = 0.006;
 
 // 🔥 POSIÇÕES CORRETAS PARA CADA CABELO (MESMAS DA REDE)
 const HAIR_POSITIONS = {
@@ -32,7 +32,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const [isGrounded, setIsGrounded] = useState(true);
   
   const setPlayerRigidBody = useGameStore((state) => state.setPlayerRigidBody);
-  const currentAnim = useRef('idle2'); // 🔥 Usa idle2 como padrão (igual ao Player usa 'Idle')
+  const currentAnim = useRef('idle2');
   const isNight = useGameStore((state) => state.isNight);
   const currentScene = useGameStore((state) => state.currentScene);
   const worldGroupRef = useGameStore((state) => state.worldGroupRef);
@@ -48,10 +48,9 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const hairPath = hairIndex >= 0 ? `${HAIR_BASE_PATH}${String(hairIndex + 1).padStart(2, '0')}.glb` : null;
   const { scene: hairScene } = useGLTF(hairPath || '');
   
-  // 🔥 USA AS ANIMAÇÕES (MESMA LÓGICA DO PLAYER)
   const { actions } = useAnimations(animations, bodyModelRef);
 
-  // 🔥 FUNÇÃO PARA TOCAR ANIMAÇÃO (IGUAL AO PLAYER)
+  // 🔥 FUNÇÃO PARA TOCAR ANIMAÇÃO
   const playAnimation = (name) => {
     if (!actions || !actions[name] || currentAnim.current === name) return;
     Object.values(actions).forEach(action => action.stop());
@@ -66,8 +65,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       animations.forEach((anim, i) => {
         console.log(`  ${i+1}. "${anim.name}"`);
       });
-      // Mostra quais animações existem para debug
-      console.log('📌 Nomes disponíveis:', animations.map(a => a.name).join(', '));
     }
   }, [animations]);
 
@@ -107,7 +104,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     });
   }, [bodyModelRef, avatarConfig]);
 
-  // 🔥 APLICA COR DO CABELO E POSIÇÃO
+  // 🔥 APLICA COR DO CABELO
   useEffect(() => {
     if (!hairModelRef.current || !avatarConfig) return;
     
@@ -206,7 +203,8 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     
     tryFindGround(currentPos.y).then(({ foundGround, groundY }) => {
       if (foundGround && groundY !== null) {
-        const newY = groundY + 0.8;
+        // 🔥 AJUSTE FINO: altura do chão + 0.6 (mais baixo)
+        const newY = groundY + 0.6;
         rigidBodyRef.current.setTranslation({ x: currentPos.x, y: newY, z: currentPos.z }, true);
       } else {
         const newY = currentPos.y + 20;
@@ -243,7 +241,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     }
   });
 
-  // 🔥 LOOP PRINCIPAL (MESMA LÓGICA DO PLAYER)
+  // 🔥 LOOP PRINCIPAL
   useFrame(({ camera }) => {
     if (!rigidBodyRef.current || loadingAvatar) return;
 
@@ -258,7 +256,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
 
     const isMoving = dx !== 0 || dz !== 0;
     
-    // 🔥 MESMA LÓGICA DO PLAYER
     if (!isMoving) {
       playAnimation(grounded ? 'idle2' : 'Fall');
     } else {
@@ -329,7 +326,8 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           />
         )}
         
-        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -0.9, 0]}>
+        {/* 🔥 POSIÇÃO MAIS BAIXA E MENOR ESCALA */}
+        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -1.2, 0]}>
           <primitive object={bodyScene} ref={bodyModelRef} />
           
           {hairIndex >= 0 && hairScene && (
