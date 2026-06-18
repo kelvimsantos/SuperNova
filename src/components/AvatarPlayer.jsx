@@ -12,7 +12,7 @@ const HAIR_BASE_PATH = '/models/avatar/hair/hair-';
 // 🔥 ESCALA
 const AVATAR_SCALE = 0.006;
 
-// 🔥 POSIÇÕES ORIGINAIS DO CABELO (QUE FUNCIONAVAM)
+// 🔥 POSIÇÕES ORIGINAIS DO CABELO
 const HAIR_POSITIONS = {
   0: { y: -175.1 },  // Cabelo 1
   1: { y: -195.1 },  // Cabelo 2
@@ -23,8 +23,11 @@ const HAIR_POSITIONS = {
   6: { y: -175.1 }   // Cabelo 7
 };
 
-// 🔥 OFFSET PARA ACOMPANHAR O CORPO (corpo desceu -0.5)
-const HAIR_Y_OFFSET = -0.5;
+// 🔥 OFFSET PARA ACOMPANHAR O CORPO (mais baixo)
+const HAIR_Y_OFFSET = -1.0; // antes era -0.5
+
+// 🔥 ESCALA DO CABELO (um pouco menor que o corpo)
+const HAIR_SCALE_FACTOR = 0.5; // 0.5 = metade do tamanho do corpo
 
 export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const rigidBodyRef = useRef();
@@ -107,7 +110,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     });
   }, [bodyModelRef, avatarConfig]);
 
-  // 🔥 APLICA COR DO CABELO (NÃO FOI TIRADA, SÓ REORGANIZEI)
+  // 🔥 APLICA COR DO CABELO
   useEffect(() => {
     if (!hairModelRef.current || !avatarConfig) return;
     
@@ -130,7 +133,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     
     const headBone = findHeadBone(bodyModelRef.current);
     const baseY = HAIR_POSITIONS[hairIndex]?.y || -175.1;
-    // 🔥 APLICA O MESMO OFFSET DO CORPO
     const posY = baseY + HAIR_Y_OFFSET;
     
     if (headBone) {
@@ -138,11 +140,15 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       if (parent) parent.remove(hairModelRef.current);
       headBone.add(hairModelRef.current);
       
+      // 🔥 POSIÇÃO MAIS BAIXA
       hairModelRef.current.position.set(0, posY, 0);
       hairModelRef.current.rotation.set(0, 0, 0);
-      hairModelRef.current.scale.set(1/AVATAR_SCALE, 1/AVATAR_SCALE, 1/AVATAR_SCALE);
       
-      console.log(`💇 Cabelo ancorado no osso: ${headBone.name} (Y=${posY})`);
+      // 🔥 ESCALA DO CABELO (menor que o corpo)
+      const hairScale = HAIR_SCALE_FACTOR / AVATAR_SCALE;
+      hairModelRef.current.scale.set(hairScale, hairScale, hairScale);
+      
+      console.log(`💇 Cabelo ancorado no osso: ${headBone.name} (Y=${posY}, escala=${hairScale.toFixed(2)})`);
     }
   }, [bodyModelRef, hairModelRef, hairIndex]);
 
