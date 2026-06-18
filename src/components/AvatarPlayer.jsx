@@ -23,11 +23,11 @@ const HAIR_POSITIONS = {
   6: { y: -175.1 }   // Cabelo 7
 };
 
-// 🔥 OFFSET PARA ACOMPANHAR O CORPO (mais baixo)
-const HAIR_Y_OFFSET = 10; // antes era -0.5
+// 🔥 AJUSTE DO CABELO (subir no Y) - MEXA AQUI
+const HAIR_Y_OFFSET = 50; // AUMENTE ESTE VALOR PARA SUBIR O CABELO
 
-// 🔥 ESCALA DO CABELO (um pouco menor que o corpo)
-const HAIR_SCALE_FACTOR = 0.5; // 0.5 = metade do tamanho do corpo
+// 🔥 ESCALA DO CABELO
+const HAIR_SCALE_FACTOR = 0.5;
 
 export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const rigidBodyRef = useRef();
@@ -47,7 +47,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const playerHealth = useGameStore((state) => state.playerHealth);
   const isDead = playerHealth <= 0;
 
-  // 🔥 CARREGA O MODELO
   const { scene: bodyScene, animations } = useGLTF(AVATAR_MODEL_PATH);
   
   const hairIndex = avatarConfig?.hairIndex ?? -1;
@@ -56,7 +55,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   
   const { actions } = useAnimations(animations, bodyModelRef);
 
-  // 🔥 FUNÇÃO PARA TOCAR ANIMAÇÃO
   const playAnimation = (name) => {
     if (!actions || !actions[name] || currentAnim.current === name) return;
     Object.values(actions).forEach(action => action.stop());
@@ -64,7 +62,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     currentAnim.current = name;
   };
 
-  // 🔥 DEBUG: Lista animações disponíveis
   useEffect(() => {
     if (animations && animations.length > 0) {
       console.log('🎬 Animações disponíveis no avatar:');
@@ -74,7 +71,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     }
   }, [animations]);
 
-  // 🔥 FUNÇÃO PARA ENCONTRAR O OSSO DA CABEÇA
   function findHeadBone(model) {
     let headBone = null;
     model.traverse((child) => {
@@ -91,12 +87,9 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return headBone;
   }
 
-  // 🔥 APLICA COR DA PELE
   useEffect(() => {
     if (!bodyModelRef.current || !avatarConfig) return;
-    
     const skinColor = avatarConfig.skinColor || '#f1c27d';
-    
     bodyModelRef.current.traverse((child) => {
       if (child.isMesh && child.material) {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
@@ -110,12 +103,9 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     });
   }, [bodyModelRef, avatarConfig]);
 
-  // 🔥 APLICA COR DO CABELO
   useEffect(() => {
     if (!hairModelRef.current || !avatarConfig) return;
-    
     const hairColor = avatarConfig.hairColor || '#4a2c2c';
-    
     hairModelRef.current.traverse((child) => {
       if (child.isMesh && child.material) {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
@@ -133,6 +123,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     
     const headBone = findHeadBone(bodyModelRef.current);
     const baseY = HAIR_POSITIONS[hairIndex]?.y || -175.1;
+    // 🔥 SÓ MEXA AQUI PARA SUBIR/DESCER O CABELO
     const posY = baseY + HAIR_Y_OFFSET;
     
     if (headBone) {
@@ -140,19 +131,17 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       if (parent) parent.remove(hairModelRef.current);
       headBone.add(hairModelRef.current);
       
-      // 🔥 POSIÇÃO MAIS BAIXA
+      // 🔥 POSIÇÃO DO CABELO
       hairModelRef.current.position.set(0, posY, 0);
       hairModelRef.current.rotation.set(0, 0, 0);
       
-      // 🔥 ESCALA DO CABELO (menor que o corpo)
       const hairScale = HAIR_SCALE_FACTOR / AVATAR_SCALE;
       hairModelRef.current.scale.set(hairScale, hairScale, hairScale);
       
-      console.log(`💇 Cabelo ancorado no osso: ${headBone.name} (Y=${posY}, escala=${hairScale.toFixed(2)})`);
+      console.log(`💇 Cabelo Y=${posY}`);
     }
   }, [bodyModelRef, hairModelRef, hairIndex]);
 
-  // 🔥 REGISTRA O RIGID BODY
   useEffect(() => {
     if (rigidBodyRef.current) {
       rigidBodyRef.current.currentMoveDir = moveDir;
@@ -161,10 +150,8 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return () => setPlayerRigidBody(null);
   }, [setPlayerRigidBody]);
 
-  // 🔥 FUNÇÃO PARA ENCONTRAR O CHÃO
   const findGroundAndAdjust = () => {
     if (!rigidBodyRef.current || !worldGroupRef?.current || isAdjusting) return;
-
     setIsAdjusting(true);
     
     const currentPos = rigidBodyRef.current.translation();
@@ -174,26 +161,16 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       return new Promise((resolve) => {
         let foundGround = false;
         let groundY = null;
-        
         for (let yOffset = 0; yOffset <= 100; yOffset += 5) {
           const origin = new Vector3(currentPos.x, startY + yOffset, currentPos.z);
           const direction = new Vector3(0, -1, 0);
           raycaster.set(origin, direction);
-          
           const allObjects = [];
           const collectObjects = (obj) => {
-            if (obj.isMesh && obj.visible) {
-              allObjects.push(obj);
-            }
-            if (obj.children) {
-              obj.children.forEach(child => collectObjects(child));
-            }
+            if (obj.isMesh && obj.visible) allObjects.push(obj);
+            if (obj.children) obj.children.forEach(child => collectObjects(child));
           };
-          
-          if (worldGroupRef.current) {
-            collectObjects(worldGroupRef.current);
-          }
-          
+          if (worldGroupRef.current) collectObjects(worldGroupRef.current);
           for (const obj of allObjects) {
             const intersects = raycaster.intersectObject(obj, true);
             if (intersects.length > 0) {
@@ -204,10 +181,8 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
               }
             }
           }
-          
           if (foundGround) break;
         }
-        
         resolve({ foundGround, groundY });
       });
     };
@@ -219,14 +194,12 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       } else {
         const newY = currentPos.y + 20;
         rigidBodyRef.current.setTranslation({ x: currentPos.x, y: newY, z: currentPos.z }, true);
-        
         setTimeout(() => {
           setIsAdjusting(false);
           findGroundAndAdjust();
         }, 500);
         return;
       }
-      
       setIsAdjusting(false);
     });
   };
@@ -237,33 +210,26 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         findGroundAndAdjust();
       }
     }, 500);
-    
     return () => clearTimeout(timer);
   }, [currentScene, worldGroupRef]);
 
   useFrame(() => {
     if (!rigidBodyRef.current || isAdjusting) return;
-    
     const pos = rigidBodyRef.current.translation();
-    
     if (pos.y < -10) {
       findGroundAndAdjust();
     }
   });
 
-  // 🔥 LOOP PRINCIPAL
   useFrame(({ camera }) => {
     if (!rigidBodyRef.current || loadingAvatar) return;
-
     const position = rigidBodyRef.current.translation();
     setPlayerPosition({ x: position.x, y: position.y, z: position.z });
 
     const { x: dx, z: dz } = moveDir.current;
     const currentVel = rigidBodyRef.current.linvel();
-
     const grounded = Math.abs(currentVel.y) < 0.1;
     setIsGrounded(grounded);
-
     const isMoving = dx !== 0 || dz !== 0;
     
     if (!isMoving) {
@@ -276,23 +242,17 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     camera.getWorldDirection(cameraDirection);
     cameraDirection.y = 0;
     cameraDirection.normalize();
-    
     const right = new Vector3(-cameraDirection.z, 0, cameraDirection.x);
     const moveVector = new Vector3();
     moveVector.x += cameraDirection.x * dz;
     moveVector.z += cameraDirection.z * dz;
     moveVector.x += right.x * dx;
     moveVector.z += right.z * dx;
-    
     if (moveVector.length() > 0) moveVector.normalize();
 
     const speed = 2;
     rigidBodyRef.current.setLinvel(
-      {
-        x: moveVector.x * speed,
-        y: currentVel.y,
-        z: moveVector.z * speed,
-      },
+      { x: moveVector.x * speed, y: currentVel.y, z: moveVector.z * speed },
       true
     );
 
@@ -340,7 +300,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           <primitive object={bodyScene} ref={bodyModelRef} />
           
           {hairIndex >= 0 && hairScene && (
-            <primitive object={hairScene} ref={hairModelRef} position={[0, 5.2, 0]}/>
+            <primitive object={hairScene} ref={hairModelRef} />
           )}
         </group>
       </group>
