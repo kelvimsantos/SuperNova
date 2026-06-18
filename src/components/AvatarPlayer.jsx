@@ -24,7 +24,7 @@ const HAIR_POSITIONS = {
 };
 
 // 🔥 AJUSTE DO CABELO (subir no Y) - MEXA AQUI
-const HAIR_Y_OFFSET = 0; // AUMENTE ESTE VALOR PARA SUBIR O CABELO
+const HAIR_Y_OFFSET = -5; // AUMENTE ESTE VALOR PARA SUBIR O CABELO
 
 // 🔥 ESCALA DO CABELO
 const HAIR_SCALE_FACTOR = 0.8;
@@ -280,7 +280,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     <RigidBody
       ref={rigidBodyRef}
       mass={1}
-      position={[0, 30, 0]}
+      position={[0, 10, 0]}
       linearDamping={0.5}
       enabledRotations={[false, false, false]}
     >
@@ -296,7 +296,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           />
         )}
         
-        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -0.7, 0]}>
+        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -10.7, 0]}>
           <primitive object={bodyScene} ref={bodyModelRef} />
           
           {hairIndex >= 0 && hairScene && (
