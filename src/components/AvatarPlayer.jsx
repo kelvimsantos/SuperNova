@@ -12,6 +12,17 @@ const HAIR_BASE_PATH = '/models/avatar/hair/hair-';
 // 🔥 MESMA ESCALA DA REDE SOCIAL
 const AVATAR_SCALE = 0.008;
 
+// 🔥 POSIÇÕES CORRETAS PARA CADA CABELO (MESMAS DA REDE)
+const HAIR_POSITIONS = {
+  0: { y: -175.1 },  // Cabelo 1
+  1: { y: -195.1 },  // Cabelo 2
+  2: { y: -195.1 },  // Cabelo 3
+  3: { y: -195.1 },  // Cabelo 4
+  4: { y: -180.1 },  // Cabelo 5
+  5: { y: -195.1 },  // Cabelo 6
+  6: { y: -175.1 }   // Cabelo 7
+};
+
 export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const rigidBodyRef = useRef();
   const visualRef = useRef();
@@ -39,17 +50,26 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   
   const { actions } = useAnimations(animations, bodyModelRef);
 
-  // 🔥 MAPEAMENTO CORRETO DAS ANIMAÇÕES (NOMES EXATOS DO MODELO)
-  const animationMap = useMemo(() => ({
-    idle: 'idle2',        // ← NOME EXATO do seu modelo
-    run: 'Run',           // ← NOME EXATO
-    fall: 'Fall',         // ← NOME EXATO
-    jump: 'Jump',         // ← NOME EXATO
-    hit: 'Hitado',        // ← NOME EXATO
-    attack1: 'Punching1', // ← NOME EXATO
-    attack2: 'Punching2', // ← NOME EXATO
-    aim: 'Mira-arco'      // ← NOME EXATO
-  }), []);
+  // 🔥 MAPEAMENTO CORRETO DAS ANIMAÇÕES
+  // idle = primeira animação (índice 0)
+  // run = terceira animação (índice 2)
+  const animationMap = useMemo(() => {
+    if (!animations || animations.length === 0) return {};
+    
+    const map = {
+      idle: animations[0]?.name || 'idle2',      // Primeira animação
+      run: animations[2]?.name || 'Run',         // Terceira animação
+      fall: animations.find(a => a.name.toLowerCase().includes('fall'))?.name || 'Fall',
+      jump: animations.find(a => a.name.toLowerCase().includes('jump'))?.name || 'Jump',
+      hit: animations.find(a => a.name.toLowerCase().includes('hit'))?.name || 'Hitado',
+      attack1: animations.find(a => a.name.toLowerCase().includes('punching1'))?.name || 'Punching1',
+      attack2: animations.find(a => a.name.toLowerCase().includes('punching2'))?.name || 'Punching2',
+      aim: animations.find(a => a.name.toLowerCase().includes('mira'))?.name || 'Mira-arco'
+    };
+    
+    console.log('📌 Mapeamento de animações:', map);
+    return map;
+  }, [animations]);
 
   // 🔥 DEBUG: Lista animações disponíveis
   useEffect(() => {
@@ -58,9 +78,27 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       animations.forEach((anim, i) => {
         console.log(`  ${i+1}. "${anim.name}" (${anim.duration.toFixed(2)}s)`);
       });
-      console.log('📌 Mapeamento:', animationMap);
+      console.log(`📌 Idle = "${animations[0]?.name}" (índice 0)`);
+      console.log(`📌 Run = "${animations[2]?.name}" (índice 2)`);
     }
-  }, [animations, animationMap]);
+  }, [animations]);
+
+  // 🔥 FUNÇÃO PARA ENCONTRAR O OSSO DA CABEÇA
+  function findHeadBone(model) {
+    let headBone = null;
+    model.traverse((child) => {
+      if (child.isBone) {
+        const nameLower = child.name.toLowerCase();
+        if (nameLower.includes('head') || 
+            nameLower.includes('cabeça') || 
+            nameLower === 'mixamorig:head' ||
+            nameLower === 'mixamorighead') {
+          headBone = child;
+        }
+      }
+    });
+    return headBone;
+  }
 
   // 🔥 APLICA COR DA PELE
   useEffect(() => {
@@ -81,7 +119,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     });
   }, [bodyModelRef, avatarConfig]);
 
-  // 🔥 APLICA COR DO CABELO
+  // 🔥 APLICA COR DO CABELO E POSIÇÃO
   useEffect(() => {
     if (!hairModelRef.current || !avatarConfig) return;
     
@@ -98,6 +136,30 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     });
   }, [hairModelRef, avatarConfig]);
 
+  // 🔥 POSICIONA O CABELO NO OSSO DA CABEÇA
+  useEffect(() => {
+    if (!bodyModelRef.current || !hairModelRef.current) return;
+    
+    const headBone = findHeadBone(bodyModelRef.current);
+    const posY = HAIR_POSITIONS[hairIndex]?.y || -175.1;
+    
+    if (headBone) {
+      // Remove do grupo principal e adiciona ao osso
+      const parent = hairModelRef.current.parent;
+      if (parent) parent.remove(hairModelRef.current);
+      headBone.add(hairModelRef.current);
+      
+      // 🔥 POSIÇÃO CORRETA RELATIVA AO OSSO
+      hairModelRef.current.position.set(0, posY, 0);
+      hairModelRef.current.rotation.set(0, 0, 0);
+      hairModelRef.current.scale.set(1/AVATAR_SCALE, 1/AVATAR_SCALE, 1/AVATAR_SCALE);
+      
+      console.log(`💇 Cabelo ancorado no osso: ${headBone.name} (Y=${posY})`);
+    } else {
+      console.warn('⚠️ Osso da cabeça não encontrado!');
+    }
+  }, [bodyModelRef, hairModelRef, hairIndex]);
+
   useEffect(() => {
     if (rigidBodyRef.current) {
       rigidBodyRef.current.currentMoveDir = moveDir;
@@ -106,16 +168,11 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return () => setPlayerRigidBody(null);
   }, [setPlayerRigidBody]);
 
-  // 🔥 TOCA ANIMAÇÃO (CORRIGIDO)
+  // 🔥 TOCA ANIMAÇÃO
   const playAnimation = (name) => {
-    if (!actions || isDead) {
-      console.warn('⚠️ Sem actions ou personagem morto');
-      return;
-    }
+    if (!actions || isDead) return;
     
-    // Mapeia o nome
     const mappedName = animationMap[name] || name;
-    console.log(`🎯 Tentando tocar: "${name}" → mapeado para: "${mappedName}"`);
     
     // Tenta encontrar a animação
     let action = actions[mappedName];
@@ -128,32 +185,19 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       if (key) action = actions[key];
     }
     
-    // Se ainda não encontrou, tenta partial match
     if (!action) {
-      const key = Object.keys(actions).find(key => 
-        key.toLowerCase().includes(mappedName.toLowerCase())
-      );
-      if (key) action = actions[key];
-    }
-    
-    if (!action) {
-      console.warn(`⚠️ Animação "${mappedName}" não encontrada!`);
-      // Fallback: usa a primeira animação disponível
-      const firstAction = Object.values(actions)[0];
-      if (firstAction && currentAnim.current !== firstAction.name) {
-        console.log(`🔄 Fallback para: "${firstAction.name}"`);
+      // Fallback: usa a primeira animação (idle)
+      const fallbackAction = Object.values(actions)[0];
+      if (fallbackAction && currentAnim.current !== fallbackAction.name) {
         Object.values(actions).forEach(a => a.stop());
-        firstAction.reset().play();
-        currentAnim.current = firstAction.name;
+        fallbackAction.reset().play();
+        currentAnim.current = fallbackAction.name;
       }
       return;
     }
     
-    if (currentAnim.current === action.name) {
-      return; // Já está tocando
-    }
+    if (currentAnim.current === action.name) return;
     
-    console.log(`▶️ Trocando para: "${action.name}"`);
     Object.values(actions).forEach(a => a.stop());
     action.reset().play();
     currentAnim.current = action.name;
@@ -264,17 +308,8 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
 
     const isMoving = dx !== 0 || dz !== 0;
     
-    // 🔥 LOG PARA DEBUG (só algumas vezes)
-    if (Math.random() < 0.01) {
-      console.log(`🎮 Movendo: ${isMoving}, Grounded: ${grounded}, Anim atual: ${currentAnim.current}`);
-    }
-    
     if (!isMoving) {
-      if (grounded) {
-        playAnimation('idle');
-      } else {
-        playAnimation('fall');
-      }
+      playAnimation('idle');
     } else {
       playAnimation('run');
     }
@@ -347,6 +382,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -0.7, 0]}>
           <primitive object={bodyScene} ref={bodyModelRef} />
           
+          {/* 🔥 CABELO (será movido para o osso da cabeça no useEffect) */}
           {hairIndex >= 0 && hairScene && (
             <primitive object={hairScene} ref={hairModelRef} />
           )}
