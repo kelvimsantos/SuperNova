@@ -9,10 +9,10 @@ import useGameStore from '../hooks/useGameStore';
 const AVATAR_MODEL_PATH = '/models/avatar/body.glb';
 const HAIR_BASE_PATH = '/models/avatar/hair/hair-';
 
-// 🔥 MESMA ESCALA DA REDE SOCIAL
-const AVATAR_SCALE = 0.008;
+// 🔥 ESCALA
+const AVATAR_SCALE = 0.006;
 
-// 🔥 POSIÇÕES CORRETAS PARA CADA CABELO (MESMAS DA REDE)
+// 🔥 POSIÇÕES ORIGINAIS DO CABELO
 const HAIR_POSITIONS = {
   0: { y: -175.1 },  // Cabelo 1
   1: { y: -195.1 },  // Cabelo 2
@@ -22,6 +22,9 @@ const HAIR_POSITIONS = {
   5: { y: -195.1 },  // Cabelo 6
   6: { y: -175.1 }   // Cabelo 7
 };
+
+// 🔥 OFFSET DO CABELO = 0 (já que o corpo já está na posição correta)
+const HAIR_Y_OFFSET = 0;
 
 export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const rigidBodyRef = useRef();
@@ -65,7 +68,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       animations.forEach((anim, i) => {
         console.log(`  ${i+1}. "${anim.name}"`);
       });
-      console.log('📌 Nomes disponíveis:', animations.map(a => a.name).join(', '));
     }
   }, [animations]);
 
@@ -122,7 +124,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     });
   }, [hairModelRef, avatarConfig]);
 
-  // 🔥 POSICIONA O CABELO NO OSSO DA CABEÇA
+  // 🔥 POSICIONA O CABELO NO OSSO DA CABEÇA (SEM OFFSET)
   useEffect(() => {
     if (!bodyModelRef.current || !hairModelRef.current) return;
     
@@ -138,7 +140,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       hairModelRef.current.rotation.set(0, 0, 0);
       hairModelRef.current.scale.set(1/AVATAR_SCALE, 1/AVATAR_SCALE, 1/AVATAR_SCALE);
       
-      console.log(`💇 Cabelo ancorado no osso: ${headBone.name}`);
+      console.log(`💇 Cabelo ancorado no osso: ${headBone.name} (Y=${posY})`);
     }
   }, [bodyModelRef, hairModelRef, hairIndex]);
 
@@ -204,7 +206,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     
     tryFindGround(currentPos.y).then(({ foundGround, groundY }) => {
       if (foundGround && groundY !== null) {
-        const newY = groundY + 0.8;
+        const newY = groundY + 0.6;
         rigidBodyRef.current.setTranslation({ x: currentPos.x, y: newY, z: currentPos.z }, true);
       } else {
         const newY = currentPos.y + 20;
@@ -310,7 +312,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     <RigidBody
       ref={rigidBodyRef}
       mass={1}
-      position={[0, 1.5, 0]}
+      position={[0, 50, 0]}
       linearDamping={0.5}
       enabledRotations={[false, false, false]}
     >
@@ -326,10 +328,11 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           />
         )}
         
-        {/* 🔥 SÓ MUDEI A POSIÇÃO DO CORPO DE -0.9 PARA -1.2 */}
-        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -0.2, 0]}>
+        {/* 🔥 CORPO NA POSIÇÃO CORRETA (FICA NO CHÃO) */}
+        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -1.2, 0]}>
           <primitive object={bodyScene} ref={bodyModelRef} />
           
+          {/* 🔥 CABELO SEM OFFSET (JÁ ESTÁ NA POSIÇÃO CORRETA) */}
           {hairIndex >= 0 && hairScene && (
             <primitive object={hairScene} ref={hairModelRef} />
           )}
