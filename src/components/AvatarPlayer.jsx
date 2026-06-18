@@ -9,21 +9,22 @@ import useGameStore from '../hooks/useGameStore';
 const AVATAR_MODEL_PATH = '/models/avatar/body.glb';
 const HAIR_BASE_PATH = '/models/avatar/hair/hair-';
 
-// 🔥 ESCALA MAIS PEQUENA
+// 🔥 ESCALA
 const AVATAR_SCALE = 0.006;
 
-// 🔥 POSIÇÕES CORRETAS PARA CADA CABELO (AJUSTADAS PARA A NOVA ESCALA)
-// Valores anteriores divididos pela diferença de escala (0.008/0.006 = 1.33)
-// Ou seja, -175.1 * 0.006/0.008 = -131.325
+// 🔥 POSIÇÕES ORIGINAIS DO CABELO (QUE FUNCIONAVAM)
 const HAIR_POSITIONS = {
-  0: { y: -131.3 },  // Cabelo 1 (antes -175.1)
-  1: { y: -146.3 },  // Cabelo 2 (antes -195.1)
-  2: { y: -146.3 },  // Cabelo 3 (antes -195.1)
-  3: { y: -146.3 },  // Cabelo 4 (antes -195.1)
-  4: { y: -135.1 },  // Cabelo 5 (antes -180.1)
-  5: { y: -146.3 },  // Cabelo 6 (antes -195.1)
-  6: { y: -131.3 }   // Cabelo 7 (antes -175.1)
+  0: { y: -175.1 },  // Cabelo 1
+  1: { y: -195.1 },  // Cabelo 2
+  2: { y: -195.1 },  // Cabelo 3
+  3: { y: -195.1 },  // Cabelo 4
+  4: { y: -180.1 },  // Cabelo 5
+  5: { y: -195.1 },  // Cabelo 6
+  6: { y: -175.1 }   // Cabelo 7
 };
+
+// 🔥 OFFSET PARA ACOMPANHAR O CORPO (corpo desceu -0.5)
+const HAIR_Y_OFFSET = -0.5;
 
 export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const rigidBodyRef = useRef();
@@ -106,7 +107,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     });
   }, [bodyModelRef, avatarConfig]);
 
-  // 🔥 APLICA COR DO CABELO
+  // 🔥 APLICA COR DO CABELO (NÃO FOI TIRADA, SÓ REORGANIZEI)
   useEffect(() => {
     if (!hairModelRef.current || !avatarConfig) return;
     
@@ -128,14 +129,15 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     if (!bodyModelRef.current || !hairModelRef.current) return;
     
     const headBone = findHeadBone(bodyModelRef.current);
-    const posY = HAIR_POSITIONS[hairIndex]?.y || -131.3;
+    const baseY = HAIR_POSITIONS[hairIndex]?.y || -175.1;
+    // 🔥 APLICA O MESMO OFFSET DO CORPO
+    const posY = baseY + HAIR_Y_OFFSET;
     
     if (headBone) {
       const parent = hairModelRef.current.parent;
       if (parent) parent.remove(hairModelRef.current);
       headBone.add(hairModelRef.current);
       
-      // 🔥 POSIÇÃO AJUSTADA PARA A NOVA ESCALA
       hairModelRef.current.position.set(0, posY, 0);
       hairModelRef.current.rotation.set(0, 0, 0);
       hairModelRef.current.scale.set(1/AVATAR_SCALE, 1/AVATAR_SCALE, 1/AVATAR_SCALE);
