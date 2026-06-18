@@ -9,18 +9,20 @@ import useGameStore from '../hooks/useGameStore';
 const AVATAR_MODEL_PATH = '/models/avatar/body.glb';
 const HAIR_BASE_PATH = '/models/avatar/hair/hair-';
 
-// 🔥 ESCALA MAIS PEQUENA (0.006 em vez de 0.008)
+// 🔥 ESCALA MAIS PEQUENA
 const AVATAR_SCALE = 0.006;
 
-// 🔥 POSIÇÕES CORRETAS PARA CADA CABELO (MESMAS DA REDE)
+// 🔥 POSIÇÕES CORRETAS PARA CADA CABELO (AJUSTADAS PARA A NOVA ESCALA)
+// Valores anteriores divididos pela diferença de escala (0.008/0.006 = 1.33)
+// Ou seja, -175.1 * 0.006/0.008 = -131.325
 const HAIR_POSITIONS = {
-  0: { y: -175.1 },  // Cabelo 1
-  1: { y: -195.1 },  // Cabelo 2
-  2: { y: -195.1 },  // Cabelo 3
-  3: { y: -195.1 },  // Cabelo 4
-  4: { y: -180.1 },  // Cabelo 5
-  5: { y: -195.1 },  // Cabelo 6
-  6: { y: -175.1 }   // Cabelo 7
+  0: { y: -131.3 },  // Cabelo 1 (antes -175.1)
+  1: { y: -146.3 },  // Cabelo 2 (antes -195.1)
+  2: { y: -146.3 },  // Cabelo 3 (antes -195.1)
+  3: { y: -146.3 },  // Cabelo 4 (antes -195.1)
+  4: { y: -135.1 },  // Cabelo 5 (antes -180.1)
+  5: { y: -146.3 },  // Cabelo 6 (antes -195.1)
+  6: { y: -131.3 }   // Cabelo 7 (antes -175.1)
 };
 
 export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
@@ -126,18 +128,19 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     if (!bodyModelRef.current || !hairModelRef.current) return;
     
     const headBone = findHeadBone(bodyModelRef.current);
-    const posY = HAIR_POSITIONS[hairIndex]?.y || -175.1;
+    const posY = HAIR_POSITIONS[hairIndex]?.y || -131.3;
     
     if (headBone) {
       const parent = hairModelRef.current.parent;
       if (parent) parent.remove(hairModelRef.current);
       headBone.add(hairModelRef.current);
       
+      // 🔥 POSIÇÃO AJUSTADA PARA A NOVA ESCALA
       hairModelRef.current.position.set(0, posY, 0);
       hairModelRef.current.rotation.set(0, 0, 0);
       hairModelRef.current.scale.set(1/AVATAR_SCALE, 1/AVATAR_SCALE, 1/AVATAR_SCALE);
       
-      console.log(`💇 Cabelo ancorado no osso: ${headBone.name}`);
+      console.log(`💇 Cabelo ancorado no osso: ${headBone.name} (Y=${posY})`);
     }
   }, [bodyModelRef, hairModelRef, hairIndex]);
 
@@ -203,7 +206,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     
     tryFindGround(currentPos.y).then(({ foundGround, groundY }) => {
       if (foundGround && groundY !== null) {
-        // 🔥 AJUSTE FINO: altura do chão + 0.6 (mais baixo)
         const newY = groundY + 0.6;
         rigidBodyRef.current.setTranslation({ x: currentPos.x, y: newY, z: currentPos.z }, true);
       } else {
@@ -326,7 +328,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           />
         )}
         
-        {/* 🔥 POSIÇÃO MAIS BAIXA E MENOR ESCALA */}
         <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -1.2, 0]}>
           <primitive object={bodyScene} ref={bodyModelRef} />
           
