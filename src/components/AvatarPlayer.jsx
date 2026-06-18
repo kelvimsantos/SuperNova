@@ -24,10 +24,10 @@ const HAIR_POSITIONS = {
 };
 
 // 🔥 AJUSTE DO CABELO (subir no Y) - MEXA AQUI
-const HAIR_Y_OFFSET = 100; // AUMENTE ESTE VALOR PARA SUBIR O CABELO
+const HAIR_Y_OFFSET = 80; // AUMENTE ESTE VALOR PARA SUBIR O CABELO
 
 // 🔥 ESCALA DO CABELO
-const HAIR_SCALE_FACTOR = 0.5;
+const HAIR_SCALE_FACTOR = 0.8;
 
 export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const rigidBodyRef = useRef();
