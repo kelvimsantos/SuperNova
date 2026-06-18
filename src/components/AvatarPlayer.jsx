@@ -292,11 +292,11 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
             distance={2}
             decay={5}
             color={0xffaa66}
-            position={[0, 0.5, 0]}
+            position={[0, 0.3, 0]}
           />
         )}
         
-        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -0.7, 0]}>
+        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -0.0, 0]}>
           <primitive object={bodyScene} ref={bodyModelRef} />
           
           {hairIndex >= 0 && hairScene && (
