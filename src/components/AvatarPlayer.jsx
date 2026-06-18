@@ -24,7 +24,7 @@ const HAIR_POSITIONS = {
 };
 
 // 🔥 OFFSET PARA ACOMPANHAR O CORPO (mais baixo)
-const HAIR_Y_OFFSET = -0.25; // antes era -0.5
+const HAIR_Y_OFFSET = -0; // antes era -0.5
 
 // 🔥 ESCALA DO CABELO (um pouco menor que o corpo)
 const HAIR_SCALE_FACTOR = 0.5; // 0.5 = metade do tamanho do corpo
