@@ -288,11 +288,11 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       <group>
         {isNight && (
           <pointLight
-            intensity={2.2}
+            intensity={3.2}
             distance={2}
             decay={5}
             color={0xffaa66}
-            position={[0, 0.3, 0]}
+            position={[0, 0.5, 0]}
           />
         )}
         
