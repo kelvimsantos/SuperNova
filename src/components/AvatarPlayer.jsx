@@ -270,7 +270,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         <CapsuleCollider args={[0.3, 0.4]} />
         <mesh>
           <boxGeometry args={[0.5, 0.5, 0.5]} />
-          <meshStandardMaterial color="gray" transparent opacity={100.5} />
+          <meshStandardMaterial color="gray" wireframe  transparent opacity={0.5} />
         </mesh>
       </RigidBody>
     );
@@ -284,7 +284,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       linearDamping={0.5}
       enabledRotations={[false, false, false]}
     >
-      <CapsuleCollider args={[0.3, 0.4]} />
+      <CapsuleCollider args={[0.3, 0.4]}  />
       <group>
         {isNight && (
           <pointLight
