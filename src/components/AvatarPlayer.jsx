@@ -310,7 +310,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     <RigidBody
       ref={rigidBodyRef}
       mass={1}
-      position={[0, 50, 0]}
+      position={[0, 1.5, 0]}
       linearDamping={0.5}
       enabledRotations={[false, false, false]}
     >
@@ -327,7 +327,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         )}
         
         {/* 🔥 SÓ MUDEI A POSIÇÃO DO CORPO DE -0.9 PARA -1.2 */}
-        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -20.2, 0]}>
+        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -0.2, 0]}>
           <primitive object={bodyScene} ref={bodyModelRef} />
           
           {hairIndex >= 0 && hairScene && (
