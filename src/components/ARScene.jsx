@@ -3,6 +3,8 @@ import { useRef, useEffect, useState } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { AvatarPlayer } from './AvatarPlayer';
+// 🔥 IMPORTA O PLAYER ORIGINAL
+import { Player } from './Player';
 import { RepositionButton } from './RepositionButton';
 import useGameStore from '../hooks/useGameStore';
 import { World } from './World';
@@ -37,7 +39,6 @@ const cloudConfig = {
   snowy:   { enabled: true,  density: 2.3,  tiling: 5.6, speed: 1.8,  scale: 70, position: [0, 20.5, 3.2] },
 };
 
-// 🔥 RECEBE userId E avatarConfig COMO PROPS
 const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
   const { camera } = useThree();
   const worldGroupRef = useRef(null);
@@ -198,7 +199,7 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
         {renderDroppedItems()}
         {renderNPCsFromJSON()}
 
-        {/* 🔥 AVATAR PLAYER COM userId E avatarConfig */}
+        {/* 🔥 AVATAR PLAYER SE TIVER userId, SENÃO USA O PLAYER ORIGINAL */}
         {userId ? (
           <AvatarPlayer 
             userId={userId} 
@@ -206,10 +207,7 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
             loadingAvatar={loadingAvatar}
           />
         ) : (
-          <mesh>
-            <boxGeometry args={[0.5, 0.5, 0.5]} />
-            <meshStandardMaterial color="red" />
-          </mesh>
+          <Player />
         )}
       </group>
 
