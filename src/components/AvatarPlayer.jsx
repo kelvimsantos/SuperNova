@@ -270,7 +270,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         <CapsuleCollider args={[0.3, 0.4]} />
         <mesh>
           <boxGeometry args={[0.5, 0.5, 0.5]} />
-          <meshStandardMaterial color="gray" transparent opacity={0.5} />
+          <meshStandardMaterial color="gray" transparent opacity={10.5} />
         </mesh>
       </RigidBody>
     );
@@ -296,7 +296,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           />
         )}
         
-        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, 0.7, 0]}>
+        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -0.7, 0]}>
           <primitive object={bodyScene} ref={bodyModelRef} />
           
           {hairIndex >= 0 && hairScene && (
