@@ -12,7 +12,7 @@ export const SmoothTarget = ({ onTargetUpdate }) => {
   useFrame(() => {
     if (!playerPosition) return;
     // Ponto desejado: posição do jogador + altura (0.8)
-    const desired = new Vector3(playerPosition.x, playerPosition.y + 0.1, playerPosition.z);
+    const desired = new Vector3(playerPosition.x, playerPosition.y + 0.8, playerPosition.z);
     targetRef.current.copy(desired);
     // Interpola linear para suavizar
     currentTarget.current.lerp(targetRef.current, 0.1);
