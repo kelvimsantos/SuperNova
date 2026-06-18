@@ -296,7 +296,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           />
         )}
         
-        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -3.2, 0]}>
+        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -15.2, 0]}>
           <primitive object={bodyScene} ref={bodyModelRef} />
           
           {hairIndex >= 0 && hairScene && (
