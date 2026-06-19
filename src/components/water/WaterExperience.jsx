@@ -1,9 +1,12 @@
-import { useRef, useMemo, useEffect } from 'react'
+import { useRef, useMemo } from 'react'
 import { WaterSurfacePRO } from './WaterSurface_PRO'
 import { UnderwaterEffect } from './UnderwaterEffect'
 import { WaterVolume } from './WaterVolume'
 import { WaterGlass } from './WaterGlass'
+import useGameStore from '../../hooks/useGameStore'
 import { SceneEffects } from './SceneEffects'
+
+
 
 
 export const WaterExperience = ({ obj, onRef }) => {
@@ -53,19 +56,23 @@ export const WaterExperience = ({ obj, onRef }) => {
 
       {config.caustics && <SceneEffects waterLevel={position[1]} />}
 
-      <WaterSurfacePRO
-        ref={waterRef}
-        size={config.size}
-        waterLevel={0}
-        waveIntensity={config.waveIntensity}
-        waveSpeed={config.waveSpeed}
-        opacity={config.opacity}
-        refractionStrength={config.refractionStrength}
-        reflectionStrength={config.reflectionStrength}
-        fresnelStrength={config.fresnelStrength}
-        waveAmplitude={config.waveAmplitude}
-        waveFrequency={config.waveFrequency}
-      />
+      {/* no modo leve, ocultar apenas a superfície já reduz muito o custo */}
+      {useGameStore.getState().waterMode === 'light' ? null : (
+        <WaterSurfacePRO
+
+          ref={waterRef}
+          size={config.size}
+          waterLevel={0}
+          waveIntensity={config.waveIntensity}
+          waveSpeed={config.waveSpeed}
+          opacity={config.opacity}
+          refractionStrength={config.refractionStrength}
+          reflectionStrength={config.reflectionStrength}
+          fresnelStrength={config.fresnelStrength}
+          waveAmplitude={config.waveAmplitude}
+          waveFrequency={config.waveFrequency}
+        />
+      )}
 
       <WaterVolume bounds={bounds} />
 

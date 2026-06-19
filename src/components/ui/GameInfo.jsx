@@ -2,6 +2,15 @@
 import { useState, useEffect } from 'react';
 import useGameStore from '../../hooks/useGameStore';
 import './GameInfo.css';
+import { ConfigWaterMenu } from './ConfigWaterMenu';
+
+const WaterSettingsInline = () => {
+  // evita usar portal aqui; o menu abre em overlay se precisar
+  const [show, setShow] = useState(true);
+  if (!show) return null;
+  return <ConfigWaterMenu onClose={() => setShow(false)} />;
+};
+
 
 export const GameInfo = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -73,6 +82,13 @@ export const GameInfo = () => {
             >
               🎒 Itens
             </button>
+            <button 
+              className={activeTab === 'water' ? 'active' : ''}
+              onClick={() => setActiveTab('water')}
+            >
+              💧 Água
+            </button>
+            
             <button 
               className={activeTab === 'tips' ? 'active' : ''}
               onClick={() => setActiveTab('tips')}
@@ -204,10 +220,24 @@ export const GameInfo = () => {
               </div>
             )}
             
+            {/* Aba: Água */}
+            {activeTab === 'water' && (
+              <div className="tab-content">
+                <h4>💧 Configurações de Água</h4>
+                <div style={{ marginBottom: 12, opacity: 0.9, fontSize: 12 }}>
+                  Ajuste para performance no celular.
+                </div>
+                {/* Render do painel profissional */}
+                {/* Import é feito dinamicamente via require para não mexer na estrutura atual */}
+                <WaterSettingsInline />
+              </div>
+            )}
+
             {/* Aba: Dicas */}
             {activeTab === 'tips' && (
               <div className="tab-content">
                 <h4>💡 Dicas e Estratégias</h4>
+
                 <ul className="tips-list">
                   <li>🔍 <strong>Aproxime-se dos inimigos</strong> para poder atacar (anel verde)</li>
                   <li>💚 <strong>Use a habilidade Cura (Tecla 5)</strong> quando estiver com pouca vida</li>
