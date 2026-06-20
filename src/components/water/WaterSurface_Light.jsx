@@ -2,9 +2,6 @@ import * as THREE from 'three'
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 
-// arquivo JS mas contém JSX; precisa ser .jsx para o build interpretar corretamente
-
-
 /**
  * Água leve (surface simples):
  * - Não usa shader pesado nem FBO
@@ -39,7 +36,7 @@ export function WaterSurface_Light({
         '/textures/zneg.jpg',
         '/textures/zpos.jpg'
       ])
-      tex.encoding = THREE.sRGBEncoding
+
       return tex
     } catch (e) {
       return null
@@ -48,6 +45,7 @@ export function WaterSurface_Light({
 
   const material = useMemo(() => {
     const finalEnv = enableReflection ? (envMap || cubemap) : null
+
     const mat = new THREE.MeshStandardMaterial({
       color,
       transparent: true,
@@ -60,11 +58,8 @@ export function WaterSurface_Light({
       normalScale: new THREE.Vector2(normalScale, normalScale)
     })
 
-    // normal map: se não existir no projeto, mantemos sem map
-    // (evita quebrar build por path inexistente)
+    // normal map (opcional)
     try {
-      // @ts-ignore
-      // eslint-disable-next-line no-undef
       const normalTexture = new THREE.TextureLoader().load('/textures/waternormals.jpg')
       normalTexture.wrapS = normalTexture.wrapT = THREE.RepeatWrapping
       mat.normalMap = normalTexture
@@ -73,10 +68,9 @@ export function WaterSurface_Light({
     }
 
     return mat
-  }, [color, opacity, normalScale, reflectionStrength, envMap, cubemap])
+  }, [color, opacity, normalScale, reflectionStrength, envMap, cubemap, enableReflection])
 
   useFrame(({ clock }) => {
-    // micro-atualização estática para reduzir “cara de plano”
     if (!meshRef.current) return
     const t = clock.getElapsedTime()
     meshRef.current.rotation.z = Math.sin(t * 0.05) * 0.002
@@ -92,5 +86,4 @@ export function WaterSurface_Light({
     />
   )
 }
-
 

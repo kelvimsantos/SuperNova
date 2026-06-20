@@ -5,6 +5,8 @@ import { WaterVolume } from './WaterVolume'
 import { WaterGlass } from './WaterGlass'
 import useGameStore from '../../hooks/useGameStore'
 import { SceneEffects } from './SceneEffects'
+import { WaterSurface_Light } from './WaterSurface_Light.jsx'
+
 
 
 
