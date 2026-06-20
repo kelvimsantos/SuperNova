@@ -58,23 +58,28 @@ export function WaterSurface_Light({
       normalScale: new THREE.Vector2(normalScale, normalScale)
     })
 
-    // normal map (opcional)
+  // normal map (opcional) - sem animação (reduz artefatos e “movimento” do normal)
     try {
       const normalTexture = new THREE.TextureLoader().load('/textures/waternormals.jpg')
       normalTexture.wrapS = normalTexture.wrapT = THREE.RepeatWrapping
       mat.normalMap = normalTexture
+      // trava a escala (evita deslocamentos inesperados)
+      normalTexture.needsUpdate = false
     } catch (e) {
       // ignore
     }
 
+
     return mat
   }, [color, opacity, normalScale, reflectionStrength, envMap, cubemap, enableReflection])
 
-  useFrame(({ clock }) => {
-    if (!meshRef.current) return
-    const t = clock.getElapsedTime()
-    meshRef.current.rotation.z = Math.sin(t * 0.05) * 0.002
-  })
+  // sem animação (reduz “flicker”/z-fighting na superfície leve)
+  // useFrame(({ clock }) => {
+  //   if (!meshRef.current) return
+  //   const t = clock.getElapsedTime()
+  //   meshRef.current.rotation.z = Math.sin(t * 0.05) * 0.002
+  // })
+
 
   return (
     <mesh

@@ -1,8 +1,9 @@
-import { useFrame, useThree } from '@react-three/fiber'
+tacerimport { useFrame, useThree } from '@react-three/fiber'
 import { useRef, useMemo } from 'react'
 import * as THREE from 'three'
 
 export function UnderwaterEffect({ fogDensity = 0.05 }) {
+
 
   const { camera } = useThree()
   const meshRef = useRef()
