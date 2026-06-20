@@ -50,8 +50,9 @@ export function UnderwaterEffect({
   return (
     <mesh
       ref={meshRef}
-      position={center}
-      scale={[size[0], size[2], 1]}
+      position={[center[0], waterSurfaceY, center[2]]}
+      rotation={[-Math.PI / 2, 0, 0]}
+      scale={[size[0], 1, size[2]]}
     >
       <planeGeometry args={[1, 1]} />
       <primitive object={material} attach="material" />
