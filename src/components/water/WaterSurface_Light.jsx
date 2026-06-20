@@ -73,15 +73,19 @@ export function WaterSurface_Light({
     return mat
   }, [color, opacity, normalScale, reflectionStrength, envMap, cubemap, enableReflection])
 
-  // sem animação (reduz “flicker”/z-fighting na superfície leve)
-  // useFrame(({ clock }) => {
-  //   if (!meshRef.current) return
-  //   const t = clock.getElapsedTime()
-  //   meshRef.current.rotation.z = Math.sin(t * 0.05) * 0.002
-  // })
+  // animação leve do normal map: desloca a textura em micro-passos
+  // (mantém o mesh estável para não dar sensação de rotação errada no celular)
+  useFrame((state, delta) => {
+    if (!material) return
+    const normalMap = material.normalMap
+    if (!normalMap) return
 
+    normalMap.offset.x += delta * 0.018
+    normalMap.offset.y += delta * 0.009
+  })
 
   return (
+
     <mesh
       ref={meshRef}
       geometry={geometry}
