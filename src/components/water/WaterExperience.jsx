@@ -56,10 +56,22 @@ export const WaterExperience = ({ obj, onRef }) => {
 
       {config.caustics && <SceneEffects waterLevel={position[1]} />}
 
-      {/* no modo leve, ocultar apenas a superfície já reduz muito o custo */}
-      {useGameStore.getState().waterMode === 'light' ? null : (
+      {/* no modo leve, ocultar apenas a superfície pesada */}
+      {useGameStore.getState().waterMode === 'light' ? (
+        // superfície leve com “reflexo” aproximado do céu (cubemap) e toggle do player (fake)
+        // (por enquanto o toggle liga/desliga envMap; depois pode virar reflexo do player real/fake por textura)
+        <WaterSurface_Light
+          size={config.size}
+          waterLevel={0}
+          color={"#2f9bbf"}
+          opacity={0.55}
+          normalScale={0.35}
+          reflectionStrength={0.45}
+          useSkyCubemap={true}
+          enableReflection={!!window.__waterPlayerReflectionEnabled}
+        />
+      ) : (
         <WaterSurfacePRO
-
           ref={waterRef}
           size={config.size}
           waterLevel={0}

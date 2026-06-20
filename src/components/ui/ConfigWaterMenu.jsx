@@ -105,6 +105,30 @@ export function ConfigWaterMenu({ onClose }) {
                 Mantém seu WaterSurfacePRO e efeitos.
               </div>
             </button>
+
+            {waterMode === 'light' && (
+              <button
+                onClick={() => {
+                  const next = !(window.__waterPlayerReflectionEnabled ?? false);
+                  window.__waterPlayerReflectionEnabled = next;
+                  window.dispatchEvent(new CustomEvent('toggleWaterPlayerReflection', { detail: { enabled: next } }));
+                }}
+                style={{
+                  background: (window.__waterPlayerReflectionEnabled ?? false) ? 'rgba(200, 100, 200, 0.35)' : 'rgba(200, 100, 200, 0.12)',
+                  border: `1px solid ${(window.__waterPlayerReflectionEnabled ?? false) ? 'rgba(200, 100, 200, 0.7)' : 'rgba(200, 100, 200, 0.35)'}`,
+                  color: '#fff',
+                  borderRadius: 12,
+                  padding: '10px 12px',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                🪞 Reflexo do Player (fake)
+                <div style={{ opacity: 0.85, fontSize: 12, marginTop: 4 }}>
+                  Ative/desative o reflexo aproximado no modo leve.
+                </div>
+              </button>
+            )}
           </div>
 
           {isMobile && (

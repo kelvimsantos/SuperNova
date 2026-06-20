@@ -16,13 +16,35 @@ export function WaterSurface_Light({
   normalScale = 0.35,
   reflectionStrength = 0.35,
   envMap = null,
+  enableReflection = true,
+  useSkyCubemap = false,
   rotation = [-Math.PI / 2, 0, 0]
 }) {
   const meshRef = useRef()
 
   const geometry = useMemo(() => new THREE.PlaneGeometry(size, size, 1, 1), [size])
 
+  const cubemap = useMemo(() => {
+    if (!useSkyCubemap) return null
+    try {
+      const loader = new THREE.CubeTextureLoader()
+      const tex = loader.load([
+        '/textures/xneg.jpg',
+        '/textures/xpos.jpg',
+        '/textures/ypos.jpg',
+        '/textures/ypos.jpg',
+        '/textures/zneg.jpg',
+        '/textures/zpos.jpg'
+      ])
+      tex.encoding = THREE.sRGBEncoding
+      return tex
+    } catch (e) {
+      return null
+    }
+  }, [useSkyCubemap])
+
   const material = useMemo(() => {
+    const finalEnv = enableReflection ? (envMap || cubemap) : null
     const mat = new THREE.MeshStandardMaterial({
       color,
       transparent: true,
@@ -30,8 +52,8 @@ export function WaterSurface_Light({
       roughness: 0.28,
       metalness: 0.2,
       side: THREE.DoubleSide,
-      envMap,
-      envMapIntensity: reflectionStrength,
+      envMap: finalEnv,
+      envMapIntensity: enableReflection ? reflectionStrength : 0,
       normalScale: new THREE.Vector2(normalScale, normalScale)
     })
 
@@ -48,7 +70,7 @@ export function WaterSurface_Light({
     }
 
     return mat
-  }, [color, opacity, normalScale, reflectionStrength, envMap])
+  }, [color, opacity, normalScale, reflectionStrength, envMap, cubemap])
 
   useFrame(({ clock }) => {
     // micro-atualização estática para reduzir “cara de plano”
