@@ -153,27 +153,32 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const findGroundAndAdjust = () => {
     if (!rigidBodyRef.current || !worldGroupRef?.current || isAdjusting) return;
     setIsAdjusting(true);
-    
+
     const currentPos = rigidBodyRef.current.translation();
     const raycaster = new Raycaster();
-    
+
     const tryFindGround = (startY) => {
       return new Promise((resolve) => {
         let foundGround = false;
         let groundY = null;
-        for (let yOffset = 0; yOffset <= 100; yOffset += 5) {
+
+        for (let yOffset = 0; yOffset <= 120; yOffset += 5) {
           const origin = new Vector3(currentPos.x, startY + yOffset, currentPos.z);
           const direction = new Vector3(0, -1, 0);
           raycaster.set(origin, direction);
+
           const allObjects = [];
           const collectObjects = (obj) => {
             if (obj.isMesh && obj.visible) allObjects.push(obj);
             if (obj.children) obj.children.forEach(child => collectObjects(child));
           };
+
           if (worldGroupRef.current) collectObjects(worldGroupRef.current);
+
           for (const obj of allObjects) {
             const intersects = raycaster.intersectObject(obj, true);
             if (intersects.length > 0) {
+              // maior Y = primeiro “chão” acima de nós (melhor para corrigir flutuação)
               const hitPoint = intersects[0].point;
               if (groundY === null || hitPoint.y > groundY) {
                 groundY = hitPoint.y;
@@ -181,17 +186,33 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
               }
             }
           }
+
           if (foundGround) break;
         }
+
         resolve({ foundGround, groundY });
       });
     };
-    
+
+    // alvo: "milímetro" -> na prática no 3D é um epsilon (ex.: 0.001 ~ 0.02)
+    const epsilon = 0.015;
+
     tryFindGround(currentPos.y).then(({ foundGround, groundY }) => {
       if (foundGround && groundY !== null) {
-        const newY = groundY + 0.6;
-        rigidBodyRef.current.setTranslation({ x: currentPos.x, y: newY, z: currentPos.z }, true);
+        // Ajuste fino: queremos que a malha visível (avatar) encoste no chão.
+        // Em vez da folga fixa (0.6), reduzimos para ficar menos “alto”.
+        const targetY = groundY + 0.18;
+        const currentY = currentPos.y;
+        const delta = targetY - currentY;
+
+        if (Math.abs(delta) > epsilon) {
+          rigidBodyRef.current.setTranslation(
+            { x: currentPos.x, y: targetY, z: currentPos.z },
+            true
+          );
+        }
       } else {
+        // fallback: sobe um pouco e tenta de novo
         const newY = currentPos.y + 20;
         rigidBodyRef.current.setTranslation({ x: currentPos.x, y: newY, z: currentPos.z }, true);
         setTimeout(() => {
@@ -200,6 +221,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         }, 500);
         return;
       }
+
       setIsAdjusting(false);
     });
   };
