@@ -10,7 +10,7 @@ const AVATAR_MODEL_PATH = '/models/avatar/body.glb';
 const HAIR_BASE_PATH = '/models/avatar/hair/hair-';
 
 // 🔥 ESCALA
-const AVATAR_SCALE = 0.005;
+const AVATAR_SCALE = 0.006;
 
 // 🔥 POSIÇÕES ORIGINAIS DO CABELO
 const HAIR_POSITIONS = {
