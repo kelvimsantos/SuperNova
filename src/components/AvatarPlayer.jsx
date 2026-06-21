@@ -197,17 +197,31 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     // alvo: "milímetro" -> na prática no 3D é um epsilon (ex.: 0.001 ~ 0.02)
     const epsilon = 0.015;
 
+    // Ajuste de "grip": evita o avatar ficar preso em quinas/cantinhos do collider
+    // reduzindo o setTranslation enquanto está andando/sem necessidade.
+    const speedThreshold = 0.05; // ajustável
+
     tryFindGround(currentPos.y).then(({ foundGround, groundY }) => {
       if (foundGround && groundY !== null) {
         // Ajuste fino: queremos que a malha visível (avatar) encoste no chão.
-        // Em vez da folga fixa (0.6), reduzimos para ficar menos “alto”.
-        // Corrige a altura para encostar com a malha visível.
-        // Mantém consistente o offset anterior (groundY + 0.18).
+        // Para não "agarrar" enquanto estiver andando, só corrigimos Y quando a velocidade horizontal for baixa.
+        const vel = rigidBodyRef.current.linvel();
+        const horizontalSpeed = Math.sqrt((vel.x * vel.x) + (vel.z * vel.z));
+
         const targetY = groundY + 0.18;
         const currentY = currentPos.y;
         const delta = targetY - currentY;
 
-        if (Math.abs(delta) > epsilon) {
+        // Se está se movendo, reduz chance de teleporte/lock no collider
+        const shouldSnapY = horizontalSpeed < speedThreshold;
+
+        if (shouldSnapY && Math.abs(delta) > epsilon) {
+          rigidBodyRef.current.setTranslation(
+            { x: currentPos.x, y: targetY, z: currentPos.z },
+            true
+          );
+        } else if (!shouldSnapY && Math.abs(delta) > (epsilon * 4)) {
+          // fallback: se estiver muito fora, corrige mesmo andando
           rigidBodyRef.current.setTranslation(
             { x: currentPos.x, y: targetY, z: currentPos.z },
             true
@@ -275,6 +289,8 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     if (moveVector.length() > 0) moveVector.normalize();
 
     const speed = 2;
+    // Não use setLinvel com y "cravado" para evitar que o collider prenda no terreno.
+    // Mantém a física do y e só ajusta x/z.
     rigidBodyRef.current.setLinvel(
       { x: moveVector.x * speed, y: currentVel.y, z: moveVector.z * speed },
       true
