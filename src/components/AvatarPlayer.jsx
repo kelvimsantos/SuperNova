@@ -10,7 +10,7 @@ const AVATAR_MODEL_PATH = '/models/avatar/body.glb';
 const HAIR_BASE_PATH = '/models/avatar/hair/hair-';
 
 // 🔥 ESCALA
-const AVATAR_SCALE = 0.006;
+const AVATAR_SCALE = 0.005;
 
 // 🔥 POSIÇÕES ORIGINAIS DO CABELO
 const HAIR_POSITIONS = {
@@ -201,7 +201,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       if (foundGround && groundY !== null) {
         // Ajuste fino: queremos que a malha visível (avatar) encoste no chão.
         // Em vez da folga fixa (0.6), reduzimos para ficar menos “alto”.
-        const targetY = groundY + 0.18;
+        const targetY = groundY +5;
         const currentY = currentPos.y;
         const delta = targetY - currentY;
 
