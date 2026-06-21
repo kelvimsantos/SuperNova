@@ -208,7 +208,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         const vel = rigidBodyRef.current.linvel();
         const horizontalSpeed = Math.sqrt((vel.x * vel.x) + (vel.z * vel.z));
 
-        const targetY = groundY + 0.18;
+        const targetY = groundY + 0.10;
         const currentY = currentPos.y;
         const delta = targetY - currentY;
 
