@@ -201,7 +201,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       if (foundGround && groundY !== null) {
         // Ajuste fino: queremos que a malha visível (avatar) encoste no chão.
         // Em vez da folga fixa (0.6), reduzimos para ficar menos “alto”.
-        const targetY = groundY +5;
+        const targetY = groundY +-0.5;
         const currentY = currentPos.y;
         const delta = targetY - currentY;
 
@@ -213,7 +213,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         }
       } else {
         // fallback: sobe um pouco e tenta de novo
-        const newY = currentPos.y + 20;
+        const newY = currentPos.y + 0.1;
         rigidBodyRef.current.setTranslation({ x: currentPos.x, y: newY, z: currentPos.z }, true);
         setTimeout(() => {
           setIsAdjusting(false);
