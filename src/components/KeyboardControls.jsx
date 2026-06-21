@@ -82,7 +82,7 @@ export const KeyboardControls = () => {
         if (keysPressed.current.space && playerRigidBody) {
           const vel = playerRigidBody.linvel();
           if (Math.abs(vel.y) < 0.2) {
-            playerRigidBody.setLinvel({ x: vel.x, y: 7, z: vel.z }, true);
+playerRigidBody.setLinvel({ x: vel.x, y: 9, z: vel.z }, true);
           }
           keysPressed.current.space = false; // Evita pulo contínuo
         }
