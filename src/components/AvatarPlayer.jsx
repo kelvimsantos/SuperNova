@@ -201,7 +201,9 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       if (foundGround && groundY !== null) {
         // Ajuste fino: queremos que a malha visível (avatar) encoste no chão.
         // Em vez da folga fixa (0.6), reduzimos para ficar menos “alto”.
-        const targetY = groundY +-0.5;
+        // Corrige a altura para encostar com a malha visível.
+        // Mantém consistente o offset anterior (groundY + 0.18).
+        const targetY = groundY + 0.18;
         const currentY = currentPos.y;
         const delta = targetY - currentY;
 
