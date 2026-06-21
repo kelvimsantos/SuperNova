@@ -46,27 +46,33 @@ export const ItemPickup = ({ itemId, position, autoEquip = false, onPickup }) =>
     }
   });
   
-  // Detecção de proximidade e coleta
+  const collectingRef = useRef(false);
+
+  // Detecção de proximidade e coleta (leve)
   useFrame(() => {
-    if (!player || collected) return;
-    
+    if (!player || collected || collectingRef.current) return;
+
     const playerPos = player.translation();
     const itemPos = ref.current?.position;
-    
-    if (itemPos) {
-      const dx = playerPos.x - itemPos.x;
-      const dz = playerPos.z - itemPos.z;
-      const dy = playerPos.y - itemPos.y;
-      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      
-      setIsNear(distance < 2.5);
-      
-      // Coleta automática
-      if (distance < 1.2) {
-        collectItem();
-      }
+
+    if (!itemPos) return;
+
+    const dx = playerPos.x - itemPos.x;
+    const dz = playerPos.z - itemPos.z;
+    const dy = playerPos.y - itemPos.y;
+
+    // evita Math.sqrt (mais leve no celular)
+    const dist2 = dx * dx + dy * dy + dz * dz;
+
+    setIsNear(dist2 < 2.5 * 2.5);
+
+    // Coleta automática (lock anti-múltiplas chamadas na mesma proximidade)
+    if (dist2 < 1.2 * 1.2) {
+      collectingRef.current = true;
+      collectItem();
     }
   });
+  
   
   const collectItem = () => {
     console.log(`🎁 Coletou: ${itemInfo.name}`);
