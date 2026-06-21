@@ -212,16 +212,15 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         const currentY = currentPos.y;
         const delta = targetY - currentY;
 
-        // Se está se movendo, reduz chance de teleporte/lock no collider
+        const deltaAbs = Math.abs(delta);
+
+        // Se está flutuando claramente, corrige SEMPRE para tirar o avatar do ar.
+        const shouldForceSnap = deltaAbs > 0.25;
+
+        // Caso contrário, só corrige se a chance de "grip" for baixa.
         const shouldSnapY = horizontalSpeed < speedThreshold;
 
-        if (shouldSnapY && Math.abs(delta) > epsilon) {
-          rigidBodyRef.current.setTranslation(
-            { x: currentPos.x, y: targetY, z: currentPos.z },
-            true
-          );
-        } else if (!shouldSnapY && Math.abs(delta) > (epsilon * 4)) {
-          // fallback: se estiver muito fora, corrige mesmo andando
+        if (deltaAbs > epsilon && (shouldForceSnap || shouldSnapY)) {
           rigidBodyRef.current.setTranslation(
             { x: currentPos.x, y: targetY, z: currentPos.z },
             true
