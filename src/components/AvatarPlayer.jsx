@@ -55,6 +55,9 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const stuckAttempts = useRef(0);
   const lastStuckTime = useRef(0);
 
+  // 🔥 Estado para controlar se o modelo já está pronto para equipar
+  const [modelReady, setModelReady] = useState(false);
+
   const { scene: bodyScene, animations } = useGLTF(AVATAR_MODEL_PATH);
   
   const hairIndex = avatarConfig?.hairIndex ?? -1;
@@ -94,6 +97,25 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     });
     return headBone;
   }
+
+  // 🔥 VERIFICA SE O MODELO ESTÁ PRONTO PARA EQUIPAR
+  useEffect(() => {
+    if (bodyModelRef.current) {
+      // Verifica se o modelo tem ossos
+      let hasBones = false;
+      bodyModelRef.current.traverse((child) => {
+        if (child.isBone) hasBones = true;
+      });
+      
+      if (hasBones) {
+        console.log('✅ Modelo pronto para equipar itens');
+        setModelReady(true);
+      } else {
+        console.warn('⚠️ Modelo não tem ossos encontrados');
+        setModelReady(false);
+      }
+    }
+  }, [bodyModelRef.current]);
 
   useEffect(() => {
     if (!bodyModelRef.current || !avatarConfig) return;
@@ -384,13 +406,13 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
             <primitive object={hairScene} ref={hairModelRef} />
           )}
 
-          {/* 🔥 EQUIPAMENTOS VISÍVEIS - USANDO bodyModelRef.current (NÃO bodyScene) */}
-          {bodyModelRef.current && (
+          {/* 🔥 EQUIPAMENTOS VISÍVEIS - SOMENTE QUANDO MODELO ESTÁ PRONTO */}
+          {modelReady && bodyModelRef.current && (
             <>
               {equippedItems.weapon && (
                 <EquipmentAttachment 
                   key="weapon"
-                  playerModel={bodyModelRef.current} 
+                  playerModel={bodyScene} 
                   equipmentSlot="weapon" 
                   itemData={equippedItems.weapon}
                 />
