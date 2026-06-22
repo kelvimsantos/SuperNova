@@ -46,6 +46,10 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const setPlayerPosition = useGameStore((state) => state.setPlayerPosition);
   const playerHealth = useGameStore((state) => state.playerHealth);
   const isDead = playerHealth <= 0;
+  
+  // 🔥 REF PARA CONTROLAR O TEMPO DA ÚLTIMA CORREÇÃO
+  const lastStuckCheck = useRef(0);
+  const stuckAttempts = useRef(0);
 
   const { scene: bodyScene, animations } = useGLTF(AVATAR_MODEL_PATH);
   
@@ -148,7 +152,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return () => setPlayerRigidBody(null);
   }, [setPlayerRigidBody]);
 
-  // 🔥 FUNÇÃO PARA DETECTAR E RESOLVER TRAVAMENTO EM QUINAS
+  // 🔥 FUNÇÃO PARA DETECTAR E RESOLVER TRAVAMENTO EM QUINAS (SEM AFETAR ROTAÇÃO)
   const detectAndResolveStuck = () => {
     if (!rigidBodyRef.current) return false;
     
@@ -161,35 +165,58 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     const isStuck = isMoving && horizontalSpeed < 0.01;
     
     if (isStuck) {
-      console.log('🚧 Detectado travamento em quina, tentando resolver...');
+      const now = Date.now();
+      // Limita a frequência das tentativas para não sobrecarregar
+      if (now - lastStuckCheck.current < 200) return false;
+      lastStuckCheck.current = now;
       
-      // Estratégia 1: Tentar pular levemente para desengatar
-      rigidBodyRef.current.setLinvel({ x: vel.x, y: 0.5, z: vel.z }, true);
+      stuckAttempts.current += 1;
+      console.log(`🚧 Detectado travamento em quina (tentativa ${stuckAttempts.current})...`);
       
-      // Estratégia 2: Se ainda estiver travado, dar um pequeno impulso lateral aleatório
+      // 🔥 ESTRATÉGIA 1: Pequeno pulo para desengatar (mantém rotação)
+      rigidBodyRef.current.setLinvel({ x: vel.x, y: 0.8, z: vel.z }, true);
+      
+      // 🔥 ESTRATÉGIA 2: Após o pulo, aplica um impulso na direção do movimento
       setTimeout(() => {
         if (rigidBodyRef.current) {
           const newPos = rigidBodyRef.current.translation();
           const newVel = rigidBodyRef.current.linvel();
           const newSpeed = Math.sqrt((newVel.x * newVel.x) + (newVel.z * newVel.z));
           
-          if (newSpeed < 0.01) {
-            // Pequeno impulso em direção aleatória
-            const angle = Math.random() * Math.PI * 2;
-            const pushForce = 0.3;
-            rigidBodyRef.current.setLinvel({
-              x: Math.cos(angle) * pushForce,
-              y: 0.3,
-              z: Math.sin(angle) * pushForce
-            }, true);
+          if (newSpeed < 0.05) {
+            // Aplica impulso na direção que o jogador está tentando ir
+            const moveX = moveDir.current.x;
+            const moveZ = moveDir.current.z;
+            const magnitude = Math.sqrt(moveX * moveX + moveZ * moveZ);
             
-            // Estratégia 3: Teleportar ligeiramente para cima
+            if (magnitude > 0.01) {
+              const normalizedX = moveX / magnitude;
+              const normalizedZ = moveZ / magnitude;
+              const pushForce = 0.5;
+              
+              rigidBodyRef.current.setLinvel({
+                x: normalizedX * pushForce,
+                y: 0.2,
+                z: normalizedZ * pushForce
+              }, true);
+            } else {
+              // Se não tem direção definida, tenta uma direção aleatória
+              const angle = Math.random() * Math.PI * 2;
+              const pushForce = 0.3;
+              rigidBodyRef.current.setLinvel({
+                x: Math.cos(angle) * pushForce,
+                y: 0.2,
+                z: Math.sin(angle) * pushForce
+              }, true);
+            }
+            
+            // 🔥 ESTRATÉGIA 3: Pequeno teleporte para cima (mantém posição XZ)
             setTimeout(() => {
               if (rigidBodyRef.current) {
                 const finalPos = rigidBodyRef.current.translation();
                 rigidBodyRef.current.setTranslation({
                   x: finalPos.x,
-                  y: finalPos.y + 0.1,
+                  y: finalPos.y + 0.15,
                   z: finalPos.z
                 }, true);
               }
@@ -198,7 +225,15 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         }
       }, 100);
       
+      // Reset contador se passou muito tempo
+      if (stuckAttempts.current > 5) {
+        stuckAttempts.current = 0;
+      }
+      
       return true;
+    } else {
+      // Reset contador quando não está travado
+      stuckAttempts.current = 0;
     }
     
     return false;
@@ -212,7 +247,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     const currentPos = rigidBodyRef.current.translation();
     const raycaster = new Raycaster();
     
-    const RAY_LENGTH = 50;
     const GROUND_OFFSET = 0.02;
     const SNAP_THRESHOLD = 0.15;
 
@@ -325,9 +359,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         if (pos.y > 1) {
           adjustToGround(true);
         }
-        
-        // Verifica e resolve travamento periodicamente
-        detectAndResolveStuck();
       }
     }, 2000);
     
@@ -412,17 +443,15 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       mass={1}
       position={[0, 50, 0]}
       linearDamping={0.5}
+      // 🔥 MANTÉM ROTAÇÃO BLOQUEADA (sem tombamento)
       enabledRotations={[false, false, false]}
-      // 🔥 CONFIGURAÇÕES IMPORTANTES PARA EVITAR TRAVAMENTO
       friction={0.3}
       restitution={0.0}
-      // 🔥 PERMITE UM POUCO DE ROTAÇÃO PARA DESENGATAR
-      enabledRotations={[false, false, true]}
     >
       <CapsuleCollider 
-        args={[0.3, 0.4]} 
-        // 🔥 POSIÇÃO DO COLLIDER AJUSTADA PARA EVITAR QUINAS
-        position={[0, 0.1, 0]}
+        args={[0.3, 0.4]}
+        // 🔥 POSIÇÃO DO COLLIDER AJUSTADA
+        position={[0, 0.05, 0]}
       />
       <group>
         {isNight && (
