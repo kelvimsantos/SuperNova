@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { Vector3, Raycaster } from 'three';
 import useGameStore from '../hooks/useGameStore';
+import { EquipmentAttachment } from './equipment/EquipmentAttachment'; // 🔥 IMPORTADO
 
 const AVATAR_MODEL_PATH = '/models/avatar/body.glb';
 const HAIR_BASE_PATH = '/models/avatar/hair/hair-';
@@ -24,7 +25,7 @@ const HAIR_POSITIONS = {
 };
 
 // 🔥 AJUSTE DO CABELO (subir no Y) - MEXA AQUI
-const HAIR_Y_OFFSET = -10; // AUMENTE ESTE VALOR PARA SUBIR O CABELO
+const HAIR_Y_OFFSET = -10;
 
 // 🔥 ESCALA DO CABELO
 const HAIR_SCALE_FACTOR = 0.8;
@@ -46,6 +47,9 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const setPlayerPosition = useGameStore((state) => state.setPlayerPosition);
   const playerHealth = useGameStore((state) => state.playerHealth);
   const isDead = playerHealth <= 0;
+
+  // 🔥 EQUIPAMENTOS
+  const equippedItems = useGameStore(state => state.equippedItems);
 
   // 🔥 NOVO: Ref para controlar tentativas de desengate
   const stuckAttempts = useRef(0);
@@ -127,7 +131,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     
     const headBone = findHeadBone(bodyModelRef.current);
     const baseY = HAIR_POSITIONS[hairIndex]?.y || -175.1;
-    // 🔥 SÓ MEXA AQUI PARA SUBIR/DESCER O CABELO
     const posY = baseY + HAIR_Y_OFFSET;
     
     if (headBone) {
@@ -135,7 +138,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       if (parent) parent.remove(hairModelRef.current);
       headBone.add(hairModelRef.current);
       
-      // 🔥 POSIÇÃO DO CABELO
       hairModelRef.current.position.set(0, posY, 0);
       hairModelRef.current.rotation.set(0, 0, 0);
       
@@ -154,6 +156,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return () => setPlayerRigidBody(null);
   }, [setPlayerRigidBody]);
 
+  // 🔥 FUNÇÃO PARA AJUSTAR AO CHÃO (MANTIDA ORIGINAL)
   const findGroundAndAdjust = () => {
     if (!rigidBodyRef.current || !worldGroupRef?.current || isAdjusting) return;
     setIsAdjusting(true);
@@ -279,12 +282,12 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return () => clearTimeout(timer);
   }, [currentScene, worldGroupRef]);
 
-  // 🔥 VERIFICAÇÃO CONTÍNUA (adicionando a checagem de travamento)
+  // 🔥 VERIFICAÇÃO CONTÍNUA
   useFrame(() => {
     if (!rigidBodyRef.current || isAdjusting) return;
     const pos = rigidBodyRef.current.translation();
     
-    // Verifica travamento em quinas
+    // 🔥 VERIFICA TRAVAMENTO EM QUINAS
     checkAndResolveStuck();
     
     if (pos.y < -10) {
@@ -292,7 +295,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     }
   });
 
-  // 🔥 VERIFICAÇÃO PERIÓDICA (mantida igual)
+  // 🔥 VERIFICAÇÃO PERIÓDICA
   useEffect(() => {
     const interval = setInterval(() => {
       if (rigidBodyRef.current && !isAdjusting && !loadingAvatar) {
@@ -336,7 +339,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     if (moveVector.length() > 0) moveVector.normalize();
 
     const speed = 2;
-    // Mantém a física do y e só ajusta x/z
     rigidBodyRef.current.setLinvel(
       { x: moveVector.x * speed, y: currentVel.y, z: moveVector.z * speed },
       true
@@ -387,6 +389,47 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           
           {hairIndex >= 0 && hairScene && (
             <primitive object={hairScene} ref={hairModelRef} />
+          )}
+
+          {/* 🔥 EQUIPAMENTOS VISÍVEIS - ADICIONADO DE VOLTA */}
+          {bodyModelRef.current && (
+            <>
+              {equippedItems.weapon && (
+                <EquipmentAttachment 
+                  playerModel={bodyModelRef.current} 
+                  equipmentSlot="weapon" 
+                  itemData={equippedItems.weapon}
+                />
+              )}
+              {equippedItems.shield && (
+                <EquipmentAttachment 
+                  playerModel={bodyModelRef.current} 
+                  equipmentSlot="shield" 
+                  itemData={equippedItems.shield}
+                />
+              )}
+              {equippedItems.helmet && (
+                <EquipmentAttachment 
+                  playerModel={bodyModelRef.current} 
+                  equipmentSlot="helmet" 
+                  itemData={equippedItems.helmet}
+                />
+              )}
+              {equippedItems.chest && (
+                <EquipmentAttachment 
+                  playerModel={bodyModelRef.current} 
+                  equipmentSlot="chest" 
+                  itemData={equippedItems.chest}
+                />
+              )}
+              {equippedItems.shoulders && (
+                <EquipmentAttachment 
+                  playerModel={bodyModelRef.current} 
+                  equipmentSlot="shoulders" 
+                  itemData={equippedItems.shoulders}
+                />
+              )}
+            </>
           )}
         </group>
       </group>
