@@ -208,7 +208,10 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         const vel = rigidBodyRef.current.linvel();
         const horizontalSpeed = Math.sqrt((vel.x * vel.x) + (vel.z * vel.z));
 
-        const targetY = groundY + 0.10;
+        // Ajuste de contato: quanto mais alto o offset, mais a malha "flutua".
+        // Se estiver elevado demais, reduza este valor.
+        const CONTACT_EPSILON = 0.02;
+        const targetY = groundY + CONTACT_EPSILON;
         const currentY = currentPos.y;
         const delta = targetY - currentY;
 
