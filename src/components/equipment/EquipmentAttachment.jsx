@@ -86,12 +86,18 @@ export const EquipmentAttachment = ({ playerModel, equipmentSlot, itemData }) =>
     }
   }, [playerModel, equipmentSlot, itemData]);
   
+  const tmpPos = new THREE.Vector3();
+  const tmpQuat = new THREE.Quaternion();
+
   useFrame(() => {
     if (!equipmentRef.current || !bone) return;
-    
-    // Atualiza posição seguindo o osso
-    equipmentRef.current.position.copy(bone.position);
-    equipmentRef.current.rotation.copy(bone.rotation);
+
+    // Atualiza posição/rotação em world-space (Mixamo bones costumam ter parent transforms)
+    bone.getWorldPosition(tmpPos);
+    bone.getWorldQuaternion(tmpQuat);
+
+    equipmentRef.current.position.copy(tmpPos);
+    equipmentRef.current.quaternion.copy(tmpQuat);
   });
   
   if (!bone || !itemData) return null;
