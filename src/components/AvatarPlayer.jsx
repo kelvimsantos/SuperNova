@@ -150,116 +150,137 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return () => setPlayerRigidBody(null);
   }, [setPlayerRigidBody]);
 
-  const findGroundAndAdjust = () => {
+  // 🔥 FUNÇÃO MELHORADA PARA AJUSTAR AO CHÃO
+  const adjustToGround = (force = false) => {
     if (!rigidBodyRef.current || !worldGroupRef?.current || isAdjusting) return;
     setIsAdjusting(true);
 
     const currentPos = rigidBodyRef.current.translation();
     const raycaster = new Raycaster();
+    
+    // 🔥 CONFIGURAÇÕES AJUSTÁVEIS
+    const RAY_LENGTH = 50; // Comprimento máximo do raycast
+    const GROUND_OFFSET = 0.02; // Pequeno offset para evitar flutuação
+    const SNAP_THRESHOLD = 0.15; // Distância máxima para corrigir de uma vez
 
-    const tryFindGround = (startY) => {
-      return new Promise((resolve) => {
-        let foundGround = false;
-        let groundY = null;
+    // Verifica se há chão abaixo do personagem
+    const findGround = () => {
+      const origin = new Vector3(currentPos.x, currentPos.y + 0.1, currentPos.z);
+      const direction = new Vector3(0, -1, 0);
+      raycaster.set(origin, direction);
 
-        for (let yOffset = 0; yOffset <= 120; yOffset += 5) {
-          const origin = new Vector3(currentPos.x, startY + yOffset, currentPos.z);
-          const direction = new Vector3(0, -1, 0);
-          raycaster.set(origin, direction);
+      const allObjects = [];
+      const collectObjects = (obj) => {
+        if (obj.isMesh && obj.visible) allObjects.push(obj);
+        if (obj.children) obj.children.forEach(child => collectObjects(child));
+      };
 
-          const allObjects = [];
-          const collectObjects = (obj) => {
-            if (obj.isMesh && obj.visible) allObjects.push(obj);
-            if (obj.children) obj.children.forEach(child => collectObjects(child));
-          };
+      if (worldGroupRef.current) collectObjects(worldGroupRef.current);
 
-          if (worldGroupRef.current) collectObjects(worldGroupRef.current);
+      let closestHit = null;
+      let closestDistance = Infinity;
 
-          for (const obj of allObjects) {
-            const intersects = raycaster.intersectObject(obj, true);
-            if (intersects.length > 0) {
-              // maior Y = primeiro “chão” acima de nós (melhor para corrigir flutuação)
-              const hitPoint = intersects[0].point;
-              if (groundY === null || hitPoint.y > groundY) {
-                groundY = hitPoint.y;
-                foundGround = true;
-              }
-            }
+      for (const obj of allObjects) {
+        const intersects = raycaster.intersectObject(obj, true);
+        if (intersects.length > 0) {
+          const hit = intersects[0];
+          if (hit.distance < closestDistance) {
+            closestDistance = hit.distance;
+            closestHit = hit;
           }
-
-          if (foundGround) break;
         }
+      }
 
-        resolve({ foundGround, groundY });
-      });
+      return closestHit;
     };
 
-    // alvo: "milímetro" -> na prática no 3D é um epsilon (ex.: 0.001 ~ 0.02)
-    const epsilon = 0.015;
+    const groundHit = findGround();
 
-    // Ajuste de "grip": evita o avatar ficar preso em quinas/cantinhos do collider
-    // reduzindo o setTranslation enquanto está andando/sem necessidade.
-    const speedThreshold = 0.05; // ajustável
+    if (groundHit) {
+      const targetY = groundHit.point.y + GROUND_OFFSET;
+      const currentY = currentPos.y;
+      const deltaY = targetY - currentY;
+      const deltaAbs = Math.abs(deltaY);
 
-    tryFindGround(currentPos.y).then(({ foundGround, groundY }) => {
-      if (foundGround && groundY !== null) {
-        // Ajuste fino: queremos que a malha visível (avatar) encoste no chão.
-        // Para não "agarrar" enquanto estiver andando, só corrigimos Y quando a velocidade horizontal for baixa.
-        const vel = rigidBodyRef.current.linvel();
-        const horizontalSpeed = Math.sqrt((vel.x * vel.x) + (vel.z * vel.z));
-
-        // Ajuste de contato: quanto mais alto o offset, mais a malha "flutua".
-        // Se estiver elevado demais, reduza este valor.
-        const CONTACT_EPSILON = 0.02;
-        const targetY = groundY + CONTACT_EPSILON;
-        const currentY = currentPos.y;
-        const delta = targetY - currentY;
-
-        const deltaAbs = Math.abs(delta);
-
-        // Se está flutuando claramente, corrige SEMPRE para tirar o avatar do ar.
-        const shouldForceSnap = deltaAbs > 0.25;
-
-        // Caso contrário, só corrige se a chance de "grip" for baixa.
-        const shouldSnapY = horizontalSpeed < speedThreshold;
-
-        if (deltaAbs > epsilon && (shouldForceSnap || shouldSnapY)) {
+      // Só ajusta se estiver significativamente fora do chão
+      if (deltaAbs > 0.001) {
+        // Se estiver muito longe, teleporta diretamente
+        if (deltaAbs > SNAP_THRESHOLD || force) {
           rigidBodyRef.current.setTranslation(
             { x: currentPos.x, y: targetY, z: currentPos.z },
             true
           );
+          console.log(`🔄 Teleportado para Y: ${targetY.toFixed(3)} (delta: ${deltaY.toFixed(3)})`);
+        } else {
+          // Movimento suave para o chão
+          const smoothY = currentY + deltaY * 0.5; // Ajuste gradual
+          rigidBodyRef.current.setTranslation(
+            { x: currentPos.x, y: smoothY, z: currentPos.z },
+            true
+          );
         }
-      } else {
-        // fallback: sobe um pouco e tenta de novo
-        const newY = currentPos.y + 0.1;
-        rigidBodyRef.current.setTranslation({ x: currentPos.x, y: newY, z: currentPos.z }, true);
+      }
+    } else {
+      // Se não encontrou chão, tenta descer gradualmente
+      console.warn('⚠️ Nenhum chão encontrado abaixo do personagem');
+      const newY = currentPos.y - 0.5;
+      if (newY > -10) { // Evita cair infinitamente
+        rigidBodyRef.current.setTranslation(
+          { x: currentPos.x, y: newY, z: currentPos.z },
+          true
+        );
+        // Agend a nova tentativa
         setTimeout(() => {
           setIsAdjusting(false);
-          findGroundAndAdjust();
-        }, 500);
+          adjustToGround(true);
+        }, 100);
         return;
       }
+    }
 
-      setIsAdjusting(false);
-    });
+    setIsAdjusting(false);
   };
 
+  // 🔥 CHAMADA INICIAL E QUANDO A CENA MUDA
   useEffect(() => {
     const timer = setTimeout(() => {
       if (rigidBodyRef.current && worldGroupRef?.current) {
-        findGroundAndAdjust();
+        adjustToGround(true);
       }
     }, 500);
     return () => clearTimeout(timer);
   }, [currentScene, worldGroupRef]);
 
+  // 🔥 VERIFICAÇÃO CONTÍNUA (menos frequente para performance)
   useFrame(() => {
     if (!rigidBodyRef.current || isAdjusting) return;
     const pos = rigidBodyRef.current.translation();
+    
+    // Se o personagem estiver muito acima do chão (flutuando)
+    if (pos.y > 2) {
+      adjustToGround(true);
+    }
+    
+    // Se o personagem estiver caindo no vazio
     if (pos.y < -10) {
-      findGroundAndAdjust();
+      adjustToGround(true);
     }
   });
+
+  // 🔥 VERIFICAÇÃO PERIÓDICA (a cada 2 segundos)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (rigidBodyRef.current && !isAdjusting && !loadingAvatar) {
+        const pos = rigidBodyRef.current.translation();
+        // Verifica se está flutuando (acima de 0.5m do chão)
+        if (pos.y > 1) {
+          adjustToGround(true);
+        }
+      }
+    }, 2000);
+    
+    return () => clearInterval(interval);
+  }, [loadingAvatar, isAdjusting]);
 
   useFrame(({ camera }) => {
     if (!rigidBodyRef.current || loadingAvatar) return;
@@ -291,8 +312,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     if (moveVector.length() > 0) moveVector.normalize();
 
     const speed = 2;
-    // Não use setLinvel com y "cravado" para evitar que o collider prenda no terreno.
-    // Mantém a física do y e só ajusta x/z.
+    // Mantém a física do y e só ajusta x/z
     rigidBodyRef.current.setLinvel(
       { x: moveVector.x * speed, y: currentVel.y, z: moveVector.z * speed },
       true
@@ -312,7 +332,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         <CapsuleCollider args={[0.3, 0.4]} />
         <mesh>
           <boxGeometry args={[0.5, 0.5, 0.5]} />
-          <meshStandardMaterial color="gray" wireframe  transparent opacity={0.5} />
+          <meshStandardMaterial color="gray" wireframe transparent opacity={0.5} />
         </mesh>
       </RigidBody>
     );
@@ -326,7 +346,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       linearDamping={0.5}
       enabledRotations={[false, false, false]}
     >
-      <CapsuleCollider args={[0.3, 0.4]}  />
+      <CapsuleCollider args={[0.3, 0.4]} />
       <group>
         {isNight && (
           <pointLight

@@ -84,7 +84,7 @@ export const KeyboardControls = () => {
           // Sempre tenta pular quando apertar (prioridade: consistência do controle)
           // Mesmo que ainda esteja "quase" no chão, o anti-flutuação do AvatarPlayer corrige a altura.
           if (Math.abs(vel.y) < 1.0) {
-            playerRigidBody.setLinvel({ x: vel.x, y: 15, z: vel.z }, true);
+            playerRigidBody.setLinvel({ x: vel.x, y: 8, z: vel.z }, true);
           }
           keysPressed.current.space = false; // Evita pulo contínuo
         }
