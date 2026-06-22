@@ -5,7 +5,7 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { Vector3, Raycaster } from 'three';
 import useGameStore from '../hooks/useGameStore';
-import { EquipmentAttachment } from './equipment/EquipmentAttachment'; // 🔥 IMPORTADO
+import { EquipmentAttachment } from './equipment/EquipmentAttachment';
 
 const AVATAR_MODEL_PATH = '/models/avatar/body.glb';
 const HAIR_BASE_PATH = '/models/avatar/hair/hair-';
@@ -51,9 +51,12 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   // 🔥 EQUIPAMENTOS
   const equippedItems = useGameStore(state => state.equippedItems);
 
-  // 🔥 NOVO: Ref para controlar tentativas de desengate
+  // 🔥 Ref para controlar tentativas de desengate
   const stuckAttempts = useRef(0);
   const lastStuckTime = useRef(0);
+
+  // 🔥 Estado para controlar se o modelo já está pronto para equipar
+  const [modelReady, setModelReady] = useState(false);
 
   const { scene: bodyScene, animations } = useGLTF(AVATAR_MODEL_PATH);
   
@@ -94,6 +97,25 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     });
     return headBone;
   }
+
+  // 🔥 VERIFICA SE O MODELO ESTÁ PRONTO PARA EQUIPAR
+  useEffect(() => {
+    if (bodyModelRef.current) {
+      // Verifica se o modelo tem ossos
+      let hasBones = false;
+      bodyModelRef.current.traverse((child) => {
+        if (child.isBone) hasBones = true;
+      });
+      
+      if (hasBones) {
+        console.log('✅ Modelo pronto para equipar itens');
+        setModelReady(true);
+      } else {
+        console.warn('⚠️ Modelo não tem ossos encontrados');
+        setModelReady(false);
+      }
+    }
+  }, [bodyModelRef.current]);
 
   useEffect(() => {
     if (!bodyModelRef.current || !avatarConfig) return;
@@ -156,7 +178,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return () => setPlayerRigidBody(null);
   }, [setPlayerRigidBody]);
 
-  // 🔥 FUNÇÃO PARA AJUSTAR AO CHÃO (MANTIDA ORIGINAL)
+  // 🔥 FUNÇÃO PARA AJUSTAR AO CHÃO
   const findGroundAndAdjust = () => {
     if (!rigidBodyRef.current || !worldGroupRef?.current || isAdjusting) return;
     setIsAdjusting(true);
@@ -236,7 +258,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     });
   };
 
-  // 🔥 NOVO: Função para detectar e resolver travamento em quinas
+  // 🔥 FUNÇÃO PARA DETECTAR E RESOLVER TRAVAMENTO EM QUINAS
   const checkAndResolveStuck = () => {
     if (!rigidBodyRef.current) return;
     
@@ -244,30 +266,24 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     const horizontalSpeed = Math.sqrt((vel.x * vel.x) + (vel.z * vel.z));
     const isMoving = moveDir.current.x !== 0 || moveDir.current.z !== 0;
     
-    // Detecta se está travado (tentando andar mas sem velocidade)
     if (isMoving && horizontalSpeed < 0.01) {
       const now = Date.now();
       
-      // Limita a frequência das tentativas
       if (now - lastStuckTime.current < 100) return;
       lastStuckTime.current = now;
       
       stuckAttempts.current += 1;
       
-      // Só aplica correção após 3 tentativas consecutivas
       if (stuckAttempts.current >= 3) {
-        // Aplica um pequeno pulo para desengatar
         rigidBodyRef.current.setLinvel({ 
           x: vel.x * 0.5, 
           y: 0.5, 
           z: vel.z * 0.5 
         }, true);
         
-        // Reseta o contador
         stuckAttempts.current = 0;
       }
     } else {
-      // Se não está travado, reseta o contador
       stuckAttempts.current = 0;
     }
   };
@@ -287,7 +303,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     if (!rigidBodyRef.current || isAdjusting) return;
     const pos = rigidBodyRef.current.translation();
     
-    // 🔥 VERIFICA TRAVAMENTO EM QUINAS
     checkAndResolveStuck();
     
     if (pos.y < -10) {
@@ -391,11 +406,12 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
             <primitive object={hairScene} ref={hairModelRef} />
           )}
 
-          {/* 🔥 EQUIPAMENTOS VISÍVEIS - ADICIONADO DE VOLTA */}
-          {bodyModelRef.current && (
+          {/* 🔥 EQUIPAMENTOS VISÍVEIS - SOMENTE QUANDO MODELO ESTÁ PRONTO */}
+          {modelReady && bodyModelRef.current && (
             <>
               {equippedItems.weapon && (
                 <EquipmentAttachment 
+                  key="weapon"
                   playerModel={bodyModelRef.current} 
                   equipmentSlot="weapon" 
                   itemData={equippedItems.weapon}
@@ -403,6 +419,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
               )}
               {equippedItems.shield && (
                 <EquipmentAttachment 
+                  key="shield"
                   playerModel={bodyModelRef.current} 
                   equipmentSlot="shield" 
                   itemData={equippedItems.shield}
@@ -410,6 +427,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
               )}
               {equippedItems.helmet && (
                 <EquipmentAttachment 
+                  key="helmet"
                   playerModel={bodyModelRef.current} 
                   equipmentSlot="helmet" 
                   itemData={equippedItems.helmet}
@@ -417,6 +435,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
               )}
               {equippedItems.chest && (
                 <EquipmentAttachment 
+                  key="chest"
                   playerModel={bodyModelRef.current} 
                   equipmentSlot="chest" 
                   itemData={equippedItems.chest}
@@ -424,6 +443,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
               )}
               {equippedItems.shoulders && (
                 <EquipmentAttachment 
+                  key="shoulders"
                   playerModel={bodyModelRef.current} 
                   equipmentSlot="shoulders" 
                   itemData={equippedItems.shoulders}
