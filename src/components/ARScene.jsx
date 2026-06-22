@@ -85,11 +85,11 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
           jsonPath = `/scenes/${currentScene}/scene.json`;
         }
         
-        console.log(`📂 Carregando JSON: ${jsonPath}`);
+     //   console.log(`📂 Carregando JSON: ${jsonPath}`);
         const response = await fetch(jsonPath);
         const data = await response.json();
         
-        console.log(`✅ JSON carregado:`, data);
+     //   console.log(`✅ JSON carregado:`, data);
         setSceneData(data);
         setGrassData(data.grassInstances);
         
@@ -118,7 +118,7 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
     if (!cameraInitialized && playerRigidBody && !isLoading) {
       const pos = playerRigidBody.translation();
       if (pos) {
-        console.log(`📷 Posição do player para câmera:`, pos);
+//        console.log(`📷 Posição do player para câmera:`, pos);
         camera.position.set(pos.x + 5, pos.y + 3, pos.z + 8);
         camera.lookAt(pos.x, pos.y + 0.8, pos.z);
         setCameraInitialized(true);
