@@ -61,16 +61,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   
   const { actions } = useAnimations(animations, bodyModelRef);
 
-  // 🔥 CLONA A CENA PARA EVITAR MUTAÇÕES
-  const [modelScene, setModelScene] = useState(null);
-  
-  useEffect(() => {
-    if (bodyScene) {
-      const clonedScene = bodyScene.clone();
-      setModelScene(clonedScene);
-    }
-  }, [bodyScene]);
-
   const playAnimation = (name) => {
     if (!actions || !actions[name] || currentAnim.current === name) return;
     Object.values(actions).forEach(action => action.stop());
@@ -392,50 +382,59 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
             <primitive object={hairScene} ref={hairModelRef} />
           )}
 
-          {/* 🔥 EQUIPAMENTOS VISÍVEIS - USANDO O bodyScene DIRETAMENTE */}
-          {bodyScene && (
-            <>
+          {/* 🔥 EQUIPAMENTOS VISÍVEIS - USANDO O bodyModelRef.current */}
+          {bodyModelRef.current && (
+            <group>
+              {console.log('🎯 Renderizando equipamentos no Avatar:', {
+                hasModel: !!bodyModelRef.current,
+                weapon: equippedItems.weapon?.name,
+                shield: equippedItems.shield?.name,
+                helmet: equippedItems.helmet?.name,
+                chest: equippedItems.chest?.name,
+                shoulders: equippedItems.shoulders?.name,
+              })}
+              
               {equippedItems.weapon && (
                 <EquipmentAttachment 
-                  key={`weapon-${equippedItems.weapon.id || Date.now()}`}
-                  playerModel={bodyScene} 
+                  key={`weapon-${Date.now()}`}
+                  playerModel={bodyModelRef.current} 
                   equipmentSlot="weapon" 
                   itemData={equippedItems.weapon}
                 />
               )}
               {equippedItems.shield && (
                 <EquipmentAttachment 
-                  key={`shield-${equippedItems.shield.id || Date.now()}`}
-                  playerModel={bodyScene} 
+                  key={`shield-${Date.now()}`}
+                  playerModel={bodyModelRef.current} 
                   equipmentSlot="shield" 
                   itemData={equippedItems.shield}
                 />
               )}
               {equippedItems.helmet && (
                 <EquipmentAttachment 
-                  key={`helmet-${equippedItems.helmet.id || Date.now()}`}
-                  playerModel={bodyScene} 
+                  key={`helmet-${Date.now()}`}
+                  playerModel={bodyModelRef.current} 
                   equipmentSlot="helmet" 
                   itemData={equippedItems.helmet}
                 />
               )}
               {equippedItems.chest && (
                 <EquipmentAttachment 
-                  key={`chest-${equippedItems.chest.id || Date.now()}`}
-                  playerModel={bodyScene} 
+                  key={`chest-${Date.now()}`}
+                  playerModel={bodyModelRef.current} 
                   equipmentSlot="chest" 
                   itemData={equippedItems.chest}
                 />
               )}
               {equippedItems.shoulders && (
                 <EquipmentAttachment 
-                  key={`shoulders-${equippedItems.shoulders.id || Date.now()}`}
-                  playerModel={bodyScene} 
+                  key={`shoulders-${Date.now()}`}
+                  playerModel={bodyModelRef.current} 
                   equipmentSlot="shoulders" 
                   itemData={equippedItems.shoulders}
                 />
               )}
-            </>
+            </group>
           )}
         </group>
       </group>

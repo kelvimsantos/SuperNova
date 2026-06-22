@@ -6,7 +6,7 @@ import * as THREE from 'three';
 // 🔥 CONFIGURAÇÃO DE CADA SLOT
 const EQUIPMENT_CONFIG = {
   weapon: {
-    boneNames: ['mixamorigRightHand', 'RightHand', 'hand_r', 'Hand_R'],
+    boneNames: ['mixamorigRightHand', 'RightHand', 'hand_r', 'Hand_R', 'right_hand'],
     positionOffset: [0.15, -0.05, 0.05],
     rotationOffset: [0.5, 0, 0.5],
     scale: [0.5, 0.5, 0.5],
@@ -14,7 +14,7 @@ const EQUIPMENT_CONFIG = {
     shape: 'sword'
   },
   shield: {
-    boneNames: ['mixamorigLeftHand', 'LeftHand', 'hand_l', 'Hand_L'],
+    boneNames: ['mixamorigLeftHand', 'LeftHand', 'hand_l', 'Hand_L', 'left_hand'],
     positionOffset: [-0.15, -0.05, 0.05],
     rotationOffset: [0.5, 0, -0.5],
     scale: [0.5, 0.5, 0.5],
@@ -49,10 +49,18 @@ const EQUIPMENT_CONFIG = {
 
 export const EquipmentAttachment = ({ playerModel, equipmentSlot, itemData }) => {
   const [bone, setBone] = useState(null);
+  const [debugInfo, setDebugInfo] = useState('');
   const equipmentRef = useRef();
   const mountedRef = useRef(true);
   
   useEffect(() => {
+    console.log(`🔍 EquipmentAttachment: ${equipmentSlot}`, {
+      hasModel: !!playerModel,
+      hasItem: !!itemData,
+      itemName: itemData?.name,
+      modelType: playerModel?.type
+    });
+    
     if (!playerModel || !itemData || !mountedRef.current) {
       console.log(`⚠️ ${equipmentSlot}: sem modelo ou item`);
       return;
@@ -64,7 +72,7 @@ export const EquipmentAttachment = ({ playerModel, equipmentSlot, itemData }) =>
       return;
     }
     
-    // 🔥 LOG DOS OSSOS DISPONÍVEIS
+    // 🔥 LISTA TODOS OS OSSOS DO MODELO
     const availableBones = [];
     playerModel.traverse((child) => {
       if (child.isBone) {
@@ -72,11 +80,9 @@ export const EquipmentAttachment = ({ playerModel, equipmentSlot, itemData }) =>
       }
     });
     
-    if (availableBones.length > 0) {
-      console.log(`🦴 Ossos disponíveis no modelo (${availableBones.length}):`, availableBones.slice(0, 15));
-    }
+    console.log(`🦴 Ossos disponíveis no modelo (${availableBones.length}):`, availableBones);
     
-    // 🔥 PROCURA O OSSO CORRETO
+    // 🔥 PROCURA O OSSO
     let foundBone = null;
     let foundName = '';
     
@@ -98,9 +104,11 @@ export const EquipmentAttachment = ({ playerModel, equipmentSlot, itemData }) =>
     if (foundBone) {
       console.log(`✅ ${equipmentSlot} (${itemData.name}) anexado ao osso: ${foundName}`);
       setBone(foundBone);
+      setDebugInfo(`✅ ${foundName}`);
     } else {
       console.warn(`❌ Osso NÃO encontrado para ${equipmentSlot}. Procurados:`, config.boneNames);
-      console.warn(`   Dica: Os ossos disponíveis são:`, availableBones.slice(0, 10));
+      console.warn(`   Dica: Os ossos disponíveis são:`, availableBones);
+      setDebugInfo(`❌ Não encontrado`);
       setBone(null);
     }
   }, [playerModel, equipmentSlot, itemData]);
@@ -125,11 +133,11 @@ export const EquipmentAttachment = ({ playerModel, equipmentSlot, itemData }) =>
   }, []);
   
   if (!bone || !itemData) {
-    // 🔥 MOSTRA UM PONTO DE DEBUG VERMELHO SE O OSSO NÃO FOR ENCONTRADO
+    // 🔥 MOSTRA UM PONTO DE DEBUG
     return (
-      <mesh position={[0, 2, 0]} scale={[0.1, 0.1, 0.1]}>
+      <mesh position={[0, 2, 0]} scale={[0.15, 0.15, 0.15]}>
         <sphereGeometry args={[0.5]} />
-        <meshStandardMaterial color="red" />
+        <meshStandardMaterial color="red" emissive="red" emissiveIntensity={0.5} />
       </mesh>
     );
   }
