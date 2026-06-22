@@ -3,44 +3,44 @@ import { useEffect, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// 🔥 CONFIGURAÇÃO COM OS OSSOS CORRETOS DO SEU MODELO
+// 🔥 CONFIGURAÇÃO DE CADA SLOT
 const EQUIPMENT_CONFIG = {
   weapon: {
-    boneNames: ['mixamorigRightHand_15', 'mixamorigRightHand', 'RightHand'], // Mão direita
-    positionOffset: [-0.8, 0.9, 0.1], // Ajuste de posição
-    rotationOffset: [0.8, 0.1, 0.3], // Rotação da arma
-    scale: [2.5, 2.5, 5], // Tamanho da arma
+    boneNames: ['mixamorigRightHand', 'RightHand', 'hand_r', 'Hand_R'],
+    positionOffset: [0.15, -0.05, 0.05],
+    rotationOffset: [0.5, 0, 0.5],
+    scale: [0.5, 0.5, 0.5],
     color: '#ff4444',
     shape: 'sword'
   },
   shield: {
-    boneNames: ['mixamorigLeftHand_7', 'mixamorigLeftHand', 'LeftHand'], // Mão esquerda
-    positionOffset: [0.3, 1.00, 1.0],
-    rotationOffset: [1, 0, 90],
-    scale: [1.5, 1.5, 1.5],
+    boneNames: ['mixamorigLeftHand', 'LeftHand', 'hand_l', 'Hand_L'],
+    positionOffset: [-0.15, -0.05, 0.05],
+    rotationOffset: [0.5, 0, -0.5],
+    scale: [0.5, 0.5, 0.5],
     color: '#4444ff',
     shape: 'shield'
   },
   helmet: {
-    boneNames: ['mixamorigHead_1', 'mixamorigHead', 'Head'], // Cabeça
-    positionOffset: [0, 0.12, 0.05],
+    boneNames: ['mixamorigHead', 'Head', 'head'],
+    positionOffset: [0, 0.15, 0],
     rotationOffset: [0, 0, 0],
-    scale: [0.5, 0.5, 0.5],
+    scale: [0.45, 0.45, 0.45],
     color: '#ffaa44',
     shape: 'sphere'
   },
   chest: {
-    boneNames: ['mixamorigSpine2_21', 'mixamorigSpine', 'Spine2'], // Tronco
-    positionOffset: [0, 1.5, -0.2],
-    rotationOffset: [0, 0.0, 0],
-    scale: [2., 2., 2.],
+    boneNames: ['mixamorigSpine2', 'Spine2', 'spine_02'],
+    positionOffset: [0, 0.05, -0.05],
+    rotationOffset: [0, 0, 0],
+    scale: [0.5, 0.5, 0.5],
     color: '#44ffaa',
     shape: 'box'
   },
   shoulders: {
-    boneNames: ['mixamorigRightShoulder_18', 'mixamorigLeftShoulder_10', 'Shoulder'], // Ombros
-    positionOffset: [0.2, 0, 0.1],
-    rotationOffset: [0, 0, 0.5],
+    boneNames: ['mixamorigRightShoulder', 'RightShoulder', 'mixamorigLeftShoulder', 'LeftShoulder'],
+    positionOffset: [0.15, 0, 0],
+    rotationOffset: [0, 0, 0.3],
     scale: [0.4, 0.4, 0.4],
     color: '#aa44ff',
     shape: 'shoulder'
@@ -50,39 +50,58 @@ const EQUIPMENT_CONFIG = {
 export const EquipmentAttachment = ({ playerModel, equipmentSlot, itemData }) => {
   const [bone, setBone] = useState(null);
   const equipmentRef = useRef();
+  const mountedRef = useRef(true);
   
   useEffect(() => {
-    if (!playerModel || !itemData) return;
+    if (!playerModel || !itemData || !mountedRef.current) {
+      console.log(`⚠️ ${equipmentSlot}: sem modelo ou item`);
+      return;
+    }
     
     const config = EQUIPMENT_CONFIG[equipmentSlot];
-    if (!config) return;
+    if (!config) {
+      console.warn(`⚠️ Configuração não encontrada para: ${equipmentSlot}`);
+      return;
+    }
     
-    // Procura o osso específico
-    let foundBone = null;
+    // 🔥 LOG DOS OSSOS DISPONÍVEIS
+    const availableBones = [];
     playerModel.traverse((child) => {
       if (child.isBone) {
+        availableBones.push(child.name);
+      }
+    });
+    
+    if (availableBones.length > 0) {
+      console.log(`🦴 Ossos disponíveis no modelo (${availableBones.length}):`, availableBones.slice(0, 15));
+    }
+    
+    // 🔥 PROCURA O OSSO CORRETO
+    let foundBone = null;
+    let foundName = '';
+    
+    playerModel.traverse((child) => {
+      if (child.isBone && !foundBone) {
         const boneName = child.name;
-        if (config.boneNames.some(name => boneName === name || boneName.includes(name))) {
-          foundBone = child;
+        for (const targetName of config.boneNames) {
+          if (boneName === targetName || 
+              boneName.toLowerCase().includes(targetName.toLowerCase()) || 
+              targetName.toLowerCase().includes(boneName.toLowerCase())) {
+            foundBone = child;
+            foundName = boneName;
+            break;
+          }
         }
       }
     });
     
     if (foundBone) {
-      console.log(`✅ ${equipmentSlot} anexado ao osso: ${foundBone.name}`);
+      console.log(`✅ ${equipmentSlot} (${itemData.name}) anexado ao osso: ${foundName}`);
       setBone(foundBone);
     } else {
-      console.warn(`⚠️ Osso não encontrado para ${equipmentSlot}. Nomes:`, config.boneNames);
-      // Fallback: tenta qualquer osso da mão
-      playerModel.traverse((child) => {
-        if (child.isBone && !foundBone && (child.name.includes('Hand') || child.name.includes('hand'))) {
-          foundBone = child;
-        }
-      });
-      if (foundBone) {
-        console.log(`🔧 Usando osso alternativo: ${foundBone.name}`);
-        setBone(foundBone);
-      }
+      console.warn(`❌ Osso NÃO encontrado para ${equipmentSlot}. Procurados:`, config.boneNames);
+      console.warn(`   Dica: Os ossos disponíveis são:`, availableBones.slice(0, 10));
+      setBone(null);
     }
   }, [playerModel, equipmentSlot, itemData]);
   
@@ -90,9 +109,8 @@ export const EquipmentAttachment = ({ playerModel, equipmentSlot, itemData }) =>
   const tmpQuat = new THREE.Quaternion();
 
   useFrame(() => {
-    if (!equipmentRef.current || !bone) return;
+    if (!equipmentRef.current || !bone || !mountedRef.current) return;
 
-    // Atualiza posição/rotação em world-space (Mixamo bones costumam ter parent transforms)
     bone.getWorldPosition(tmpPos);
     bone.getWorldQuaternion(tmpQuat);
 
@@ -100,29 +118,40 @@ export const EquipmentAttachment = ({ playerModel, equipmentSlot, itemData }) =>
     equipmentRef.current.quaternion.copy(tmpQuat);
   });
   
-  if (!bone || !itemData) return null;
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  
+  if (!bone || !itemData) {
+    // 🔥 MOSTRA UM PONTO DE DEBUG VERMELHO SE O OSSO NÃO FOR ENCONTRADO
+    return (
+      <mesh position={[0, 2, 0]} scale={[0.1, 0.1, 0.1]}>
+        <sphereGeometry args={[0.5]} />
+        <meshStandardMaterial color="red" />
+      </mesh>
+    );
+  }
   
   const config = EQUIPMENT_CONFIG[equipmentSlot];
   
-  // 🔥 FORMAS GEOMÉTRICAS PARA CADA EQUIPAMENTO
+  // 🔥 FORMAS GEOMÉTRICAS
   const getShape = () => {
     switch(config.shape) {
       case 'sword':
         return (
           <group>
-            {/* Cabo da espada */}
-            <mesh position={[0, -0.2, 0]}>
-              <boxGeometry args={[0.08, 0.15, 0.08]} />
+            <mesh position={[0, -0.15, 0]}>
+              <boxGeometry args={[0.04, 0.12, 0.04]} />
               <meshStandardMaterial color="#8B4513" metalness={0.8} roughness={0.3} />
             </mesh>
-            {/* Lâmina */}
-            <mesh position={[0, 0.15, 0]}>
-              <boxGeometry args={[0.1, 0.4, 0.05]} />
+            <mesh position={[0, 0.12, 0]}>
+              <boxGeometry args={[0.06, 0.3, 0.02]} />
               <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
             </mesh>
-            {/* Ponta */}
-            <mesh position={[0, 0.38, 0]}>
-              <coneGeometry args={[0.06, 0.1, 8]} />
+            <mesh position={[0, 0.3, 0]}>
+              <coneGeometry args={[0.03, 0.06, 6]} />
               <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
             </mesh>
           </group>
@@ -130,35 +159,35 @@ export const EquipmentAttachment = ({ playerModel, equipmentSlot, itemData }) =>
       case 'shield':
         return (
           <mesh>
-            <cylinderGeometry args={[0.35, 0.35, 0.08, 16]} />
-            <meshStandardMaterial color="#4444ff" metalness={0.7} roughness={0.3} />
+            <cylinderGeometry args={[0.2, 0.22, 0.04, 12]} />
+            <meshStandardMaterial color={config.color} metalness={0.7} roughness={0.3} />
           </mesh>
         );
       case 'sphere':
         return (
           <mesh>
-            <sphereGeometry args={[0.22, 16, 16]} />
-            <meshStandardMaterial color="#ffaa44" metalness={0.6} roughness={0.4} />
+            <sphereGeometry args={[0.12, 12, 12]} />
+            <meshStandardMaterial color={config.color} metalness={0.6} roughness={0.4} />
           </mesh>
         );
       case 'box':
         return (
           <mesh>
-            <boxGeometry args={[0.5, 0.6, 0.2]} />
-            <meshStandardMaterial color="#44ffaa" metalness={0.5} roughness={0.5} />
+            <boxGeometry args={[0.3, 0.35, 0.1]} />
+            <meshStandardMaterial color={config.color} metalness={0.5} roughness={0.5} />
           </mesh>
         );
       case 'shoulder':
         return (
           <mesh>
-            <boxGeometry args={[0.35, 0.15, 0.35]} />
-            <meshStandardMaterial color="#aa44ff" metalness={0.6} roughness={0.4} />
+            <boxGeometry args={[0.2, 0.08, 0.2]} />
+            <meshStandardMaterial color={config.color} metalness={0.6} roughness={0.4} />
           </mesh>
         );
       default:
         return (
           <mesh>
-            <boxGeometry args={[0.3, 0.3, 0.3]} />
+            <boxGeometry args={[0.15, 0.15, 0.15]} />
             <meshStandardMaterial color={config.color} />
           </mesh>
         );
@@ -167,7 +196,11 @@ export const EquipmentAttachment = ({ playerModel, equipmentSlot, itemData }) =>
   
   return (
     <group ref={equipmentRef}>
-      <group position={config.positionOffset} rotation={config.rotationOffset} scale={config.scale}>
+      <group 
+        position={config.positionOffset} 
+        rotation={config.rotationOffset} 
+        scale={config.scale}
+      >
         {getShape()}
       </group>
     </group>
