@@ -62,7 +62,7 @@ export const EquipmentAttachment = ({ playerModel, equipmentSlot, itemData }) =>
     playerModel.traverse((child) => {
       if (child.isBone) {
         const boneName = child.name;
-        if (config.boneNames.some(name => boneName === name)) {
+        if (config.boneNames.some(name => boneName === name || boneName.includes(name))) {
           foundBone = child;
         }
       }

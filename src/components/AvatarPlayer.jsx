@@ -412,7 +412,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
               {equippedItems.weapon && (
                 <EquipmentAttachment 
                   key="weapon"
-                  playerModel={bodyModelRef.current} 
+                  playerModel={bodyScene} 
                   equipmentSlot="weapon" 
                   itemData={equippedItems.weapon}
                 />
