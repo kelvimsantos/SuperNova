@@ -1,5 +1,5 @@
 // src/components/AvatarPlayer.jsx
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { RigidBody, CapsuleCollider } from '@react-three/rapier';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
@@ -23,10 +23,8 @@ const HAIR_POSITIONS = {
   6: { y: -175.1 }   // Cabelo 7
 };
 
-// 🔥 AJUSTE DO CABELO (subir no Y) - MEXA AQUI
+// 🔥 AJUSTE DO CABELO
 const HAIR_Y_OFFSET = -10;
-
-// 🔥 ESCALA DO CABELO
 const HAIR_SCALE_FACTOR = 0.8;
 
 export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
@@ -42,14 +40,15 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const isNight = useGameStore((state) => state.isNight);
   const currentScene = useGameStore((state) => state.currentScene);
   const worldGroupRef = useGameStore((state) => state.worldGroupRef);
-  const [isAdjusting, setIsAdjusting] = useState(false);
   const setPlayerPosition = useGameStore((state) => state.setPlayerPosition);
   const playerHealth = useGameStore((state) => state.playerHealth);
   const isDead = playerHealth <= 0;
   
-  // 🔥 REF PARA CONTROLAR O TEMPO DA ÚLTIMA CORREÇÃO
-  const lastStuckCheck = useRef(0);
-  const stuckAttempts = useRef(0);
+  // 🔥 ESTADOS PARA CONTROLE
+  const [isAdjusting, setIsAdjusting] = useState(false);
+  const groundYRef = useRef(0);
+  const lastGroundCheck = useRef(0);
+  const stuckCounter = useRef(0);
 
   const { scene: bodyScene, animations } = useGLTF(AVATAR_MODEL_PATH);
   
@@ -121,7 +120,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     });
   }, [hairModelRef, avatarConfig]);
 
-  // 🔥 POSICIONA O CABELO NO OSSO DA CABEÇA
   useEffect(() => {
     if (!bodyModelRef.current || !hairModelRef.current) return;
     
@@ -152,106 +150,35 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return () => setPlayerRigidBody(null);
   }, [setPlayerRigidBody]);
 
-  // 🔥 FUNÇÃO PARA DETECTAR E RESOLVER TRAVAMENTO EM QUINAS (SEM AFETAR ROTAÇÃO)
-  const detectAndResolveStuck = () => {
-    if (!rigidBodyRef.current) return false;
-    
-    const pos = rigidBodyRef.current.translation();
-    const vel = rigidBodyRef.current.linvel();
-    const horizontalSpeed = Math.sqrt((vel.x * vel.x) + (vel.z * vel.z));
-    
-    // Se está parado ou quase parado mas o jogador está tentando andar
-    const isMoving = moveDir.current.x !== 0 || moveDir.current.z !== 0;
-    const isStuck = isMoving && horizontalSpeed < 0.01;
-    
-    if (isStuck) {
-      const now = Date.now();
-      // Limita a frequência das tentativas para não sobrecarregar
-      if (now - lastStuckCheck.current < 200) return false;
-      lastStuckCheck.current = now;
-      
-      stuckAttempts.current += 1;
-      console.log(`🚧 Detectado travamento em quina (tentativa ${stuckAttempts.current})...`);
-      
-      // 🔥 ESTRATÉGIA 1: Pequeno pulo para desengatar (mantém rotação)
-      rigidBodyRef.current.setLinvel({ x: vel.x, y: 0.8, z: vel.z }, true);
-      
-      // 🔥 ESTRATÉGIA 2: Após o pulo, aplica um impulso na direção do movimento
-      setTimeout(() => {
-        if (rigidBodyRef.current) {
-          const newPos = rigidBodyRef.current.translation();
-          const newVel = rigidBodyRef.current.linvel();
-          const newSpeed = Math.sqrt((newVel.x * newVel.x) + (newVel.z * newVel.z));
-          
-          if (newSpeed < 0.05) {
-            // Aplica impulso na direção que o jogador está tentando ir
-            const moveX = moveDir.current.x;
-            const moveZ = moveDir.current.z;
-            const magnitude = Math.sqrt(moveX * moveX + moveZ * moveZ);
-            
-            if (magnitude > 0.01) {
-              const normalizedX = moveX / magnitude;
-              const normalizedZ = moveZ / magnitude;
-              const pushForce = 0.5;
-              
-              rigidBodyRef.current.setLinvel({
-                x: normalizedX * pushForce,
-                y: 0.2,
-                z: normalizedZ * pushForce
-              }, true);
-            } else {
-              // Se não tem direção definida, tenta uma direção aleatória
-              const angle = Math.random() * Math.PI * 2;
-              const pushForce = 0.3;
-              rigidBodyRef.current.setLinvel({
-                x: Math.cos(angle) * pushForce,
-                y: 0.2,
-                z: Math.sin(angle) * pushForce
-              }, true);
-            }
-            
-            // 🔥 ESTRATÉGIA 3: Pequeno teleporte para cima (mantém posição XZ)
-            setTimeout(() => {
-              if (rigidBodyRef.current) {
-                const finalPos = rigidBodyRef.current.translation();
-                rigidBodyRef.current.setTranslation({
-                  x: finalPos.x,
-                  y: finalPos.y + 0.15,
-                  z: finalPos.z
-                }, true);
-              }
-            }, 50);
-          }
-        }
-      }, 100);
-      
-      // Reset contador se passou muito tempo
-      if (stuckAttempts.current > 5) {
-        stuckAttempts.current = 0;
-      }
-      
-      return true;
-    } else {
-      // Reset contador quando não está travado
-      stuckAttempts.current = 0;
-    }
-    
-    return false;
-  };
-
-  // 🔥 FUNÇÃO MELHORADA PARA AJUSTAR AO CHÃO
-  const adjustToGround = (force = false) => {
+  // 🔥 FUNÇÃO PRINCIPAL: ENCONTRA O CHÃO E AJUSTA A POSIÇÃO
+  const findGroundAndAdjust = useCallback((force = false) => {
     if (!rigidBodyRef.current || !worldGroupRef?.current || isAdjusting) return;
-    setIsAdjusting(true);
-
+    
     const currentPos = rigidBodyRef.current.translation();
     const raycaster = new Raycaster();
     
-    const GROUND_OFFSET = 0.02;
-    const SNAP_THRESHOLD = 0.15;
+    // 🔥 CONFIGURAÇÕES DO RAYCAST
+    const GROUND_OFFSET = 0.01; // Pequeno offset para evitar flutuação
+    const MAX_RAY_DISTANCE = 5.0;
+    
+    // 🔥 DISPARA RAYCAST DE VÁRIAS POSIÇÕES PARA MAIS PRECISÃO
+    const checkPositions = [
+      { x: 0, z: 0 },           // Centro
+      { x: 0.1, z: 0.1 },       // Diagonal
+      { x: -0.1, z: 0.1 },      // Diagonal
+      { x: 0.1, z: -0.1 },      // Diagonal
+      { x: -0.1, z: -0.1 },     // Diagonal
+    ];
 
-    const findGround = () => {
-      const origin = new Vector3(currentPos.x, currentPos.y + 0.1, currentPos.z);
+    let highestGroundY = -Infinity;
+    let foundGround = false;
+
+    for (const offset of checkPositions) {
+      const origin = new Vector3(
+        currentPos.x + offset.x,
+        currentPos.y + 0.5,
+        currentPos.z + offset.z
+      );
       const direction = new Vector3(0, -1, 0);
       raycaster.set(origin, direction);
 
@@ -263,165 +190,230 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
 
       if (worldGroupRef.current) collectObjects(worldGroupRef.current);
 
-      let closestHit = null;
-      let closestDistance = Infinity;
-
       for (const obj of allObjects) {
         const intersects = raycaster.intersectObject(obj, true);
         if (intersects.length > 0) {
           const hit = intersects[0];
-          if (hit.distance < closestDistance) {
-            closestDistance = hit.distance;
-            closestHit = hit;
+          if (hit.distance < MAX_RAY_DISTANCE) {
+            const groundY = hit.point.y;
+            if (groundY > highestGroundY) {
+              highestGroundY = groundY;
+              foundGround = true;
+            }
           }
         }
       }
+    }
 
-      return closestHit;
-    };
-
-    const groundHit = findGround();
-
-    if (groundHit) {
-      const targetY = groundHit.point.y + GROUND_OFFSET;
+    if (foundGround) {
+      const targetY = highestGroundY + GROUND_OFFSET;
       const currentY = currentPos.y;
       const deltaY = targetY - currentY;
       const deltaAbs = Math.abs(deltaY);
 
-      if (deltaAbs > 0.001) {
-        if (deltaAbs > SNAP_THRESHOLD || force) {
+      // 🔥 SÓ AJUSTA SE A DIFERENÇA FOR SIGNIFICATIVA
+      if (deltaAbs > 0.005) {
+        // 🔥 SE ESTIVER MUITO LONGE OU FORÇADO, TELEPORTA
+        if (deltaAbs > 0.2 || force) {
           rigidBodyRef.current.setTranslation(
             { x: currentPos.x, y: targetY, z: currentPos.z },
             true
           );
           console.log(`🔄 Teleportado para Y: ${targetY.toFixed(3)} (delta: ${deltaY.toFixed(3)})`);
         } else {
-          const smoothY = currentY + deltaY * 0.5;
+          // 🔥 AJUSTE SUAVE E CONTÍNUO (EVITA FLUTUAÇÃO)
+          const smoothFactor = Math.min(0.3, deltaAbs * 2);
+          const smoothY = currentY + (deltaY * smoothFactor);
           rigidBodyRef.current.setTranslation(
             { x: currentPos.x, y: smoothY, z: currentPos.z },
             true
           );
         }
+        
+        // Atualiza referência do chão
+        groundYRef.current = targetY;
       }
     } else {
-      console.warn('⚠️ Nenhum chão encontrado abaixo do personagem');
-      const newY = currentPos.y - 0.5;
-      if (newY > -10) {
+      // 🔥 SE NÃO ENCONTROU CHÃO, TENTA DESCER GRADUALMENTE
+      if (currentPos.y > -10) {
+        const newY = currentPos.y - 0.1;
         rigidBodyRef.current.setTranslation(
           { x: currentPos.x, y: newY, z: currentPos.z },
           true
         );
-        setTimeout(() => {
-          setIsAdjusting(false);
-          adjustToGround(true);
-        }, 100);
-        return;
       }
     }
+  }, [worldGroupRef, isAdjusting]);
 
-    setIsAdjusting(false);
-  };
+  // 🔥 FUNÇÃO PARA DESENGATAR DE QUINAS
+  const handleStuck = useCallback(() => {
+    if (!rigidBodyRef.current) return false;
+    
+    const vel = rigidBodyRef.current.linvel();
+    const horizontalSpeed = Math.sqrt((vel.x * vel.x) + (vel.z * vel.z));
+    const isMoving = moveDir.current.x !== 0 || moveDir.current.z !== 0;
+    
+    // 🔥 DETECTA TRAVAMENTO: MOVENDO INPUT MAS SEM VELOCIDADE
+    if (isMoving && horizontalSpeed < 0.05) {
+      const now = Date.now();
+      if (now - lastGroundCheck.current < 100) return false;
+      lastGroundCheck.current = now;
+      
+      stuckCounter.current += 1;
+      
+      if (stuckCounter.current > 3) {
+        console.log('🚧 Travado em quina, aplicando correção...');
+        
+        // 🔥 ESTRATÉGIA 1: PULO LEVE
+        rigidBodyRef.current.setLinvel({ 
+          x: vel.x * 0.5, 
+          y: 1.0, 
+          z: vel.z * 0.5 
+        }, true);
+        
+        // 🔥 ESTRATÉGIA 2: IMPULSO NA DIREÇÃO DO MOVIMENTO
+        setTimeout(() => {
+          if (rigidBodyRef.current) {
+            const moveX = moveDir.current.x;
+            const moveZ = moveDir.current.z;
+            const magnitude = Math.sqrt(moveX * moveX + moveZ * moveZ);
+            
+            if (magnitude > 0.1) {
+              const normX = moveX / magnitude;
+              const normZ = moveZ / magnitude;
+              const pushForce = 0.8;
+              
+              rigidBodyRef.current.setLinvel({
+                x: normX * pushForce,
+                y: 0.3,
+                z: normZ * pushForce
+              }, true);
+            }
+          }
+        }, 50);
+        
+        // Reseta contador
+        stuckCounter.current = 0;
+        return true;
+      }
+    } else {
+      // Reset contador se não está travado
+      stuckCounter.current = 0;
+    }
+    
+    return false;
+  }, []);
 
-  // 🔥 DETECTA E RESOLVE TRAVAMENTO A CADA FRAME
+  // 🔥 VERIFICAÇÃO CONTÍNUA (A CADA FRAME)
   useFrame(() => {
-    if (!rigidBodyRef.current || isAdjusting) return;
+    if (!rigidBodyRef.current || loadingAvatar) return;
     
-    // Detecta e resolve travamento em quinas
-    detectAndResolveStuck();
-    
+    // 1. AJUSTA AO CHÃO (VERIFICA FLUTUAÇÃO)
     const pos = rigidBodyRef.current.translation();
     
-    // Ajusta ao chão se estiver flutuando
-    if (pos.y > 2) {
-      adjustToGround(true);
+    // Verifica se está flutuando (acima do chão)
+    if (pos.y > 0.5) {
+      findGroundAndAdjust(false);
     }
     
-    if (pos.y < -10) {
-      adjustToGround(true);
+    // 2. VERIFICA TRAVAMENTO EM QUINAS
+    if (!isAdjusting) {
+      handleStuck();
     }
+    
+    // 3. ATUALIZA GROUNDED STATUS
+    const vel = rigidBodyRef.current.linvel();
+    const grounded = Math.abs(vel.y) < 0.15 && pos.y < 0.5;
+    setIsGrounded(grounded);
   });
+
+  // 🔥 VERIFICAÇÃO PERIÓDICA (A CADA 1 SEGUNDO)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (rigidBodyRef.current && !loadingAvatar && !isAdjusting) {
+        const pos = rigidBodyRef.current.translation();
+        
+        // 🔥 VERIFICA FLUTUAÇÃO CONSTANTE
+        if (pos.y > 0.3) {
+          findGroundAndAdjust(false);
+        }
+        
+        // 🔥 VERIFICA SE CAIU NO VAZIO
+        if (pos.y < -5) {
+          findGroundAndAdjust(true);
+        }
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [loadingAvatar, isAdjusting, findGroundAndAdjust]);
 
   // 🔥 CHAMADA INICIAL E QUANDO A CENA MUDA
   useEffect(() => {
     const timer = setTimeout(() => {
       if (rigidBodyRef.current && worldGroupRef?.current) {
-        adjustToGround(true);
+        findGroundAndAdjust(true);
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [currentScene, worldGroupRef]);
+  }, [currentScene, worldGroupRef, findGroundAndAdjust]);
 
-  // 🔥 VERIFICAÇÃO PERIÓDICA (a cada 2 segundos)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (rigidBodyRef.current && !isAdjusting && !loadingAvatar) {
-        const pos = rigidBodyRef.current.translation();
-        if (pos.y > 1) {
-          adjustToGround(true);
-        }
-      }
-    }, 2000);
-    
-    return () => clearInterval(interval);
-  }, [loadingAvatar, isAdjusting]);
-
+  // 🔥 MOVIMENTO PRINCIPAL
   useFrame(({ camera }) => {
     if (!rigidBodyRef.current || loadingAvatar) return;
+    
     const position = rigidBodyRef.current.translation();
     setPlayerPosition({ x: position.x, y: position.y, z: position.z });
 
     const { x: dx, z: dz } = moveDir.current;
     const currentVel = rigidBodyRef.current.linvel();
-    const grounded = Math.abs(currentVel.y) < 0.1;
-    setIsGrounded(grounded);
     const isMoving = dx !== 0 || dz !== 0;
     
+    // 🔥 ANIMAÇÕES
     if (!isMoving) {
-      playAnimation(grounded ? 'idle2' : 'Fall');
+      playAnimation(isGrounded ? 'idle2' : 'Fall');
     } else {
       playAnimation('Run');
     }
 
+    // 🔥 CALCULA DIREÇÃO DO MOVIMENTO
     const cameraDirection = new Vector3();
     camera.getWorldDirection(cameraDirection);
     cameraDirection.y = 0;
     cameraDirection.normalize();
+    
     const right = new Vector3(-cameraDirection.z, 0, cameraDirection.x);
     const moveVector = new Vector3();
     moveVector.x += cameraDirection.x * dz;
     moveVector.z += cameraDirection.z * dz;
     moveVector.x += right.x * dx;
     moveVector.z += right.z * dx;
+    
     if (moveVector.length() > 0) moveVector.normalize();
 
-    const speed = 2;
-    
-    // 🔥 MELHORIA: Verifica se está travado antes de aplicar movimento
-    const horizontalSpeed = Math.sqrt((currentVel.x * currentVel.x) + (currentVel.z * currentVel.z));
-    const isMovingInput = dx !== 0 || dz !== 0;
-    
-    // Se está com input mas velocidade muito baixa, pode estar travado
-    // Aplica um pequeno impulso extra para desengatar
+    // 🔥 VELOCIDADE COM BOOST PARA DESENGATAR
+    const speed = 2.5;
     let finalVelX = moveVector.x * speed;
     let finalVelZ = moveVector.z * speed;
     
-    if (isMovingInput && horizontalSpeed < 0.1) {
-      // Dá um "empurrão" extra para desengatar
-      const boostMultiplier = 1.5;
+    // 🔥 BOOST EXTRA SE ESTIVER COM VELOCIDADE BAIXA (AJUDA A DESENGATAR)
+    const horizontalSpeed = Math.sqrt((currentVel.x * currentVel.x) + (currentVel.z * currentVel.z));
+    if (isMoving && horizontalSpeed < 0.1) {
+      const boostMultiplier = 1.8;
       finalVelX *= boostMultiplier;
       finalVelZ *= boostMultiplier;
     }
     
+    // 🔥 APLICA VELOCIDADE (MANTÉM Y PARA FÍSICA)
     rigidBodyRef.current.setLinvel(
       { x: finalVelX, y: currentVel.y, z: finalVelZ },
       true
     );
 
-    if (visualRef.current && (dx !== 0 || dz !== 0)) {
-      if (moveVector.length() > 0.1) {
-        const angle = Math.atan2(moveVector.x, moveVector.z);
-        visualRef.current.rotation.y = angle;
-      }
+    // 🔥 ROTAÇÃO DO VISUAL
+    if (visualRef.current && isMoving && moveVector.length() > 0.1) {
+      const angle = Math.atan2(moveVector.x, moveVector.z);
+      visualRef.current.rotation.y = angle;
     }
   });
 
@@ -441,18 +433,18 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     <RigidBody
       ref={rigidBodyRef}
       mass={1}
-      position={[0, 50, 0]}
-      linearDamping={0.5}
-      // 🔥 MANTÉM ROTAÇÃO BLOQUEADA (sem tombamento)
+      position={[0, 30, 0]}
+      linearDamping={0.8}
+      angularDamping={0.9}
       enabledRotations={[false, false, false]}
-      friction={0.3}
+      friction={0.2}
       restitution={0.0}
     >
       <CapsuleCollider 
-        args={[0.3, 0.4]}
-        // 🔥 POSIÇÃO DO COLLIDER AJUSTADA
-        position={[0, 0.05, 0]}
+        args={[0.25, 0.35]}
+        position={[0, 0, 0]}
       />
+      
       <group>
         {isNight && (
           <pointLight
