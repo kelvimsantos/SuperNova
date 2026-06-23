@@ -27,6 +27,9 @@ const HAIR_POSITIONS = {
 const HAIR_Y_OFFSET = -10;
 const HAIR_SCALE_FACTOR = 0.8;
 
+// 🔥 ESCALA DOS EQUIPAMENTOS (50x maior)
+const EQUIPMENT_SCALE = 50;
+
 export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const rigidBodyRef = useRef();
   const visualRef = useRef();
@@ -410,12 +413,11 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     );
   }
 
-  // 🔥 COMPONENTE DE EQUIPAMENTO SIMPLES - VERSÃO TESTE
-  const EquipmentItem = ({ bone, position, rotation, scale, color, shape, label }) => {
+  // 🔥 COMPONENTE DE EQUIPAMENTO - COM ESCALA 50
+  const EquipmentItem = ({ bone, position, rotation, scale, color, shape }) => {
     const groupRef = useRef();
     const pos = useRef(new Vector3());
     const quat = useRef(new Quaternion());
-    const [showDebug, setShowDebug] = useState(true);
 
     useFrame(() => {
       if (!groupRef.current || !bone) return;
@@ -425,7 +427,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       groupRef.current.quaternion.copy(quat.current);
     });
 
-    // Se não tem osso, mostra ponto vermelho
     if (!bone) {
       return (
         <mesh position={[0, 2, 0]} scale={[0.15, 0.15, 0.15]}>
@@ -435,32 +436,37 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       );
     }
 
-    // Formas dos equipamentos - MAIORES E MAIS VISÍVEIS
+    // 🔥 FORMAS DOS EQUIPAMENTOS COM ESCALA 50
     const renderShape = () => {
+      const s = EQUIPMENT_SCALE;
+      
       switch(shape) {
         case 'sword':
           return (
             <group>
-              {/* ESPADA MAIOR E MAIS VISÍVEL */}
-              <mesh position={[0, -0.3, 0]}>
-                <boxGeometry args={[0.08, 0.2, 0.08]} />
+              {/* Cabo */}
+              <mesh position={[0, -0.3 * s, 0]}>
+                <boxGeometry args={[0.08 * s, 0.2 * s, 0.08 * s]} />
                 <meshStandardMaterial color="#8B4513" metalness={0.8} roughness={0.3} />
               </mesh>
-              <mesh position={[0, -0.1, 0]}>
-                <boxGeometry args={[0.2, 0.05, 0.05]} />
+              {/* Guarda */}
+              <mesh position={[0, -0.1 * s, 0]}>
+                <boxGeometry args={[0.25 * s, 0.05 * s, 0.05 * s]} />
                 <meshStandardMaterial color="#DAA520" metalness={0.9} roughness={0.2} />
               </mesh>
-              <mesh position={[0, 0.2, 0]}>
-                <boxGeometry args={[0.1, 0.5, 0.04]} />
+              {/* Lâmina */}
+              <mesh position={[0, 0.25 * s, 0]}>
+                <boxGeometry args={[0.1 * s, 0.6 * s, 0.04 * s]} />
                 <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
               </mesh>
-              <mesh position={[0, 0.5, 0]}>
-                <coneGeometry args={[0.06, 0.1, 8]} />
+              {/* Ponta */}
+              <mesh position={[0, 0.6 * s, 0]}>
+                <coneGeometry args={[0.06 * s, 0.15 * s, 8]} />
                 <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
               </mesh>
-              {/* BRILHO */}
-              <mesh position={[0, 0.25, 0.04]}>
-                <planeGeometry args={[0.06, 0.4]} />
+              {/* Brilho */}
+              <mesh position={[0, 0.3 * s, 0.04 * s]}>
+                <planeGeometry args={[0.06 * s, 0.5 * s]} />
                 <meshStandardMaterial color="#ffffff" transparent opacity={0.3} emissive="#ffffff" emissiveIntensity={0.5} />
               </mesh>
             </group>
@@ -469,11 +475,11 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           return (
             <group>
               <mesh>
-                <cylinderGeometry args={[0.35, 0.38, 0.06, 16]} />
+                <cylinderGeometry args={[0.35 * s, 0.38 * s, 0.06 * s, 16]} />
                 <meshStandardMaterial color={color} metalness={0.7} roughness={0.3} />
               </mesh>
-              <mesh position={[0, 0, 0.04]}>
-                <circleGeometry args={[0.15, 8]} />
+              <mesh position={[0, 0, 0.04 * s]}>
+                <circleGeometry args={[0.15 * s, 8]} />
                 <meshStandardMaterial color="#8888ff" metalness={0.8} roughness={0.2} />
               </mesh>
             </group>
@@ -481,28 +487,28 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         case 'helmet':
           return (
             <mesh>
-              <sphereGeometry args={[0.2, 16, 16]} />
+              <sphereGeometry args={[0.2 * s, 16, 16]} />
               <meshStandardMaterial color={color} metalness={0.6} roughness={0.4} />
             </mesh>
           );
         case 'chest':
           return (
             <mesh>
-              <boxGeometry args={[0.4, 0.5, 0.15]} />
+              <boxGeometry args={[0.4 * s, 0.5 * s, 0.15 * s]} />
               <meshStandardMaterial color={color} metalness={0.5} roughness={0.5} />
             </mesh>
           );
         case 'shoulder':
           return (
             <mesh>
-              <boxGeometry args={[0.3, 0.12, 0.3]} />
+              <boxGeometry args={[0.3 * s, 0.12 * s, 0.3 * s]} />
               <meshStandardMaterial color={color} metalness={0.6} roughness={0.4} />
             </mesh>
           );
         default:
           return (
             <mesh>
-              <boxGeometry args={[0.2, 0.2, 0.2]} />
+              <boxGeometry args={[0.2 * s, 0.2 * s, 0.2 * s]} />
               <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} />
             </mesh>
           );
@@ -513,11 +519,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       <group ref={groupRef}>
         <group position={position} rotation={rotation} scale={scale}>
           {renderShape()}
-          {/* 🔥 PONTO DE DEBUG COLORIDO */}
-          <mesh position={[0, 0, 0]} scale={[0.05, 0.05, 0.05]}>
-            <sphereGeometry args={[0.5]} />
-            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1} />
-          </mesh>
         </group>
       </group>
     );
@@ -550,52 +551,23 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
             <primitive object={hairScene} ref={hairModelRef} />
           )}
 
-          {/* 🔥 EQUIPAMENTOS - VERSÃO TESTE COM PONTOS DE DEBUG */}
-          {console.log('🎯 Renderizando equipamentos:', {
+          {/* 🔥 EQUIPAMENTOS COM ESCALA 50 */}
+          {console.log('🎯 Renderizando equipamentos (escala 50):', {
             weapon: equippedItems.weapon?.name,
             shield: equippedItems.shield?.name,
-            hasRightHand: !!boneRefs.rightHand,
-            hasLeftHand: !!boneRefs.leftHand,
-            rightHandName: boneRefs.rightHand?.name,
-            leftHandName: boneRefs.leftHand?.name
+            rightHand: boneRefs.rightHand?.name,
+            leftHand: boneRefs.leftHand?.name
           })}
           
-          {/* 🔥 PONTO DE DEBUG NA MÃO DIREITA - SEMPRE VISÍVEL */}
-          {boneRefs.rightHand && (
-            <EquipmentItem
-              bone={boneRefs.rightHand}
-              position={[0, 0, 0]}
-              rotation={[0, 0, 0]}
-              scale={[0.5, 0.5, 0.5]}
-              color="#00ff00"
-              shape="default"
-              label="Debug Mão Direita"
-            />
-          )}
-          
-          {/* 🔥 PONTO DE DEBUG NA MÃO ESQUERDA - SEMPRE VISÍVEL */}
-          {boneRefs.leftHand && (
-            <EquipmentItem
-              bone={boneRefs.leftHand}
-              position={[0, 0, 0]}
-              rotation={[0, 0, 0]}
-              scale={[0.5, 0.5, 0.5]}
-              color="#ff00ff"
-              shape="default"
-              label="Debug Mão Esquerda"
-            />
-          )}
-
           {/* ESPADA - MÃO DIREITA */}
           {equippedItems.weapon && boneRefs.rightHand && (
             <EquipmentItem
               bone={boneRefs.rightHand}
-              position={[0.3, -0.1, 0.1]}
-              rotation={[0.5, 0, 0.5]}
-              scale={[1.0, 1.0, 1.0]}
+              position={[0.5, -0.2, 0.2]}
+              rotation={[0.8, 0, 0.8]}
+              scale={[0.1, 0.1, 0.1]}
               color="#ff4444"
               shape="sword"
-              label="Espada"
             />
           )}
 
@@ -603,12 +575,11 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           {equippedItems.shield && boneRefs.leftHand && (
             <EquipmentItem
               bone={boneRefs.leftHand}
-              position={[-0.3, -0.1, 0.1]}
-              rotation={[0.5, 0, -0.5]}
-              scale={[1.0, 1.0, 1.0]}
+              position={[-0.5, -0.2, 0.2]}
+              rotation={[0.8, 0, -0.8]}
+              scale={[0.1, 0.1, 0.1]}
               color="#4444ff"
               shape="shield"
-              label="Escudo"
             />
           )}
 
@@ -616,9 +587,9 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           {equippedItems.helmet && boneRefs.head && (
             <EquipmentItem
               bone={boneRefs.head}
-              position={[0, 0.25, 0]}
+              position={[0, 0.5, 0]}
               rotation={[0, 0, 0]}
-              scale={[0.8, 0.8, 0.8]}
+              scale={[0.1, 0.1, 0.1]}
               color="#ffaa44"
               shape="helmet"
             />
@@ -628,9 +599,9 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           {equippedItems.chest && boneRefs.spine && (
             <EquipmentItem
               bone={boneRefs.spine}
-              position={[0, 0.1, -0.1]}
+              position={[0, 0.2, -0.2]}
               rotation={[0, 0, 0]}
-              scale={[0.8, 0.8, 0.8]}
+              scale={[0.1, 0.1, 0.1]}
               color="#44ffaa"
               shape="chest"
             />
@@ -642,9 +613,9 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
               {boneRefs.rightShoulder && (
                 <EquipmentItem
                   bone={boneRefs.rightShoulder}
-                  position={[0.2, 0, 0]}
-                  rotation={[0, 0, 0.3]}
-                  scale={[0.6, 0.6, 0.6]}
+                  position={[0.4, 0, 0]}
+                  rotation={[0, 0, 0.5]}
+                  scale={[0.1, 0.1, 0.1]}
                   color="#aa44ff"
                   shape="shoulder"
                 />
@@ -652,9 +623,9 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
               {boneRefs.leftShoulder && (
                 <EquipmentItem
                   bone={boneRefs.leftShoulder}
-                  position={[-0.2, 0, 0]}
-                  rotation={[0, 0, -0.3]}
-                  scale={[0.6, 0.6, 0.6]}
+                  position={[-0.4, 0, 0]}
+                  rotation={[0, 0, -0.5]}
+                  scale={[0.1, 0.1, 0.1]}
                   color="#aa44ff"
                   shape="shoulder"
                 />
