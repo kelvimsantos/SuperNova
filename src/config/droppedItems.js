@@ -5,7 +5,7 @@ import { ItemDatabase } from '../components/inventory/ItemTypes';
 export const DROPPED_ITEMS = {
   default: [
     { id: 'wooden_sword', position: [1, 13, 1], autoEquip: false },
-    { id: 'sword_fantasy', position: [3, 14, 3], autoEquip: false },
+    { id: 'fantasy_sword', position: [3, 14, 3], autoEquip: false },
     { id: 'shield_mecanic', position: [2, 13, 2], autoEquip: false },
     { id: 'wooden_shield', position: [2, 13, 2], autoEquip: false },
     { id: 'leather_chest', position: [3, 13, 1], autoEquip: false },
@@ -19,7 +19,7 @@ export const DROPPED_ITEMS = {
     { id: 'iron_sword', position: [5, 15, 5], autoEquip: false },
     { id: 'mage_staff', position: [8, 15, 3], autoEquip: false },
     { id: 'strength_ring', position: [3, 15, 4], autoEquip: false },
-    { id: 'sword_fantasy', position: [3, 14, 3], autoEquip: false },
+    { id: 'fantasy_sword', position: [3, 14, 3], autoEquip: false },
   ],
   ilha: [
     { id: 'mage_staff', position: [4, 15, 4], autoEquip: false },
