@@ -3,7 +3,7 @@ import { useRef, useEffect, useState } from 'react';
 import { RigidBody, CapsuleCollider } from '@react-three/rapier';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
-import { Vector3, Raycaster } from 'three';
+import { Vector3, Raycaster, Vector3 as ThreeVector3, Quaternion } from 'three'; // 🔥 IMPORT CORRETO
 import useGameStore from '../hooks/useGameStore';
 
 const AVATAR_MODEL_PATH = '/models/avatar/body.glb';
@@ -410,33 +410,32 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     );
   }
 
-  // 🔥 COMPONENTE DE EQUIPAMENTO SIMPLES
-  const EquipmentItem = ({ bone, position, rotation, scale, color, shape, label }) => {
+  // 🔥 COMPONENTE DE EQUIPAMENTO SIMPLES (SEM THREE GLOBAL)
+  const EquipmentItem = ({ bone, position, rotation, scale, color, shape }) => {
+    const groupRef = useRef();
+    const pos = useRef(new Vector3());
+    const quat = useRef(new Quaternion());
+
+    useFrame(() => {
+      if (!groupRef.current || !bone) return;
+      bone.getWorldPosition(pos.current);
+      bone.getWorldQuaternion(quat.current);
+      groupRef.current.position.copy(pos.current);
+      groupRef.current.quaternion.copy(quat.current);
+    });
+
+    // Se não tem osso, mostra ponto vermelho
     if (!bone) {
-      // Mostra ponto de debug se o osso não for encontrado
       return (
-        <mesh position={[0, 2, 0]} scale={[0.1, 0.1, 0.1]}>
+        <mesh position={[0, 2, 0]} scale={[0.15, 0.15, 0.15]}>
           <sphereGeometry args={[0.5]} />
           <meshStandardMaterial color="red" emissive="red" emissiveIntensity={0.5} />
         </mesh>
       );
     }
 
-    // Cria um grupo que segue o osso
-    const [pos, setPos] = useState(new THREE.Vector3());
-    const [quat, setQuat] = useState(new THREE.Quaternion());
-    const groupRef = useRef();
-
-    useFrame(() => {
-      if (!groupRef.current || !bone) return;
-      bone.getWorldPosition(pos);
-      bone.getWorldQuaternion(quat);
-      groupRef.current.position.copy(pos);
-      groupRef.current.quaternion.copy(quat);
-    });
-
-    // 🔥 FORMAS DOS EQUIPAMENTOS
-    const getShape = () => {
+    // Formas dos equipamentos
+    const renderShape = () => {
       switch(shape) {
         case 'sword':
           return (
@@ -496,7 +495,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return (
       <group ref={groupRef}>
         <group position={position} rotation={rotation} scale={scale}>
-          {getShape()}
+          {renderShape()}
         </group>
       </group>
     );
@@ -529,11 +528,12 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
             <primitive object={hairScene} ref={hairModelRef} />
           )}
 
-          {/* 🔥 EQUIPAMENTOS - DIRETO NO AVATAR */}
+          {/* 🔥 EQUIPAMENTOS */}
           {console.log('🎯 Renderizando equipamentos:', {
             weapon: equippedItems.weapon?.name,
             shield: equippedItems.shield?.name,
-            hasBones: !!boneRefs.rightHand
+            hasRightHand: !!boneRefs.rightHand,
+            hasLeftHand: !!boneRefs.leftHand
           })}
           
           {/* ESPADA - MÃO DIREITA */}
@@ -545,7 +545,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
               scale={[0.5, 0.5, 0.5]}
               color="#ff4444"
               shape="sword"
-              label="Espada"
             />
           )}
 
@@ -558,7 +557,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
               scale={[0.5, 0.5, 0.5]}
               color="#4444ff"
               shape="shield"
-              label="Escudo"
             />
           )}
 
@@ -571,7 +569,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
               scale={[0.45, 0.45, 0.45]}
               color="#ffaa44"
               shape="helmet"
-              label="Capacete"
             />
           )}
 
@@ -584,7 +581,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
               scale={[0.5, 0.5, 0.5]}
               color="#44ffaa"
               shape="chest"
-              label="Peitoral"
             />
           )}
 
@@ -598,7 +594,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
                 scale={[0.4, 0.4, 0.4]}
                 color="#aa44ff"
                 shape="shoulder"
-                label="Ombreira Direita"
               />
               <EquipmentItem
                 bone={boneRefs.leftShoulder}
@@ -607,7 +602,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
                 scale={[0.4, 0.4, 0.4]}
                 color="#aa44ff"
                 shape="shoulder"
-                label="Ombreira Esquerda"
               />
             </>
           )}
