@@ -1,4 +1,4 @@
-// src/components/AvatarPlayer.jsx
+// src/components/AvatarPlayer.jsx - VERSÃO DE TESTE COM POSIÇÃO FIXA
 import { useRef, useEffect, useState } from 'react';
 import { RigidBody, CapsuleCollider } from '@react-three/rapier';
 import { useFrame } from '@react-three/fiber';
@@ -26,9 +26,6 @@ const HAIR_POSITIONS = {
 // 🔥 AJUSTE DO CABELO (subir no Y)
 const HAIR_Y_OFFSET = -10;
 const HAIR_SCALE_FACTOR = 0.8;
-
-// 🔥 ESCALA DOS EQUIPAMENTOS (50x maior)
-const EQUIPMENT_SCALE = 50;
 
 export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const rigidBodyRef = useRef();
@@ -413,113 +410,26 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     );
   }
 
-  // 🔥 COMPONENTE DE EQUIPAMENTO - COM ESCALA 50
-  const EquipmentItem = ({ bone, position, rotation, scale, color, shape }) => {
-    const groupRef = useRef();
-    const pos = useRef(new Vector3());
-    const quat = useRef(new Quaternion());
-
-    useFrame(() => {
-      if (!groupRef.current || !bone) return;
-      bone.getWorldPosition(pos.current);
-      bone.getWorldQuaternion(quat.current);
-      groupRef.current.position.copy(pos.current);
-      groupRef.current.quaternion.copy(quat.current);
-    });
-
-    if (!bone) {
-      return (
-        <mesh position={[0, 2, 0]} scale={[0.15, 0.15, 0.15]}>
-          <sphereGeometry args={[0.5]} />
-          <meshStandardMaterial color="red" emissive="red" emissiveIntensity={0.5} />
-        </mesh>
-      );
-    }
-
-    // 🔥 FORMAS DOS EQUIPAMENTOS COM ESCALA 50
-    const renderShape = () => {
-      const s = EQUIPMENT_SCALE;
-      
-      switch(shape) {
-        case 'sword':
-          return (
-            <group>
-              {/* Cabo */}
-              <mesh position={[0, -0.3 * s, 0]}>
-                <boxGeometry args={[0.08 * s, 0.2 * s, 0.08 * s]} />
-                <meshStandardMaterial color="#8B4513" metalness={0.8} roughness={0.3} />
-              </mesh>
-              {/* Guarda */}
-              <mesh position={[0, -0.1 * s, 0]}>
-                <boxGeometry args={[0.25 * s, 0.05 * s, 0.05 * s]} />
-                <meshStandardMaterial color="#DAA520" metalness={0.9} roughness={0.2} />
-              </mesh>
-              {/* Lâmina */}
-              <mesh position={[0, 0.25 * s, 0]}>
-                <boxGeometry args={[0.1 * s, 0.6 * s, 0.04 * s]} />
-                <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
-              </mesh>
-              {/* Ponta */}
-              <mesh position={[0, 0.6 * s, 0]}>
-                <coneGeometry args={[0.06 * s, 0.15 * s, 8]} />
-                <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
-              </mesh>
-              {/* Brilho */}
-              <mesh position={[0, 0.3 * s, 0.04 * s]}>
-                <planeGeometry args={[0.06 * s, 0.5 * s]} />
-                <meshStandardMaterial color="#ffffff" transparent opacity={0.3} emissive="#ffffff" emissiveIntensity={0.5} />
-              </mesh>
-            </group>
-          );
-        case 'shield':
-          return (
-            <group>
-              <mesh>
-                <cylinderGeometry args={[0.35 * s, 0.38 * s, 0.06 * s, 16]} />
-                <meshStandardMaterial color={color} metalness={0.7} roughness={0.3} />
-              </mesh>
-              <mesh position={[0, 0, 0.04 * s]}>
-                <circleGeometry args={[0.15 * s, 8]} />
-                <meshStandardMaterial color="#8888ff" metalness={0.8} roughness={0.2} />
-              </mesh>
-            </group>
-          );
-        case 'helmet':
-          return (
-            <mesh>
-              <sphereGeometry args={[0.2 * s, 16, 16]} />
-              <meshStandardMaterial color={color} metalness={0.6} roughness={0.4} />
-            </mesh>
-          );
-        case 'chest':
-          return (
-            <mesh>
-              <boxGeometry args={[0.4 * s, 0.5 * s, 0.15 * s]} />
-              <meshStandardMaterial color={color} metalness={0.5} roughness={0.5} />
-            </mesh>
-          );
-        case 'shoulder':
-          return (
-            <mesh>
-              <boxGeometry args={[0.3 * s, 0.12 * s, 0.3 * s]} />
-              <meshStandardMaterial color={color} metalness={0.6} roughness={0.4} />
-            </mesh>
-          );
-        default:
-          return (
-            <mesh>
-              <boxGeometry args={[0.2 * s, 0.2 * s, 0.2 * s]} />
-              <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} />
-            </mesh>
-          );
-      }
-    };
-
+  // 🔥 ESPADA DE TESTE EM POSIÇÃO FIXA
+  const TestSword = () => {
     return (
-      <group ref={groupRef}>
-        <group position={position} rotation={rotation} scale={scale}>
-          {renderShape()}
-        </group>
+      <group position={[0, 2, 0]} scale={[2, 2, 2]}>
+        <mesh position={[0, -0.3, 0]}>
+          <boxGeometry args={[0.08, 0.2, 0.08]} />
+          <meshStandardMaterial color="#8B4513" metalness={0.8} roughness={0.3} />
+        </mesh>
+        <mesh position={[0, -0.1, 0]}>
+          <boxGeometry args={[0.25, 0.05, 0.05]} />
+          <meshStandardMaterial color="#DAA520" metalness={0.9} roughness={0.2} />
+        </mesh>
+        <mesh position={[0, 0.25, 0]}>
+          <boxGeometry args={[0.1, 0.6, 0.04]} />
+          <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
+        </mesh>
+        <mesh position={[0, 0.6, 0]}>
+          <coneGeometry args={[0.06, 0.15, 8]} />
+          <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
+        </mesh>
       </group>
     );
   };
@@ -551,86 +461,25 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
             <primitive object={hairScene} ref={hairModelRef} />
           )}
 
-          {/* 🔥 EQUIPAMENTOS COM ESCALA 50 */}
-          {console.log('🎯 Renderizando equipamentos (escala 50):', {
-            weapon: equippedItems.weapon?.name,
-            shield: equippedItems.shield?.name,
-            rightHand: boneRefs.rightHand?.name,
-            leftHand: boneRefs.leftHand?.name
-          })}
+          {/* 🔥 ESPADA DE TESTE EM POSIÇÃO FIXA - SEMPRE VISÍVEL */}
+          <TestSword />
           
-          {/* ESPADA - MÃO DIREITA */}
-          {equippedItems.weapon && boneRefs.rightHand && (
-            <EquipmentItem
-              bone={boneRefs.rightHand}
-              position={[0.5, -0.2, 0.2]}
-              rotation={[0.8, 0, 0.8]}
-              scale={[0.1, 0.1, 0.1]}
-              color="#ff4444"
-              shape="sword"
-            />
-          )}
-
-          {/* ESCUDO - MÃO ESQUERDA */}
-          {equippedItems.shield && boneRefs.leftHand && (
-            <EquipmentItem
-              bone={boneRefs.leftHand}
-              position={[-0.5, -0.2, 0.2]}
-              rotation={[0.8, 0, -0.8]}
-              scale={[0.1, 0.1, 0.1]}
-              color="#4444ff"
-              shape="shield"
-            />
-          )}
-
-          {/* CAPACETE */}
-          {equippedItems.helmet && boneRefs.head && (
-            <EquipmentItem
-              bone={boneRefs.head}
-              position={[0, 0.5, 0]}
-              rotation={[0, 0, 0]}
-              scale={[0.1, 0.1, 0.1]}
-              color="#ffaa44"
-              shape="helmet"
-            />
-          )}
-
-          {/* PEITORAL */}
-          {equippedItems.chest && boneRefs.spine && (
-            <EquipmentItem
-              bone={boneRefs.spine}
-              position={[0, 0.2, -0.2]}
-              rotation={[0, 0, 0]}
-              scale={[0.1, 0.1, 0.1]}
-              color="#44ffaa"
-              shape="chest"
-            />
-          )}
-
-          {/* OMBREIRAS */}
-          {equippedItems.shoulders && (
-            <>
-              {boneRefs.rightShoulder && (
-                <EquipmentItem
-                  bone={boneRefs.rightShoulder}
-                  position={[0.4, 0, 0]}
-                  rotation={[0, 0, 0.5]}
-                  scale={[0.1, 0.1, 0.1]}
-                  color="#aa44ff"
-                  shape="shoulder"
-                />
-              )}
-              {boneRefs.leftShoulder && (
-                <EquipmentItem
-                  bone={boneRefs.leftShoulder}
-                  position={[-0.4, 0, 0]}
-                  rotation={[0, 0, -0.5]}
-                  scale={[0.1, 0.1, 0.1]}
-                  color="#aa44ff"
-                  shape="shoulder"
-                />
-              )}
-            </>
+          {/* 🔥 PONTO DE DEBUG NA MÃO DIREITA */}
+          {boneRefs.rightHand && (
+            <group>
+              {(() => {
+                const pos = new Vector3();
+                const quat = new Quaternion();
+                boneRefs.rightHand.getWorldPosition(pos);
+                boneRefs.rightHand.getWorldQuaternion(quat);
+                return (
+                  <mesh position={pos} quaternion={quat} scale={[0.5, 0.5, 0.5]}>
+                    <sphereGeometry args={[0.5]} />
+                    <meshStandardMaterial color="#00ff00" emissive="#00ff00" emissiveIntensity={1} />
+                  </mesh>
+                );
+              })()}
+            </group>
           )}
         </group>
       </group>
