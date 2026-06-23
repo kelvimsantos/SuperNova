@@ -166,7 +166,26 @@ export const ItemDatabase = {
     boneAttachment: 'hand_r',
     stackable: false,
   },
-  
+  fantasy_axe: {
+    id: 'fantasy_axe',
+    name: 'Espada de fantasia',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'Um machado de fantasia, boa para matar',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_003',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/fantasy_axe.glb',
+  customPosition: [0.35, -0.15, 0.1],   // [x, y, z]
+  customRotation: [0.6, 0, 0.6],         // [x, y, z] em radianos
+  customScale: [1.2, 1.2, 1.2],          // [x, y, z]
+  },
   wooden_shield: {
     id: 'wooden_shield',
     name: 'Escudo de Madeira',
@@ -201,7 +220,7 @@ export const ItemDatabase = {
     stackable: false,
      modelPath: '/models/weapons/shield_mecanic.glb',
   customPosition: [0.35, -0.15, 0.1],   // [x, y, z]
-  customRotation: [0.6, 0, 0.6],         // [x, y, z] em radianos
+  customRotation: [0.6, 90, 0.6],         // [x, y, z] em radianos
   customScale: [1.2, 1.2, 1.2],          // [x, y, z]
   },
 
