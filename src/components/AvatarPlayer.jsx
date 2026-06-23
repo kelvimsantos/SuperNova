@@ -5,7 +5,6 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { Vector3, Raycaster } from 'three';
 import useGameStore from '../hooks/useGameStore';
-import { EquipmentAttachment } from './equipment/EquipmentAttachment';
 
 const AVATAR_MODEL_PATH = '/models/avatar/body.glb';
 const HAIR_BASE_PATH = '/models/avatar/hair/hair-';
@@ -61,6 +60,16 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   
   const { actions } = useAnimations(animations, bodyModelRef);
 
+  // 🔥 REFERÊNCIAS PARA OS OSSOS
+  const [boneRefs, setBoneRefs] = useState({
+    rightHand: null,
+    leftHand: null,
+    head: null,
+    spine: null,
+    rightShoulder: null,
+    leftShoulder: null,
+  });
+
   const playAnimation = (name) => {
     if (!actions || !actions[name] || currentAnim.current === name) return;
     Object.values(actions).forEach(action => action.stop());
@@ -92,6 +101,52 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     });
     return headBone;
   }
+
+  // 🔥 BUSCA TODOS OS OSSOS DO MODELO
+  useEffect(() => {
+    if (!bodyModelRef.current) return;
+    
+    const findBone = (namePatterns) => {
+      let found = null;
+      bodyModelRef.current.traverse((child) => {
+        if (child.isBone && !found) {
+          const boneName = child.name.toLowerCase();
+          for (const pattern of namePatterns) {
+            if (boneName.includes(pattern.toLowerCase())) {
+              found = child;
+              break;
+            }
+          }
+        }
+      });
+      return found;
+    };
+
+    const rightHand = findBone(['mixamorigrighthand', 'righthand', 'hand_r', 'right_hand']);
+    const leftHand = findBone(['mixamoriglefthand', 'lefthand', 'hand_l', 'left_hand']);
+    const head = findBone(['mixamorighead', 'head']);
+    const spine = findBone(['mixamorigspine2', 'spine2', 'spine_02']);
+    const rightShoulder = findBone(['mixamorigrightshoulder', 'rightshoulder', 'shoulder_r']);
+    const leftShoulder = findBone(['mixamorigleftshoulder', 'leftshoulder', 'shoulder_l']);
+
+    console.log('🦴 Ossos encontrados:', {
+      rightHand: rightHand?.name || '❌',
+      leftHand: leftHand?.name || '❌',
+      head: head?.name || '❌',
+      spine: spine?.name || '❌',
+      rightShoulder: rightShoulder?.name || '❌',
+      leftShoulder: leftShoulder?.name || '❌',
+    });
+
+    setBoneRefs({
+      rightHand,
+      leftHand,
+      head,
+      spine,
+      rightShoulder,
+      leftShoulder,
+    });
+  }, [bodyModelRef.current]);
 
   useEffect(() => {
     if (!bodyModelRef.current || !avatarConfig) return;
@@ -355,6 +410,98 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     );
   }
 
+  // 🔥 COMPONENTE DE EQUIPAMENTO SIMPLES
+  const EquipmentItem = ({ bone, position, rotation, scale, color, shape, label }) => {
+    if (!bone) {
+      // Mostra ponto de debug se o osso não for encontrado
+      return (
+        <mesh position={[0, 2, 0]} scale={[0.1, 0.1, 0.1]}>
+          <sphereGeometry args={[0.5]} />
+          <meshStandardMaterial color="red" emissive="red" emissiveIntensity={0.5} />
+        </mesh>
+      );
+    }
+
+    // Cria um grupo que segue o osso
+    const [pos, setPos] = useState(new THREE.Vector3());
+    const [quat, setQuat] = useState(new THREE.Quaternion());
+    const groupRef = useRef();
+
+    useFrame(() => {
+      if (!groupRef.current || !bone) return;
+      bone.getWorldPosition(pos);
+      bone.getWorldQuaternion(quat);
+      groupRef.current.position.copy(pos);
+      groupRef.current.quaternion.copy(quat);
+    });
+
+    // 🔥 FORMAS DOS EQUIPAMENTOS
+    const getShape = () => {
+      switch(shape) {
+        case 'sword':
+          return (
+            <group>
+              <mesh position={[0, -0.15, 0]}>
+                <boxGeometry args={[0.04, 0.12, 0.04]} />
+                <meshStandardMaterial color="#8B4513" metalness={0.8} roughness={0.3} />
+              </mesh>
+              <mesh position={[0, 0.12, 0]}>
+                <boxGeometry args={[0.06, 0.3, 0.02]} />
+                <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
+              </mesh>
+              <mesh position={[0, 0.3, 0]}>
+                <coneGeometry args={[0.03, 0.06, 6]} />
+                <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
+              </mesh>
+            </group>
+          );
+        case 'shield':
+          return (
+            <mesh>
+              <cylinderGeometry args={[0.2, 0.22, 0.04, 12]} />
+              <meshStandardMaterial color={color} metalness={0.7} roughness={0.3} />
+            </mesh>
+          );
+        case 'helmet':
+          return (
+            <mesh>
+              <sphereGeometry args={[0.12, 12, 12]} />
+              <meshStandardMaterial color={color} metalness={0.6} roughness={0.4} />
+            </mesh>
+          );
+        case 'chest':
+          return (
+            <mesh>
+              <boxGeometry args={[0.3, 0.35, 0.1]} />
+              <meshStandardMaterial color={color} metalness={0.5} roughness={0.5} />
+            </mesh>
+          );
+        case 'shoulder':
+          return (
+            <mesh>
+              <boxGeometry args={[0.2, 0.08, 0.2]} />
+              <meshStandardMaterial color={color} metalness={0.6} roughness={0.4} />
+            </mesh>
+          );
+        default:
+          return (
+            <mesh>
+              <boxGeometry args={[0.15, 0.15, 0.15]} />
+              <meshStandardMaterial color={color} />
+            </mesh>
+          );
+      }
+    };
+
+    return (
+      <group ref={groupRef}>
+        <group position={position} rotation={rotation} scale={scale}>
+          {getShape()}
+        </group>
+      </group>
+    );
+  };
+
   return (
     <RigidBody
       ref={rigidBodyRef}
@@ -382,59 +529,87 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
             <primitive object={hairScene} ref={hairModelRef} />
           )}
 
-          {/* 🔥 EQUIPAMENTOS VISÍVEIS - USANDO O bodyModelRef.current */}
-          {bodyModelRef.current && (
-            <group>
-              {console.log('🎯 Renderizando equipamentos no Avatar:', {
-                hasModel: !!bodyModelRef.current,
-                weapon: equippedItems.weapon?.name,
-                shield: equippedItems.shield?.name,
-                helmet: equippedItems.helmet?.name,
-                chest: equippedItems.chest?.name,
-                shoulders: equippedItems.shoulders?.name,
-              })}
-              
-              {equippedItems.weapon && (
-                <EquipmentAttachment 
-                  key={`weapon-${Date.now()}`}
-                  playerModel={bodyModelRef.current} 
-                  equipmentSlot="weapon" 
-                  itemData={equippedItems.weapon}
-                />
-              )}
-              {equippedItems.shield && (
-                <EquipmentAttachment 
-                  key={`shield-${Date.now()}`}
-                  playerModel={bodyModelRef.current} 
-                  equipmentSlot="shield" 
-                  itemData={equippedItems.shield}
-                />
-              )}
-              {equippedItems.helmet && (
-                <EquipmentAttachment 
-                  key={`helmet-${Date.now()}`}
-                  playerModel={bodyModelRef.current} 
-                  equipmentSlot="helmet" 
-                  itemData={equippedItems.helmet}
-                />
-              )}
-              {equippedItems.chest && (
-                <EquipmentAttachment 
-                  key={`chest-${Date.now()}`}
-                  playerModel={bodyModelRef.current} 
-                  equipmentSlot="chest" 
-                  itemData={equippedItems.chest}
-                />
-              )}
-              {equippedItems.shoulders && (
-                <EquipmentAttachment 
-                  key={`shoulders-${Date.now()}`}
-                  playerModel={bodyModelRef.current} 
-                  equipmentSlot="shoulders" 
-                  itemData={equippedItems.shoulders}
-                />
-              )}
-            </group>
+          {/* 🔥 EQUIPAMENTOS - DIRETO NO AVATAR */}
+          {console.log('🎯 Renderizando equipamentos:', {
+            weapon: equippedItems.weapon?.name,
+            shield: equippedItems.shield?.name,
+            hasBones: !!boneRefs.rightHand
+          })}
+          
+          {/* ESPADA - MÃO DIREITA */}
+          {equippedItems.weapon && (
+            <EquipmentItem
+              bone={boneRefs.rightHand}
+              position={[0.15, -0.05, 0.05]}
+              rotation={[0.5, 0, 0.5]}
+              scale={[0.5, 0.5, 0.5]}
+              color="#ff4444"
+              shape="sword"
+              label="Espada"
+            />
+          )}
+
+          {/* ESCUDO - MÃO ESQUERDA */}
+          {equippedItems.shield && (
+            <EquipmentItem
+              bone={boneRefs.leftHand}
+              position={[-0.15, -0.05, 0.05]}
+              rotation={[0.5, 0, -0.5]}
+              scale={[0.5, 0.5, 0.5]}
+              color="#4444ff"
+              shape="shield"
+              label="Escudo"
+            />
+          )}
+
+          {/* CAPACETE */}
+          {equippedItems.helmet && (
+            <EquipmentItem
+              bone={boneRefs.head}
+              position={[0, 0.15, 0]}
+              rotation={[0, 0, 0]}
+              scale={[0.45, 0.45, 0.45]}
+              color="#ffaa44"
+              shape="helmet"
+              label="Capacete"
+            />
+          )}
+
+          {/* PEITORAL */}
+          {equippedItems.chest && (
+            <EquipmentItem
+              bone={boneRefs.spine}
+              position={[0, 0.05, -0.05]}
+              rotation={[0, 0, 0]}
+              scale={[0.5, 0.5, 0.5]}
+              color="#44ffaa"
+              shape="chest"
+              label="Peitoral"
+            />
+          )}
+
+          {/* OMBREIRAS */}
+          {equippedItems.shoulders && (
+            <>
+              <EquipmentItem
+                bone={boneRefs.rightShoulder}
+                position={[0.15, 0, 0]}
+                rotation={[0, 0, 0.3]}
+                scale={[0.4, 0.4, 0.4]}
+                color="#aa44ff"
+                shape="shoulder"
+                label="Ombreira Direita"
+              />
+              <EquipmentItem
+                bone={boneRefs.leftShoulder}
+                position={[-0.15, 0, 0]}
+                rotation={[0, 0, -0.3]}
+                scale={[0.4, 0.4, 0.4]}
+                color="#aa44ff"
+                shape="shoulder"
+                label="Ombreira Esquerda"
+              />
+            </>
           )}
         </group>
       </group>
