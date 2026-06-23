@@ -127,6 +127,28 @@ export const ItemDatabase = {
     boneAttachment: 'hand_r',
     stackable: false,
   },
+
+    fantasy_sword: {
+    id: 'fantasy_sword',
+    name: 'Espada de fantasia',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'Uma espada de fantasia, boa para matar',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/sword_fantasy.glb',
+  customPosition: [0.35, -0.15, 0.1],   // [x, y, z]
+  customRotation: [0.6, 0, 0.6],         // [x, y, z] em radianos
+  customScale: [1.2, 1.2, 1.2],          // [x, y, z]
+  },
+
   
   iron_sword: {
     id: 'iron_sword',
@@ -162,6 +184,23 @@ export const ItemDatabase = {
     stackable: false,
   },
   
+   shield_mecanic: {
+    id: 'shield_mecanic',
+    name: 'Escudo Mecânico',
+    type: ItemTypes.SHIELD,
+    slot: 'shield',
+    weaponClass: 'tank',
+    rarity: ItemRarity.COMMON,
+    icon: '🛡️',
+    description: 'Um escudo leve de mecanico',
+    value: 80,
+    defense: 15,
+    stats: { stamina: 5, strength: 5 },
+    modelId: 'shield_002',
+    boneAttachment: 'hand_l',
+    stackable: false,
+  },
+
   mage_staff: {
     id: 'mage_staff',
     name: 'Cajado do Aprendiz',

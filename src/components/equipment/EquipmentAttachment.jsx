@@ -1,175 +1,267 @@
 // components/equipment/EquipmentAttachment.jsx
 import { useEffect, useRef, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useGLTF, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 
-// 🔥 CONFIGURAÇÃO COM OS OSSOS CORRETOS DO SEU MODELO
+// 🔥 CONFIGURAÇÃO DE CADA SLOT
 const EQUIPMENT_CONFIG = {
   weapon: {
-    boneNames: ['mixamorigRightHand_15', 'mixamorigRightHand', 'RightHand'], // Mão direita
-    positionOffset: [-0.8, 0.9, 0.1], // Ajuste de posição
-    rotationOffset: [0.8, 0.1, 0.3], // Rotação da arma
-    scale: [2.5, 2.5, 5], // Tamanho da arma
-    color: '#ff4444',
-    shape: 'sword'
+    boneNames: ['mixamorigRightHand', 'RightHand', 'hand_r', 'Hand_R'],
+    positionOffset: [0.3, -0.1, 0.1],
+    rotationOffset: [0.5, 0, 0.5],
+    scale: [1, 1, 1],
+    shape: 'sword',
+    color: '#ff4444'
   },
   shield: {
-    boneNames: ['mixamorigLeftHand_7', 'mixamorigLeftHand', 'LeftHand'], // Mão esquerda
-    positionOffset: [0.3, 1.00, 1.0],
-    rotationOffset: [1, 0, 90],
-    scale: [1.5, 1.5, 1.5],
-    color: '#4444ff',
-    shape: 'shield'
+    boneNames: ['mixamorigLeftHand', 'LeftHand', 'hand_l', 'Hand_L'],
+    positionOffset: [-0.3, -0.1, 0.1],
+    rotationOffset: [0.5, 0, -0.5],
+    scale: [1, 1, 1],
+    shape: 'shield',
+    color: '#4444ff'
   },
   helmet: {
-    boneNames: ['mixamorigHead_1', 'mixamorigHead', 'Head'], // Cabeça
-    positionOffset: [0, 0.12, 0.05],
+    boneNames: ['mixamorigHead', 'Head', 'head'],
+    positionOffset: [0, 0.25, 0],
     rotationOffset: [0, 0, 0],
-    scale: [0.5, 0.5, 0.5],
-    color: '#ffaa44',
-    shape: 'sphere'
+    scale: [0.8, 0.8, 0.8],
+    shape: 'sphere',
+    color: '#ffaa44'
   },
   chest: {
-    boneNames: ['mixamorigSpine2_21', 'mixamorigSpine', 'Spine2'], // Tronco
-    positionOffset: [0, 1.5, -0.2],
-    rotationOffset: [0, 0.0, 0],
-    scale: [2., 2., 2.],
-    color: '#44ffaa',
-    shape: 'box'
+    boneNames: ['mixamorigSpine2', 'Spine2', 'spine_02'],
+    positionOffset: [0, 0.1, -0.1],
+    rotationOffset: [0, 0, 0],
+    scale: [0.8, 0.8, 0.8],
+    shape: 'box',
+    color: '#44ffaa'
   },
   shoulders: {
-    boneNames: ['mixamorigRightShoulder_18', 'mixamorigLeftShoulder_10', 'Shoulder'], // Ombros
-    positionOffset: [0.2, 0, 0.1],
-    rotationOffset: [0, 0, 0.5],
-    scale: [0.4, 0.4, 0.4],
-    color: '#aa44ff',
-    shape: 'shoulder'
+    boneNames: ['mixamorigRightShoulder', 'RightShoulder', 'mixamorigLeftShoulder', 'LeftShoulder'],
+    positionOffset: [0.2, 0, 0],
+    rotationOffset: [0, 0, 0.3],
+    scale: [0.6, 0.6, 0.6],
+    shape: 'shoulder',
+    color: '#aa44ff'
   }
 };
 
-export const EquipmentAttachment = ({ playerModel, equipmentSlot, itemData }) => {
+export const EquipmentAttachment = ({
+  playerModel,
+  equipmentSlot,
+  itemData,
+  customPosition,
+  customRotation,
+  customScale,
+  autoPlayAnim = true, // 🔥 Se deve tocar a primeira animação automaticamente
+  animIndex = 0           // 🔥 Índice da animação a tocar (0 = primeira)
+}) => {
   const [bone, setBone] = useState(null);
-  const equipmentRef = useRef();
-  
+  const [modelScene, setModelScene] = useState(null);
+  const groupRef = useRef();
+  const modelRef = useRef(); // Referência para o modelo (para animações)
+  const mountedRef = useRef(true);
+
+  // 🔥 1. CARREGA O MODELO GLB E SUAS ANIMAÇÕES
+  const modelPath = itemData?.modelPath;
+  const { scene: gltfScene, animations } = useGLTF(modelPath || '');
+  const { actions } = useAnimations(animations, modelRef);
+
+  // 🔥 2. CLONA A CENA E GUARDA O MODELO
   useEffect(() => {
-    if (!playerModel || !itemData) return;
-    
+    if (gltfScene && modelPath) {
+      const cloned = gltfScene.clone();
+      setModelScene(cloned);
+      console.log(`✅ Modelo carregado: ${modelPath} (${animations?.length || 0} animações)`);
+    } else {
+      setModelScene(null);
+    }
+  }, [gltfScene, modelPath, animations]);
+
+  // 🔥 3. ENCONTRA O OSSO
+  useEffect(() => {
+    if (!playerModel || !mountedRef.current) return;
+
     const config = EQUIPMENT_CONFIG[equipmentSlot];
     if (!config) return;
-    
-    // Procura o osso específico
+
     let foundBone = null;
     playerModel.traverse((child) => {
-      if (child.isBone) {
-        const boneName = child.name;
-        if (config.boneNames.some(name => boneName === name || boneName.includes(name))) {
-          foundBone = child;
+      if (child.isBone && !foundBone) {
+        const boneName = child.name.toLowerCase();
+        for (const pattern of config.boneNames) {
+          if (boneName.includes(pattern.toLowerCase())) {
+            foundBone = child;
+            break;
+          }
         }
       }
     });
-    
+
     if (foundBone) {
-      console.log(`✅ ${equipmentSlot} anexado ao osso: ${foundBone.name}`);
+      console.log(`✅ ${equipmentSlot} encontrou osso: ${foundBone.name}`);
       setBone(foundBone);
     } else {
       console.warn(`⚠️ Osso não encontrado para ${equipmentSlot}. Nomes:`, config.boneNames);
-      // Fallback: tenta qualquer osso da mão
-      playerModel.traverse((child) => {
-        if (child.isBone && !foundBone && (child.name.includes('Hand') || child.name.includes('hand'))) {
-          foundBone = child;
-        }
-      });
-      if (foundBone) {
-        console.log(`🔧 Usando osso alternativo: ${foundBone.name}`);
-        setBone(foundBone);
+      setBone(null);
+    }
+  }, [playerModel, equipmentSlot]);
+
+  // 🔥 4. ANEXA O MODELO (OU FORMA GEOMÉTRICA) AO OSSO
+  useEffect(() => {
+    if (!bone || !groupRef.current || !mountedRef.current) return;
+
+    // Limpa filhos anteriores
+    while (groupRef.current.children.length > 0) {
+      groupRef.current.remove(groupRef.current.children[0]);
+    }
+
+    if (modelScene) {
+      // Usa modelo GLB
+      const modelClone = modelScene.clone();
+      groupRef.current.add(modelClone);
+      // Guarda referência para animações
+      modelRef.current = modelClone;
+      console.log(`🔗 Modelo GLB anexado ao osso ${bone.name}`);
+    } else {
+      // Fallback geométrico
+      const fallbackGroup = createFallbackShape(equipmentSlot);
+      if (fallbackGroup) {
+        groupRef.current.add(fallbackGroup);
+        console.log(`🔧 Fallback geométrico usado para ${equipmentSlot}`);
+      }
+      modelRef.current = null;
+    }
+
+    // Aplica posição/rotação/escala
+    const config = EQUIPMENT_CONFIG[equipmentSlot];
+    const pos = customPosition || config.positionOffset;
+    const rot = customRotation || config.rotationOffset;
+    const sca = customScale || config.scale;
+
+    groupRef.current.position.set(pos[0], pos[1], pos[2]);
+    groupRef.current.rotation.set(rot[0], rot[1], rot[2]);
+    groupRef.current.scale.set(sca[0], sca[1], sca[2]);
+
+    // Adiciona ao osso
+    bone.add(groupRef.current);
+
+    // 🔥 5. TOCA A PRIMEIRA ANIMAÇÃO (se houver)
+    if (autoPlayAnim && actions && Object.keys(actions).length > 0) {
+      const animNames = Object.keys(actions);
+      const targetAnim = animNames[Math.min(animIndex, animNames.length - 1)];
+      if (targetAnim) {
+        actions[targetAnim].reset().play();
+        console.log(`🎬 Tocando animação "${targetAnim}" em ${equipmentSlot}`);
       }
     }
-  }, [playerModel, equipmentSlot, itemData]);
-  
-  const tmpPos = new THREE.Vector3();
-  const tmpQuat = new THREE.Quaternion();
 
-  useFrame(() => {
-    if (!equipmentRef.current || !bone) return;
+    return () => {
+      if (groupRef.current && bone) {
+        bone.remove(groupRef.current);
+      }
+    };
+  }, [bone, modelScene, equipmentSlot, customPosition, customRotation, customScale, autoPlayAnim, animIndex, actions]);
 
-    // Atualiza posição/rotação em world-space (Mixamo bones costumam ter parent transforms)
-    bone.getWorldPosition(tmpPos);
-    bone.getWorldQuaternion(tmpQuat);
+  // 🔥 FUNÇÃO PARA CRIAR FORMAS GEOMÉTRICAS (FALLBACK)
+  const createFallbackShape = (slot) => {
+    const config = EQUIPMENT_CONFIG[slot];
+    if (!config) return null;
 
-    equipmentRef.current.position.copy(tmpPos);
-    equipmentRef.current.quaternion.copy(tmpQuat);
-  });
-  
-  if (!bone || !itemData) return null;
-  
-  const config = EQUIPMENT_CONFIG[equipmentSlot];
-  
-  // 🔥 FORMAS GEOMÉTRICAS PARA CADA EQUIPAMENTO
-  const getShape = () => {
-    switch(config.shape) {
-      case 'sword':
-        return (
-          <group>
-            {/* Cabo da espada */}
-            <mesh position={[0, -0.2, 0]}>
-              <boxGeometry args={[0.08, 0.15, 0.08]} />
-              <meshStandardMaterial color="#8B4513" metalness={0.8} roughness={0.3} />
-            </mesh>
-            {/* Lâmina */}
-            <mesh position={[0, 0.15, 0]}>
-              <boxGeometry args={[0.1, 0.4, 0.05]} />
-              <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
-            </mesh>
-            {/* Ponta */}
-            <mesh position={[0, 0.38, 0]}>
-              <coneGeometry args={[0.06, 0.1, 8]} />
-              <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
-            </mesh>
-          </group>
+    const group = new THREE.Group();
+    const color = config.color;
+
+    switch (config.shape) {
+      case 'sword': {
+        const handle = new THREE.Mesh(
+          new THREE.BoxGeometry(0.08, 0.2, 0.08),
+          new THREE.MeshStandardMaterial({ color: '#8B4513', metalness: 0.8, roughness: 0.3 })
         );
-      case 'shield':
-        return (
-          <mesh>
-            <cylinderGeometry args={[0.35, 0.35, 0.08, 16]} />
-            <meshStandardMaterial color="#4444ff" metalness={0.7} roughness={0.3} />
-          </mesh>
+        handle.position.set(0, -0.3, 0);
+        group.add(handle);
+        const guard = new THREE.Mesh(
+          new THREE.BoxGeometry(0.25, 0.05, 0.05),
+          new THREE.MeshStandardMaterial({ color: '#DAA520', metalness: 0.9, roughness: 0.2 })
         );
-      case 'sphere':
-        return (
-          <mesh>
-            <sphereGeometry args={[0.22, 16, 16]} />
-            <meshStandardMaterial color="#ffaa44" metalness={0.6} roughness={0.4} />
-          </mesh>
+        guard.position.set(0, -0.1, 0);
+        group.add(guard);
+        const blade = new THREE.Mesh(
+          new THREE.BoxGeometry(0.1, 0.6, 0.04),
+          new THREE.MeshStandardMaterial({ color: '#CCCCCC', metalness: 0.9, roughness: 0.2 })
         );
-      case 'box':
-        return (
-          <mesh>
-            <boxGeometry args={[0.5, 0.6, 0.2]} />
-            <meshStandardMaterial color="#44ffaa" metalness={0.5} roughness={0.5} />
-          </mesh>
+        blade.position.set(0, 0.25, 0);
+        group.add(blade);
+        const tip = new THREE.Mesh(
+          new THREE.ConeGeometry(0.06, 0.15, 8),
+          new THREE.MeshStandardMaterial({ color: '#CCCCCC', metalness: 0.9, roughness: 0.2 })
         );
-      case 'shoulder':
-        return (
-          <mesh>
-            <boxGeometry args={[0.35, 0.15, 0.35]} />
-            <meshStandardMaterial color="#aa44ff" metalness={0.6} roughness={0.4} />
-          </mesh>
+        tip.position.set(0, 0.6, 0);
+        group.add(tip);
+        break;
+      }
+      case 'shield': {
+        const shieldMesh = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.35, 0.38, 0.06, 16),
+          new THREE.MeshStandardMaterial({ color, metalness: 0.7, roughness: 0.3 })
         );
-      default:
-        return (
-          <mesh>
-            <boxGeometry args={[0.3, 0.3, 0.3]} />
-            <meshStandardMaterial color={config.color} />
-          </mesh>
+        group.add(shieldMesh);
+        break;
+      }
+      case 'sphere': {
+        const sphere = new THREE.Mesh(
+          new THREE.SphereGeometry(0.2, 16, 16),
+          new THREE.MeshStandardMaterial({ color, metalness: 0.6, roughness: 0.4 })
         );
+        group.add(sphere);
+        break;
+      }
+      case 'box': {
+        const box = new THREE.Mesh(
+          new THREE.BoxGeometry(0.4, 0.5, 0.15),
+          new THREE.MeshStandardMaterial({ color, metalness: 0.5, roughness: 0.5 })
+        );
+        group.add(box);
+        break;
+      }
+      case 'shoulder': {
+        const shoulder = new THREE.Mesh(
+          new THREE.BoxGeometry(0.3, 0.12, 0.3),
+          new THREE.MeshStandardMaterial({ color, metalness: 0.6, roughness: 0.4 })
+        );
+        group.add(shoulder);
+        break;
+      }
+      default: {
+        const defaultMesh = new THREE.Mesh(
+          new THREE.BoxGeometry(0.2, 0.2, 0.2),
+          new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.3 })
+        );
+        group.add(defaultMesh);
+      }
     }
+    return group;
   };
-  
-  return (
-    <group ref={equipmentRef}>
-      <group position={config.positionOffset} rotation={config.rotationOffset} scale={config.scale}>
-        {getShape()}
-      </group>
-    </group>
-  );
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // Debug: se não encontrou osso, mostra ponto vermelho
+  if (!bone) {
+    return (
+      <mesh position={[0, 2, 0]} scale={[0.15, 0.15, 0.15]}>
+        <sphereGeometry args={[0.5]} />
+        <meshStandardMaterial color="red" emissive="red" emissiveIntensity={0.5} />
+      </mesh>
+    );
+  }
+
+  return <group ref={groupRef} />;
 };
+
+// Preload (opcional)
+useGLTF.preload('/models/weapons/sword.glb');
+useGLTF.preload('/models/weapons/shield.glb');
