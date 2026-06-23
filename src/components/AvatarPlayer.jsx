@@ -1,9 +1,9 @@
-// src/components/AvatarPlayer.jsx - VERSÃO DE TESTE COM POSIÇÃO FIXA
+// src/components/AvatarPlayer.jsx
 import { useRef, useEffect, useState } from 'react';
 import { RigidBody, CapsuleCollider } from '@react-three/rapier';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
-import { Vector3, Raycaster, Quaternion } from 'three';
+import { Vector3, Raycaster } from 'three';
 import useGameStore from '../hooks/useGameStore';
 
 const AVATAR_MODEL_PATH = '/models/avatar/body.glb';
@@ -23,7 +23,7 @@ const HAIR_POSITIONS = {
   6: { y: -175.1 }   // Cabelo 7
 };
 
-// 🔥 AJUSTE DO CABELO (subir no Y)
+// 🔥 AJUSTE DO CABELO
 const HAIR_Y_OFFSET = -10;
 const HAIR_SCALE_FACTOR = 0.8;
 
@@ -410,26 +410,119 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     );
   }
 
-  // 🔥 ESPADA DE TESTE EM POSIÇÃO FIXA
-  const TestSword = () => {
+  // 🔥 COMPONENTE DE EQUIPAMENTO - ANEXA DIRETAMENTE AO OSSO
+  const EquipmentItem = ({ bone, position, rotation, scale, color, shape }) => {
+    const groupRef = useRef();
+    const [attached, setAttached] = useState(false);
+
+    // 🔥 ANEXA O EQUIPAMENTO AO OSSO
+    useEffect(() => {
+      if (!bone || !groupRef.current || attached) return;
+      
+      // Adiciona o grupo como filho do osso
+      // Isso faz com que ele siga automaticamente todas as animações
+      bone.add(groupRef.current);
+      
+      // Define a posição local relativa ao osso
+      groupRef.current.position.set(position[0], position[1], position[2]);
+      groupRef.current.rotation.set(rotation[0], rotation[1], rotation[2]);
+      groupRef.current.scale.set(scale[0], scale[1], scale[2]);
+      
+      setAttached(true);
+      console.log(`✅ Equipamento anexado ao osso: ${bone.name}`);
+      
+      return () => {
+        if (groupRef.current && bone) {
+          bone.remove(groupRef.current);
+        }
+      };
+    }, [bone, position, rotation, scale, attached]);
+
+    if (!bone) {
+      // Ponto de debug vermelho se o osso não for encontrado
+      return (
+        <mesh position={[0, 2, 0]} scale={[0.15, 0.15, 0.15]}>
+          <sphereGeometry args={[0.5]} />
+          <meshStandardMaterial color="red" emissive="red" emissiveIntensity={0.5} />
+        </mesh>
+      );
+    }
+
+    // 🔥 FORMAS DOS EQUIPAMENTOS
+    const renderShape = () => {
+      switch(shape) {
+        case 'sword':
+          return (
+            <group>
+              {/* Cabo */}
+              <mesh position={[0, -0.3, 0]}>
+                <boxGeometry args={[0.08, 0.2, 0.08]} />
+                <meshStandardMaterial color="#8B4513" metalness={0.8} roughness={0.3} />
+              </mesh>
+              {/* Guarda */}
+              <mesh position={[0, -0.1, 0]}>
+                <boxGeometry args={[0.25, 0.05, 0.05]} />
+                <meshStandardMaterial color="#DAA520" metalness={0.9} roughness={0.2} />
+              </mesh>
+              {/* Lâmina */}
+              <mesh position={[0, 0.25, 0]}>
+                <boxGeometry args={[0.1, 0.6, 0.04]} />
+                <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
+              </mesh>
+              {/* Ponta */}
+              <mesh position={[0, 0.6, 0]}>
+                <coneGeometry args={[0.06, 0.15, 8]} />
+                <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
+              </mesh>
+            </group>
+          );
+        case 'shield':
+          return (
+            <group>
+              <mesh>
+                <cylinderGeometry args={[0.35, 0.38, 0.06, 16]} />
+                <meshStandardMaterial color={color} metalness={0.7} roughness={0.3} />
+              </mesh>
+              <mesh position={[0, 0, 0.04]}>
+                <circleGeometry args={[0.15, 8]} />
+                <meshStandardMaterial color="#8888ff" metalness={0.8} roughness={0.2} />
+              </mesh>
+            </group>
+          );
+        case 'helmet':
+          return (
+            <mesh>
+              <sphereGeometry args={[0.2, 16, 16]} />
+              <meshStandardMaterial color={color} metalness={0.6} roughness={0.4} />
+            </mesh>
+          );
+        case 'chest':
+          return (
+            <mesh>
+              <boxGeometry args={[0.4, 0.5, 0.15]} />
+              <meshStandardMaterial color={color} metalness={0.5} roughness={0.5} />
+            </mesh>
+          );
+        case 'shoulder':
+          return (
+            <mesh>
+              <boxGeometry args={[0.3, 0.12, 0.3]} />
+              <meshStandardMaterial color={color} metalness={0.6} roughness={0.4} />
+            </mesh>
+          );
+        default:
+          return (
+            <mesh>
+              <boxGeometry args={[0.2, 0.2, 0.2]} />
+              <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} />
+            </mesh>
+          );
+      }
+    };
+
     return (
-      <group position={[0, 2, 0]} scale={[2, 2, 2]}>
-        <mesh position={[0, -0.3, 0]}>
-          <boxGeometry args={[0.08, 0.2, 0.08]} />
-          <meshStandardMaterial color="#8B4513" metalness={0.8} roughness={0.3} />
-        </mesh>
-        <mesh position={[0, -0.1, 0]}>
-          <boxGeometry args={[0.25, 0.05, 0.05]} />
-          <meshStandardMaterial color="#DAA520" metalness={0.9} roughness={0.2} />
-        </mesh>
-        <mesh position={[0, 0.25, 0]}>
-          <boxGeometry args={[0.1, 0.6, 0.04]} />
-          <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
-        </mesh>
-        <mesh position={[0, 0.6, 0]}>
-          <coneGeometry args={[0.06, 0.15, 8]} />
-          <meshStandardMaterial color="#CCCCCC" metalness={0.9} roughness={0.2} />
-        </mesh>
+      <group ref={groupRef}>
+        {renderShape()}
       </group>
     );
   };
@@ -461,25 +554,86 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
             <primitive object={hairScene} ref={hairModelRef} />
           )}
 
-          {/* 🔥 ESPADA DE TESTE EM POSIÇÃO FIXA - SEMPRE VISÍVEL */}
-          <TestSword />
+          {/* 🔥 EQUIPAMENTOS - ANEXADOS DIRETAMENTE AOS OSSOS */}
+          {console.log('🎯 Renderizando equipamentos:', {
+            weapon: equippedItems.weapon?.name,
+            shield: equippedItems.shield?.name,
+            rightHand: boneRefs.rightHand?.name,
+            leftHand: boneRefs.leftHand?.name
+          })}
           
-          {/* 🔥 PONTO DE DEBUG NA MÃO DIREITA */}
-          {boneRefs.rightHand && (
-            <group>
-              {(() => {
-                const pos = new Vector3();
-                const quat = new Quaternion();
-                boneRefs.rightHand.getWorldPosition(pos);
-                boneRefs.rightHand.getWorldQuaternion(quat);
-                return (
-                  <mesh position={pos} quaternion={quat} scale={[0.5, 0.5, 0.5]}>
-                    <sphereGeometry args={[0.5]} />
-                    <meshStandardMaterial color="#00ff00" emissive="#00ff00" emissiveIntensity={1} />
-                  </mesh>
-                );
-              })()}
-            </group>
+          {/* ESPADA - MÃO DIREITA */}
+          {equippedItems.weapon && boneRefs.rightHand && (
+            <EquipmentItem
+              bone={boneRefs.rightHand}
+              position={[0.3, -0.1, 0.1]}
+              rotation={[0.5, 0, 0.5]}
+              scale={[1, 1, 1]}
+              color="#ff4444"
+              shape="sword"
+            />
+          )}
+
+          {/* ESCUDO - MÃO ESQUERDA */}
+          {equippedItems.shield && boneRefs.leftHand && (
+            <EquipmentItem
+              bone={boneRefs.leftHand}
+              position={[-0.3, -0.1, 0.1]}
+              rotation={[0.5, 0, -0.5]}
+              scale={[1, 1, 1]}
+              color="#4444ff"
+              shape="shield"
+            />
+          )}
+
+          {/* CAPACETE */}
+          {equippedItems.helmet && boneRefs.head && (
+            <EquipmentItem
+              bone={boneRefs.head}
+              position={[0, 0.25, 0]}
+              rotation={[0, 0, 0]}
+              scale={[0.8, 0.8, 0.8]}
+              color="#ffaa44"
+              shape="helmet"
+            />
+          )}
+
+          {/* PEITORAL */}
+          {equippedItems.chest && boneRefs.spine && (
+            <EquipmentItem
+              bone={boneRefs.spine}
+              position={[0, 0.1, -0.1]}
+              rotation={[0, 0, 0]}
+              scale={[0.8, 0.8, 0.8]}
+              color="#44ffaa"
+              shape="chest"
+            />
+          )}
+
+          {/* OMBREIRAS */}
+          {equippedItems.shoulders && (
+            <>
+              {boneRefs.rightShoulder && (
+                <EquipmentItem
+                  bone={boneRefs.rightShoulder}
+                  position={[0.2, 0, 0]}
+                  rotation={[0, 0, 0.3]}
+                  scale={[0.6, 0.6, 0.6]}
+                  color="#aa44ff"
+                  shape="shoulder"
+                />
+              )}
+              {boneRefs.leftShoulder && (
+                <EquipmentItem
+                  bone={boneRefs.leftShoulder}
+                  position={[-0.2, 0, 0]}
+                  rotation={[0, 0, -0.3]}
+                  scale={[0.6, 0.6, 0.6]}
+                  color="#aa44ff"
+                  shape="shoulder"
+                />
+              )}
+            </>
           )}
         </group>
       </group>
