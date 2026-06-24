@@ -235,7 +235,7 @@ export const ItemDatabase = {
     stackable: false,
     modelPath: '/models/weapons/shield_mecanic.glb',
     customPosition: [0.35, -0.15, 0.1],
-    customRotation: [180.6, 0, 0.6], // Em graus!
+    customRotation: [0.6, 0, 0.6], // Em graus!
     customScale: [1.2, 1.2, 1.2],
   },
 
