@@ -168,7 +168,7 @@ export const ItemDatabase = {
   },
   fantasy_axe: {
     id: 'fantasy_axe',
-    name: 'Espada de fantasia',
+    name: 'Machado de fantasia',
     type: ItemTypes.WEAPON,
     slot: 'weapon',
     weaponClass: 'warrior',
