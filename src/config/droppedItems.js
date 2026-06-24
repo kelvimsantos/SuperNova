@@ -5,7 +5,7 @@ import { ItemDatabase } from '../components/inventory/ItemTypes';
 export const DROPPED_ITEMS = {
   default: [
     { id: 'wooden_sword', position: [1, 13, 1], autoEquip: false },
-    { id: 'fantasy_sword', position: [3, 14, 3], rotation:[0,90,0], autoEquip: false },
+    { id: 'fantasy_sword', position: [3, 14, 3], autoEquip: false },
     { id: 'fantasy_axe', position: [3, 14, 4], autoEquip: false },
     { id: 'shield_mecanic', position: [2, 13, 2], autoEquip: false },
     { id: 'wooden_shield', position: [2, 13, 2], autoEquip: false },
