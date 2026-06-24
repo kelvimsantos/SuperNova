@@ -145,7 +145,7 @@ export const ItemDatabase = {
     stackable: false,
     modelPath: '/models/weapons/fantasy_sword.glb',
   customPosition: [0.35, -0.15, 0.1],   // [x, y, z]
-  customRotation: [0.6, 0, 0.6],         // [x, y, z] em radianos
+  customRotation: [0.6, 90, 0.6],         // [x, y, z] em radianos
   customScale: [1.2, 1.2, 1.2],          // [x, y, z]
   },
 
