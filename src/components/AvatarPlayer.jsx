@@ -391,6 +391,9 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
                   playerModel={bodyModelRef.current} 
                   equipmentSlot="weapon" 
                   itemData={equippedItems.weapon}
+                  customPosition={equippedItems.weapon.customPosition}
+                  customRotation={equippedItems.weapon.customRotation}
+                  customScale={equippedItems.weapon.customScale}
                 />
               )}
               {equippedItems.shield && (
@@ -399,6 +402,9 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
                   playerModel={bodyModelRef.current} 
                   equipmentSlot="shield" 
                   itemData={equippedItems.shield}
+                  customPosition={equippedItems.shield.customPosition}
+                  customRotation={equippedItems.shield.customRotation}
+                  customScale={equippedItems.shield.customScale}
                 />
               )}
               {equippedItems.helmet && (
@@ -407,6 +413,9 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
                   playerModel={bodyModelRef.current} 
                   equipmentSlot="helmet" 
                   itemData={equippedItems.helmet}
+                  customPosition={equippedItems.helmet.customPosition}
+                  customRotation={equippedItems.helmet.customRotation}
+                  customScale={equippedItems.helmet.customScale}
                 />
               )}
               {equippedItems.chest && (
@@ -415,6 +424,9 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
                   playerModel={bodyModelRef.current} 
                   equipmentSlot="chest" 
                   itemData={equippedItems.chest}
+                  customPosition={equippedItems.chest.customPosition}
+                  customRotation={equippedItems.chest.customRotation}
+                  customScale={equippedItems.chest.customScale}
                 />
               )}
               {equippedItems.shoulders && (
@@ -423,6 +435,9 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
                   playerModel={bodyModelRef.current} 
                   equipmentSlot="shoulders" 
                   itemData={equippedItems.shoulders}
+                  customPosition={equippedItems.shoulders.customPosition}
+                  customRotation={equippedItems.shoulders.customRotation}
+                  customScale={equippedItems.shoulders.customScale}
                 />
               )}
             </>
