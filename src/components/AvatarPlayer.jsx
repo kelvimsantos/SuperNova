@@ -24,7 +24,7 @@ const HAIR_POSITIONS = {
   6: { y: -175.1 }   // Cabelo 7
 };
 
-// 🔥 AJUSTE DO CABELO (subir no Y)
+// 🔥 AJUSTE DO CABELO
 const HAIR_Y_OFFSET = -10;
 const HAIR_SCALE_FACTOR = 0.8;
 

@@ -55,6 +55,20 @@ export const WeaponClass = {
   healer: ['staff', 'wand', 'mace']
 };
 
+// 🔥 FUNÇÃO PARA CONVERTER GRAUS PARA RADIANOS (usada internamente)
+const degToRad = (deg) => deg * (Math.PI / 180);
+
+// 🔥 FUNÇÃO HELPER PARA CRIAR ITENS COM ROTAÇÃO EM GRAUS
+// Uso: createItemWithRotation(baseItem, [90, 0, 45], [0.3, 0, 0], [1, 1, 1])
+export const createItemWithRotation = (baseItem, rotationDeg, position, scale) => {
+  return {
+    ...baseItem,
+    customPosition: position || baseItem.customPosition || [0, 0, 0],
+    customRotation: rotationDeg ? rotationDeg.map(deg => deg * (Math.PI / 180)) : baseItem.customRotation || [0, 0, 0],
+    customScale: scale || baseItem.customScale || [1, 1, 1],
+  };
+};
+
 // Banco de dados de itens
 export const ItemDatabase = {
   // Poções
@@ -128,9 +142,9 @@ export const ItemDatabase = {
     stackable: false,
   },
 
-    fantasy_sword: {
+  fantasy_sword: {
     id: 'fantasy_sword',
-    name: 'Espada de fantasia',
+    name: 'Espada de Fantasia',
     type: ItemTypes.WEAPON,
     slot: 'weapon',
     weaponClass: 'warrior',
@@ -144,11 +158,10 @@ export const ItemDatabase = {
     boneAttachment: 'hand_r',
     stackable: false,
     modelPath: '/models/weapons/fantasy_sword.glb',
-  customPosition: [0.35, -0.15, 0.1],   // [x, y, z]
-  customRotation: [90.6, 90, 90.6],         // [x, y, z] em radianos
-  customScale: [1.2, 1.2, 1.2],          // [x, y, z]
+    customPosition: [0.35, -0.15, 0.1],
+    customRotation: [90.6, 90, 90.6], // Em graus!
+    customScale: [1.2, 1.2, 1.2],
   },
-
   
   iron_sword: {
     id: 'iron_sword',
@@ -166,15 +179,16 @@ export const ItemDatabase = {
     boneAttachment: 'hand_r',
     stackable: false,
   },
+
   fantasy_axe: {
     id: 'fantasy_axe',
-    name: 'Machado de fantasia',
+    name: 'Machado de Fantasia',
     type: ItemTypes.WEAPON,
     slot: 'weapon',
     weaponClass: 'warrior',
     rarity: ItemRarity.COMMON,
-    icon: '⚔️',
-    description: 'Um machado de fantasia, boa para matar',
+    icon: '🪓',
+    description: 'Um machado de fantasia, bom para cortar',
     value: 100,
     damage: 100,
     stats: { strength: 5, agility: 5 },
@@ -182,10 +196,11 @@ export const ItemDatabase = {
     boneAttachment: 'hand_r',
     stackable: false,
     modelPath: '/models/weapons/fantasy_axe.glb',
-  customPosition: [0.35, -0.15, 0.1],   // [x, y, z]
-  customRotation: [0.6, 0, 0.6],         // [x, y, z] em radianos
-  customScale: [2.2, 2.2, 2.2],          // [x, y, z]
+    customPosition: [0.35, -0.15, 0.1],
+    customRotation: [0.6, 0, 0.6], // Em radianos
+    customScale: [2.2, 2.2, 2.2],
   },
+
   wooden_shield: {
     id: 'wooden_shield',
     name: 'Escudo de Madeira',
@@ -203,7 +218,7 @@ export const ItemDatabase = {
     stackable: false,
   },
   
-   shield_mecanic: {
+  shield_mecanic: {
     id: 'shield_mecanic',
     name: 'Escudo Mecânico',
     type: ItemTypes.SHIELD,
@@ -211,17 +226,17 @@ export const ItemDatabase = {
     weaponClass: 'tank',
     rarity: ItemRarity.COMMON,
     icon: '🛡️',
-    description: 'Um escudo leve de mecanico',
+    description: 'Um escudo leve de mecânico',
     value: 80,
     defense: 15,
     stats: { stamina: 5, strength: 5 },
     modelId: 'shield_002',
     boneAttachment: 'hand_l',
     stackable: false,
-     modelPath: '/models/weapons/shield_mecanic.glb',
-  customPosition: [0.35, -0.15, 0.1],   // [x, y, z]
-  customRotation: [0.6, 90, 0.6],         // [x, y, z] em radianos
-  customScale: [1.2, 1.2, 1.2],          // [x, y, z]
+    modelPath: '/models/weapons/shield_mecanic.glb',
+    customPosition: [0.35, -0.15, 0.1],
+    customRotation: [0.6, 90, 0.6], // Em graus!
+    customScale: [1.2, 1.2, 1.2],
   },
 
   mage_staff: {
