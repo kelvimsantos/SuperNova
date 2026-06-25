@@ -227,9 +227,16 @@ export const GameInfo = () => {
                 <div style={{ marginBottom: 12, opacity: 0.9, fontSize: 12 }}>
                   Ajuste para performance no celular.
                 </div>
-                {/* Render do painel profissional */}
-                {/* Import é feito dinamicamente via require para não mexer na estrutura atual */}
                 <WaterSettingsInline />
+
+                {/* debug avatar equipment transform */}
+                <div style={{ height: 14 }} />
+                <h4>🛠️ Debug Equip (Avatar)</h4>
+                <div style={{ fontSize: 12, opacity: .9, marginBottom: 8 }}>
+                  Ajuste posição/rotação/escala e copie o JSON.
+                </div>
+                {/* Import local */}
+                <EquipmentTransformTester />
               </div>
             )}
 
