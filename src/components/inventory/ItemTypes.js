@@ -144,12 +144,22 @@ export const ItemDatabase = {
     boneAttachment: 'hand_r',
     stackable: false,
     modelPath: '/models/weapons/fantasy_sword.glb',
-  customPosition: [0.35, -0.15, 0.1],   // [x, y, z]
-  customRotation: [0.6, 0, -45.6],         // [x, y, z] em radianos
+  customPosition: [0, -15, 15],   // [x, y, z]
+  customRotation: [0,15, 15],         // [x, y, z] em radianos
   customScale: [1.2, 1.2, 1.2],          // [x, y, z]
   },
 
-  
+ //   "customPosition": [
+ //   0.35,
+ //   10,
+ //   0.1
+ // ],
+ // "customRotation": [
+ //   0,
+ //   0.017453292519943295,1
+ //   -1.5707963267948966  90
+ // ],
+
   iron_sword: {
     id: 'iron_sword',
     name: 'Espada de Ferro',

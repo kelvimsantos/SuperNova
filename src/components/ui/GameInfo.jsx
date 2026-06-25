@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import useGameStore from '../../hooks/useGameStore';
 import './GameInfo.css';
 import { ConfigWaterMenu } from './ConfigWaterMenu';
+import { EquipmentTransformTester } from './EquipmentTransformTester';
+
 
 const WaterSettingsInline = () => {
   // evita usar portal aqui; o menu abre em overlay se precisar

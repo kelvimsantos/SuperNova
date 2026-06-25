@@ -190,7 +190,7 @@ export const EquipmentTransformTester = () => {
                 value={pos[idx]}
                 onChange={(e) => setPos((p) => {
                   const next = [...p];
-                  next[idx] = clampNum(Number(e.target.value), -10, 10);
+                  next[idx] = clampNum(Number(e.target.value), -100, 100);
                   return next;
                 })}
               />
