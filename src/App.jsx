@@ -205,7 +205,7 @@ function App() {
           zIndex: 1,
         }}
       >
-        <ambientLight intensity={0.5} />
+        <ambientLight intensity={0.2} />
         
         <Physics gravity={[0, -9.81, 0]}>
           {/* 🔥 PASSA userId E avatarConfig PARA O ARScene */}
