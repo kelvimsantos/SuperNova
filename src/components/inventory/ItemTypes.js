@@ -733,9 +733,9 @@ export const ItemDatabase = {
     boneAttachment: 'hand_l',
     stackable: false,
     modelPath: '/models/weapons/shield_mecanic.glb',
-      customPosition: [0.35, -0.15, 0.1],   // [x, y, z]
-  customRotation: [0.6, 90, 90.6],         // [x, y, z] em radianos
-  customScale: [1.2, 1.2, 1.2], 
+     customPosition: [10, -3, -15],
+    customRotation: [3.1, 0, 1.5],
+    customScale: [1, 1, 1],
   },
 
   medieval_shield: {
@@ -1106,4 +1106,6 @@ export const ItemDatabase = {
     stackable: false,
   },
 };
+
+//https://supernova-6419.onrender.com/?userId=6920822cc87397020aaaaf06
 
