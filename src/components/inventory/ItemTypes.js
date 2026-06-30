@@ -732,7 +732,7 @@ export const ItemDatabase = {
     modelId: 'shield_002',
     boneAttachment: 'hand_l',
     stackable: false,
-    modelPath: '/models/weapons/shield_mecacic.glb',
+    modelPath: '/models/weapons/shield_mecanic.glb',
       customPosition: [0.35, -0.15, 0.1],   // [x, y, z]
   customRotation: [0.6, 90, 90.6],         // [x, y, z] em radianos
   customScale: [1.2, 1.2, 1.2], 
