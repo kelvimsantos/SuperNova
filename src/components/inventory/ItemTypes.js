@@ -4,11 +4,11 @@ export const ItemTypes = {
   HEALTH_POTION: 'health_potion',
   MANA_POTION: 'mana_potion',
   FOOD: 'food',
-  
+
   // Itens de quest
   QUEST_ITEM: 'quest_item',
   KEY: 'key',
-  
+
   // Equipamentos
   WEAPON: 'weapon',
   ARMOR: 'armor',
@@ -23,7 +23,7 @@ export const ItemTypes = {
   NECKLACE: 'necklace',
   RING: 'ring',
   CLOAK: 'cloak',
-  
+
   // Itens de venda
   VALUABLE: 'valuable',
   JUNK: 'junk',
@@ -43,7 +43,7 @@ export const PlayerClass = {
   MAGE: { id: 'mage', name: '🔮 Mago', icon: '🔮', description: 'Dano mágico e controle' },
   ARCHER: { id: 'archer', name: '🏹 Arqueiro', icon: '🏹', description: 'Dano à distância e agilidade' },
   TANK: { id: 'tank', name: '🛡️ Tanque', icon: '🛡️', description: 'Defesa e sobrevivência' },
-  HEALER: { id: 'healer', name: '💚 Curandeiro', icon: '💚', description: 'Suporte e cura' }
+  HEALER: { id: 'healer', name: '💚 Curandeiro', icon: '💚', description: 'Suporte e cura' },
 };
 
 // 🔥 ARMAS POR CLASSE
@@ -52,7 +52,7 @@ export const WeaponClass = {
   mage: ['staff', 'wand', 'dagger'],
   archer: ['bow', 'crossbow', 'dagger'],
   tank: ['sword', 'shield', 'mace', 'greatsword'],
-  healer: ['staff', 'wand', 'mace']
+  healer: ['staff', 'wand', 'mace'],
 };
 
 // Banco de dados de itens
@@ -70,7 +70,7 @@ export const ItemDatabase = {
     stackable: true,
     maxStack: 99,
   },
-  
+
   mana_potion: {
     id: 'mana_potion',
     name: 'Poção de Mana',
@@ -83,7 +83,7 @@ export const ItemDatabase = {
     stackable: true,
     maxStack: 99,
   },
-  
+
   // Itens de quest
   ancient_key: {
     id: 'ancient_key',
@@ -96,7 +96,7 @@ export const ItemDatabase = {
     stackable: false,
     questId: 'ancient_door',
   },
-  
+
   // Itens valiosos
   golden_coin: {
     id: 'golden_coin',
@@ -109,8 +109,576 @@ export const ItemDatabase = {
     stackable: true,
     maxStack: 999,
   },
-  
-  // 🔥 EQUIPAMENTOS - ARMAS
+
+  // ==========================
+  // SWORDS (todas as sword da pasta public/models/weapons)
+  // ==========================
+
+  '2jade_sword': {
+    id: '2jade_sword',
+    name: '2jade_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: '2jade_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/2jade_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  angel_sword: {
+    id: 'angel_sword',
+    name: 'angel_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'angel_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/angel_sword.glb',
+    customPosition: [
+    -55,
+    5,
+    5
+  ],
+  customRotation: [
+    0.3490658503988659,
+    0.17453292519943295,
+    -1.5707963267948966
+  ],
+  customScale: [
+    50,
+    50,
+    50
+  ]
+  },
+
+  cloud_sword: {
+    id: 'cloud_sword',
+    name: 'cloud_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'cloud_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/cloud_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  darknight_sword: {
+    id: 'darknight_sword',
+    name: 'darknight_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'darknight_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/darknight_sword.glb',
+    customPosition: [
+    200,
+    -55,
+    1
+  ],
+  customRotation: [
+    0,
+    3.141592653589793,
+    -1.5707963267948966
+  ],
+  customScale: [
+    1.2,
+    1.2,
+    1.2
+  ]
+  },
+
+  devil_sword: {
+    id: 'devil_sword',
+    name: 'devil_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'devil_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/devil_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  earth_sword: {
+    id: 'earth_sword',
+    name: 'earth_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'earth_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/earth_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  energy_sword: {
+    id: 'energy_sword',
+    name: 'energy_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'energy_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/energy_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  fantasy_sword: {
+    id: 'fantasy_sword',
+    name: 'Espada de fantasia',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'Uma espada de fantasia, boa para matar',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/fantasy_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  fantasy_sword2: {
+    id: 'fantasy_sword2',
+    name: 'fantasy_sword2',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'fantasy_sword2',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/fantasy_sword2.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  frozennight_sword: {
+    id: 'frozen-night_sword',
+    name: 'frozen-night_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'frozen-night_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/frozen-night_sword.glb',
+    customPosition: [
+    40,
+    -40,
+    -40
+  ],
+  customRotation: [
+    0.3490658503988659,
+    -0.19198621771937618,
+    -0.4363323129985824
+  ],
+  customScale: [
+    100,
+    100,
+    100
+  ]
+  },
+
+  honor_sword: {
+    id: 'honor_sword',
+    name: 'honor_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'honor_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/honor_sword.glb',
+    customPosition: [
+    90,
+    45,
+    -10
+  ],
+  customRotation: [
+    0,
+    0,
+    -2.2689280275926285
+  ],
+  customScale: [
+    80,
+    80,
+    80
+  ]
+  },
+
+  iron_sword: {
+    id: 'iron_sword',
+    name: 'iron_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'iron_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/iron_sword.glb',
+    customPosition: [
+    -55,
+    -10,
+    1
+  ],
+  customRotation: [
+    0,
+    0.017453292519943295,
+    -0.17453292519943295
+  ],
+  customScale: [
+    90,
+    90,
+    90
+  ]
+  },
+
+  jade_sword: {
+    id: 'jade_sword',
+    name: 'jade_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'jade_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/jade_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  magic_sword: {
+    id: 'magic_sword',
+    name: 'magic_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'magic_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/magic_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  mecanicice_sword: {
+    id: 'mecanic-ice_sword',
+    name: 'mecanic-ice_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'mecanic-ice_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/mecanic-ice_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  night_sword: {
+    id: 'night_sword',
+    name: 'night_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'night_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/night_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  orcs_sword: {
+    id: 'orcs_sword',
+    name: 'orcs_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'orcs_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/orcs_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  polyarmgold_sword: {
+    id: 'polyarm-gold_sword',
+    name: 'polyarm-gold_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'polyarm-gold_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/polyarm-gold_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  polyarm_sword: {
+    id: 'polyarm_sword',
+    name: 'polyarm_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'polyarm_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/polyarm_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  purplecrystal_sword: {
+    id: 'purple-crystal_sword',
+    name: 'purple-crystal_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'purple-crystal_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/purple-crystal_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  rock_sword: {
+    id: 'rock_sword',
+    name: 'rock_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'rock_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/rock_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  stone_sword: {
+    id: 'stone_sword',
+    name: 'stone_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'stone_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/stone_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  thunder_sword: {
+    id: 'thunder_sword',
+    name: 'thunder_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'thunder_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/thunder_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  wolf_sword: {
+    id: 'wolf_sword',
+    name: 'wolf_sword',
+    type: ItemTypes.WEAPON,
+    slot: 'weapon',
+    weaponClass: 'warrior',
+    rarity: ItemRarity.COMMON,
+    icon: '⚔️',
+    description: 'wolf_sword',
+    value: 100,
+    damage: 100,
+    stats: { strength: 5, agility: 5 },
+    modelId: 'weapon_002',
+    boneAttachment: 'hand_r',
+    stackable: false,
+    modelPath: '/models/weapons/wolf_sword.glb',
+    customPosition: [0.35, 15, 0.1],
+    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
+    customScale: [1.2, 1.2, 1.2],
+  },
+
+  // Mantém também os itens que existiam antes no seu ItemTypes.js
   wooden_sword: {
     id: 'wooden_sword',
     name: 'Espada de Madeira',
@@ -128,66 +696,6 @@ export const ItemDatabase = {
     stackable: false,
   },
 
-    fantasy_sword: {
-    id: 'fantasy_sword',
-    name: 'Espada de fantasia',
-    type: ItemTypes.WEAPON,
-    slot: 'weapon',
-    weaponClass: 'warrior',
-    rarity: ItemRarity.COMMON,
-    icon: '⚔️',
-    description: 'Uma espada de fantasia, boa para matar',
-    value: 100,
-    damage: 100,
-    stats: { strength: 5, agility: 5 },
-    modelId: 'weapon_002',
-    boneAttachment: 'hand_r',
-    stackable: false,
-    modelPath: '/models/weapons/fantasy_sword.glb',
-   customPosition: [
-    0.35,
-    15,
-    0.1
-  ],
-  customRotation: [
-    0,
-    0.017453292519943295,
-    -1.5707963267948966
-  ],
-  customScale: [
-    1.2,
-    1.2,
-    1.2
-  ]
-  },
-
- //   "customPosition": [
- //   0.35,
- //   10,
- //   0.1
- // ],
- // "customRotation": [
- //   0,
- //   0.017453292519943295,1
- //   -1.5707963267948966  90
- // ],
-
-  iron_sword: {
-    id: 'iron_sword',
-    name: 'Espada de Ferro',
-    type: ItemTypes.WEAPON,
-    slot: 'weapon',
-    weaponClass: 'warrior',
-    rarity: ItemRarity.COMMON,
-    icon: '⚔️',
-    description: 'Uma espada robusta de ferro',
-    value: 150,
-    damage: 20,
-    stats: { strength: 4, agility: 2 },
-    modelId: 'weapon_002',
-    boneAttachment: 'hand_r',
-    stackable: false,
-  },
   fantasy_axe: {
     id: 'fantasy_axe',
     name: 'Machado de fantasia',
@@ -203,29 +711,13 @@ export const ItemDatabase = {
     modelId: 'weapon_003',
     boneAttachment: 'hand_r',
     stackable: false,
-    modelPath: '/models/weapons/fantasy_axe.glb',
-  customPosition: [0.0, -0.2, 0.1],   // [x, y, z]
-  customRotation: [0.6, 0, 0.6],         // [x, y, z] em radianos
-  customScale: [2.2, 2.2, 2.2],          // [x, y, z]
   },
-  wooden_shield: {
-    id: 'wooden_shield',
-    name: 'Escudo de Madeira',
-    type: ItemTypes.SHIELD,
-    slot: 'shield',
-    weaponClass: 'tank',
-    rarity: ItemRarity.COMMON,
-    icon: '🛡️',
-    description: 'Um escudo leve de madeira',
-    value: 80,
-    defense: 8,
-    stats: { stamina: 3, strength: 1 },
-    modelId: 'shield_001',
-    boneAttachment: 'hand_l',
-    stackable: false,
-  },
-  
-   shield_mecanic: {
+
+  // ==========================
+  // SHIELDS (todas as shield da pasta public/models/weapons)
+  // ==========================
+
+  shield_mecanic: {
     id: 'shield_mecanic',
     name: 'Escudo Mecânico',
     type: ItemTypes.SHIELD,
@@ -240,7 +732,182 @@ export const ItemDatabase = {
     modelId: 'shield_002',
     boneAttachment: 'hand_l',
     stackable: false,
-     modelPath: '/models/weapons/shield_mecanic.glb',
+    modelPath: '/models/weapons/shield_mecacic.glb',
+    customPosition: [10, -3, -15],
+    customRotation: [3.1, 0, 1.5],
+    customScale: [1, 1, 1],
+  },
+
+  medieval_shield: {
+    id: 'medieval_shield',
+    name: 'medieval_shield',
+    type: ItemTypes.SHIELD,
+    slot: 'shield',
+    weaponClass: 'tank',
+    rarity: ItemRarity.COMMON,
+    icon: '🛡️',
+    description: 'medieval_shield',
+    value: 80,
+    defense: 15,
+    stats: { stamina: 5, strength: 5 },
+    modelId: 'shield_002',
+    boneAttachment: 'hand_l',
+    stackable: false,
+    modelPath: '/models/weapons/medieval_shield.glb',
+     customPosition: [
+    10,
+    -3,
+    -15
+  ],
+  customRotation: [
+    -1.3089969389957474,
+    0,
+    1.5
+  ],
+  customScale: [
+    50,
+    50,
+    50
+  ]
+  },
+
+  shield_birdwood: {
+    id: 'shield_bird-wood',
+    name: 'shield_bird-wood',
+    type: ItemTypes.SHIELD,
+    slot: 'shield',
+    weaponClass: 'tank',
+    rarity: ItemRarity.COMMON,
+    icon: '🛡️',
+    description: 'shield_bird-wood',
+    value: 80,
+    defense: 15,
+    stats: { stamina: 5, strength: 5 },
+    modelId: 'shield_002',
+    boneAttachment: 'hand_l',
+    stackable: false,
+    modelPath: '/models/weapons/shield_bird-wood.glb',
+    customPosition: [10, -3, -15],
+    customRotation: [3.1, 0, 1.5],
+    customScale: [1, 1, 1],
+  },
+
+  shield_gladiator: {
+    id: 'shield_gladiator',
+    name: 'shield_gladiator',
+    type: ItemTypes.SHIELD,
+    slot: 'shield',
+    weaponClass: 'tank',
+    rarity: ItemRarity.COMMON,
+    icon: '🛡️',
+    description: 'shield_gladiator',
+    value: 80,
+    defense: 15,
+    stats: { stamina: 5, strength: 5 },
+    modelId: 'shield_002',
+    boneAttachment: 'hand_l',
+    stackable: false,
+    modelPath: '/models/weapons/shield_gladiator.glb',
+    customPosition: [
+    200,
+    -55,
+    1
+  ],
+  customRotation: [
+    0,
+    3.141592653589793,
+    -1.5707963267948966
+  ],
+  customScale: [
+    1.2,
+    1.2,
+    1.2
+  ]
+  },
+
+  shield_iron: {
+    id: 'shield_iron',
+    name: 'shield_iron',
+    type: ItemTypes.SHIELD,
+    slot: 'shield',
+    weaponClass: 'tank',
+    rarity: ItemRarity.COMMON,
+    icon: '🛡️',
+    description: 'shield_iron',
+    value: 80,
+    defense: 15,
+    stats: { stamina: 5, strength: 5 },
+    modelId: 'shield_002',
+    boneAttachment: 'hand_l',
+    stackable: false,
+    modelPath: '/models/weapons/shield_iron.glb',
+    customPosition: [
+    10,
+    -3,
+    -15
+  ],
+  customRotation: [
+    3.1,
+    0,
+    1.5
+  ],
+  customScale: [
+    25,
+    25,
+    25
+  ]
+
+  },
+
+  shield_light: {
+    id: 'shield_light',
+    name: 'shield_light',
+    type: ItemTypes.SHIELD,
+    slot: 'shield',
+    weaponClass: 'tank',
+    rarity: ItemRarity.COMMON,
+    icon: '🛡️',
+    description: 'shield_light',
+    value: 80,
+    defense: 15,
+    stats: { stamina: 5, strength: 5 },
+    modelId: 'shield_002',
+    boneAttachment: 'hand_l',
+    stackable: false,
+    modelPath: '/models/weapons/shield_light.glb',
+    customPosition: [
+    10,
+    -20,
+    85
+  ],
+  customRotation: [
+    0.17453292519943295,
+    0,
+    1.5872664625997162
+  ],
+  customScale: [
+    25,
+    25,
+    25
+  ]
+  },
+
+  shield_rock: {
+    id: 'shield_rock',
+    name: 'shield_rock',
+    type: ItemTypes.SHIELD,
+    slot: 'shield',
+    weaponClass: 'tank',
+    rarity: ItemRarity.COMMON,
+    icon: '🛡️',
+    description: 'shield_rock',
+    value: 80,
+    defense: 15,
+    stats: { stamina: 5, strength: 5 },
+    modelId: 'shield_002',
+    boneAttachment: 'hand_l',
+    stackable: false,
+    modelPath: '/models/weapons/shield_rock.glb',
    customPosition: [
     10,
     -3,
@@ -252,11 +919,113 @@ export const ItemDatabase = {
     1.5
   ],
   customScale: [
-    1,
-    1,
-    1
-  ]         // [x, y, z]
+    25,
+    25,
+    25
+  ]
+
   },
+
+  shield_wood: {
+    id: 'shield_wood',
+    name: 'shield_wood',
+    type: ItemTypes.SHIELD,
+    slot: 'shield',
+    weaponClass: 'tank',
+    rarity: ItemRarity.COMMON,
+    icon: '🛡️',
+    description: 'shield_wood',
+    value: 80,
+    defense: 15,
+    stats: { stamina: 5, strength: 5 },
+    modelId: 'shield_002',
+    boneAttachment: 'hand_l',
+    stackable: false,
+    modelPath: '/models/weapons/shield_wood.glb',
+   customPosition: [20,-1,-20],
+  customRotation: [3.1,0,1.2382006122008504],
+  customScale: [1.2,1.2,1.2]
+  },
+
+  shield_wood2: {
+    id: 'shield_wood2',
+    name: 'shield_wood2',
+    type: ItemTypes.SHIELD,
+    slot: 'shield',
+    weaponClass: 'tank',
+    rarity: ItemRarity.COMMON,
+    icon: '🛡️',
+    description: 'shield_wood2',
+    value: 80,
+    defense: 15,
+    stats: { stamina: 5, strength: 5 },
+    modelId: 'shield_002',
+    boneAttachment: 'hand_l',
+    stackable: false,
+    modelPath: '/models/weapons/shield_wood2.glb',
+    customPosition: [10,-3,-20],
+  customRotation: [3.1,0,1.5],
+  customScale: [15,15,15]
+  },
+
+  warrior_shield: {
+    id: 'warrior_shield',
+    name: 'warrior_shield',
+    type: ItemTypes.SHIELD,
+    slot: 'shield',
+    weaponClass: 'tank',
+    rarity: ItemRarity.COMMON,
+    icon: '🛡️',
+    description: 'warrior_shield',
+    value: 80,
+    defense: 15,
+    stats: { stamina: 5, strength: 5 },
+    modelId: 'shield_002',
+    boneAttachment: 'hand_l',
+    stackable: false,
+    modelPath: '/models/weapons/warrior_shield.glb',
+    customPosition: [
+    20,
+    -3,
+    -20
+  ],
+  customRotation: [
+    3.1,
+    0,
+    1.5
+  ],
+  customScale: [
+    0.8,
+    0.8,
+    0.8
+  ]
+  },
+
+  // aliases que seu projeto usa em droppedItems.js
+  wooden_shield: {
+    id: 'wooden_shield',
+    name: 'wooden_shield',
+    type: ItemTypes.SHIELD,
+    slot: 'shield',
+    weaponClass: 'tank',
+    rarity: ItemRarity.COMMON,
+    icon: '🛡️',
+    description: 'wooden_shield',
+    value: 80,
+    defense: 15,
+    stats: { stamina: 5, strength: 5 },
+    modelId: 'shield_002',
+    boneAttachment: 'hand_l',
+    stackable: false,
+    modelPath: '/models/weapons/shield_wood.glb',
+    customPosition: [10, -3, -15],
+    customRotation: [3.1, 0, 1.5],
+    customScale: [1, 1, 1],
+  },
+
+  // ==========================
+  // ARMADURAS / ACESSÓRIOS (mantidos)
+  // ==========================
 
   mage_staff: {
     id: 'mage_staff',
@@ -274,8 +1043,7 @@ export const ItemDatabase = {
     boneAttachment: 'hand_r',
     stackable: false,
   },
-  
-  // 🔥 EQUIPAMENTOS - ARMADURAS
+
   leather_chest: {
     id: 'leather_chest',
     name: 'Peitoral de Couro',
@@ -291,7 +1059,7 @@ export const ItemDatabase = {
     boneAttachment: 'spine',
     stackable: false,
   },
-  
+
   iron_helmet: {
     id: 'iron_helmet',
     name: 'Elmo de Ferro',
@@ -307,8 +1075,7 @@ export const ItemDatabase = {
     boneAttachment: 'head',
     stackable: false,
   },
-  
-  // 🔥 ACESSÓRIOS
+
   strength_ring: {
     id: 'strength_ring',
     name: 'Anel da Força',
@@ -323,7 +1090,7 @@ export const ItemDatabase = {
     boneAttachment: 'hand_r',
     stackable: false,
   },
-  
+
   agility_necklace: {
     id: 'agility_necklace',
     name: 'Colar da Agilidade',
@@ -339,3 +1106,4 @@ export const ItemDatabase = {
     stackable: false,
   },
 };
+
