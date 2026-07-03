@@ -1,6 +1,7 @@
 // components/items/ItemPickup.jsx
 import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
+
 import { Box, Text, Ring } from '@react-three/drei';
 import * as THREE from 'three';
 import useGameStore from '../../hooks/useGameStore';
@@ -17,6 +18,7 @@ export const ItemPickup = ({
   raioRender = 22,
   raioInteracao = 4.5,
 }) => {
+
   const ref = useRef();
   const [isNear, setIsNear] = useState(false);
   const [collected, setCollected] = useState(false);
@@ -47,16 +49,22 @@ export const ItemPickup = ({
     return itemInfo.rarity?.color || '#ffaa44';
   };
   
-  // Animação flutuante + rotação (só quando perto para economizar)
+
+  // animação/rotacao + flutuação só quando perto
   useFrame(({ clock }) => {
     if (!ref.current || collected) return;
-    if (!isNear) return;
 
-    const time = clock.getElapsedTime();
-    // flutuação pequena quando o jogador está perto
-    ref.current.position.y = position[1] + Math.sin(time * 2) * 0.15;
-    ref.current.rotation.y = time;
+    if (isNear) {
+      const time = clock.getElapsedTime();
+      ref.current.position.y = position[1] + Math.sin(time * 2) * 0.15;
+      ref.current.rotation.y = time;
+    } else {
+      ref.current.position.y = position[1];
+    }
   });
+
+
+
   
   const collectingRef = useRef(false);
 
@@ -66,18 +74,22 @@ export const ItemPickup = ({
     if (!player || collected || collectingRef.current) return;
 
     const playerPos = player.translation();
-    const itemPos = ref.current?.position;
+    const itemPos = ref.current;
 
     if (!itemPos) return;
 
-    const dx = playerPos.x - itemPos.x;
-    const dz = playerPos.z - itemPos.z;
-    const dy = playerPos.y - itemPos.y;
+
+    const wp = new THREE.Vector3();
+    itemPos.getWorldPosition(wp);
+
+    const dx = playerPos.x - wp.x;
+    const dz = playerPos.z - wp.z;
+    const dy = playerPos.y - wp.y;
 
     // evita Math.sqrt (mais leve no celular)
     const dist2 = dx * dx + dy * dy + dz * dz;
 
-    setIsNear(dist2 < 2.5 * 2.5);
+    setIsNear(dist2 < raioInteracao * raioInteracao);
 
     // Coleta automática (lock anti-múltiplas chamadas na mesma proximidade)
     if (dist2 < 1.2 * 1.2) {
@@ -85,6 +97,7 @@ export const ItemPickup = ({
       collectItem();
     }
   });
+
   
   
   const collectItem = () => {

@@ -230,7 +230,7 @@ export const EquipmentTransformTester = () => {
                 value={scale[idx]}
                 onChange={(e) => setScale((sc) => {
                   const next = [...sc];
-                  next[idx] = clampNum(Number(e.target.value), 0.01, 200);
+                  next[idx] = clampNum(Number(e.target.value), 0.01, 1000);
                   return next;
                 })}
               />

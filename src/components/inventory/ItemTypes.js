@@ -238,9 +238,22 @@ export const ItemDatabase = {
     boneAttachment: 'hand_r',
     stackable: false,
     modelPath: '/models/weapons/devil_sword.glb',
-    customPosition: [0.35, 15, 0.1],
-    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
-    customScale: [1.2, 1.2, 1.2],
+    customPosition: [
+    70,
+    5,
+    5
+  ],
+  customRotation: [
+    0.5235987755982988,
+    1.5707963267948966,
+    -1.5707963267948966
+  ],
+  customScale: [
+    200,
+    200,
+    200
+  ]
+
   },
 
   earth_sword: {
@@ -259,9 +272,21 @@ export const ItemDatabase = {
     boneAttachment: 'hand_r',
     stackable: false,
     modelPath: '/models/weapons/earth_sword.glb',
-    customPosition: [0.35, 15, 0.1],
-    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
-    customScale: [1.2, 1.2, 1.2],
+    customPosition: [
+    -10,
+    50,
+    0
+  ],
+  customRotation: [
+    3.490658503988659,
+    0,
+    -1.0471975511965976
+  ],
+  customScale: [
+    100,
+    100,
+    100
+  ]
   },
 
   energy_sword: {
@@ -280,9 +305,21 @@ export const ItemDatabase = {
     boneAttachment: 'hand_r',
     stackable: false,
     modelPath: '/models/weapons/energy_sword.glb',
-    customPosition: [0.35, 15, 0.1],
-    customRotation: [0, 0.017453292519943295, -1.5707963267948966],
-    customScale: [1.2, 1.2, 1.2],
+    customPosition: [
+    0.35,
+    5,
+    0.1
+  ],
+  customRotation: [
+    1.5707963267948966,
+    -0.5235987755982988,
+    -1.5882496193148394
+  ],
+  customScale: [
+    100.2,
+    100.2,
+    100.2
+  ]
   },
 
   fantasy_sword: {
@@ -808,10 +845,10 @@ export const ItemDatabase = {
     boneAttachment: 'hand_l',
     stackable: false,
     modelPath: '/models/weapons/shield_gladiator.glb',
-    customPosition: [
-    200,
-    -55,
-    1
+   customPosition: [
+    0,
+    0,
+    -15
   ],
   customRotation: [
     0,
@@ -819,10 +856,11 @@ export const ItemDatabase = {
     -1.5707963267948966
   ],
   customScale: [
-    1.2,
-    1.2,
-    1.2
+    1.7,
+    1.7,
+    1.7
   ]
+
   },
 
   shield_iron: {

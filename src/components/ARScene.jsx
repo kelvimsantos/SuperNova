@@ -204,9 +204,10 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
           {renderItemsByScene()}
         </OptimizedRenderer>
 
-        <OptimizedRenderer radius={20}>
-          {renderDroppedItems()}
-        </OptimizedRenderer>
+        {/* Drops: deixo fora do culling por visibilidade do wrapper para não “sumir” quando o raio oscila.
+            O ItemPickup já controla o render de Text/luz e animação por proximidade. */}
+        {renderDroppedItems()}
+
 
         <OptimizedRenderer radius={26}>
           {renderNPCsFromJSON()}
