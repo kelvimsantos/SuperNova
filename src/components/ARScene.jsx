@@ -17,6 +17,8 @@ import { WaterExperience } from './water/WaterExperience';
 import { Portal } from './Portal';
 import { ItemPickup } from './items/ItemPickup';
 import { EnemySpawner } from './enemies/EnemySpawner';
+import { OptimizedRenderer } from './OptimizedRenderer';
+
 import { sceneItems } from '../config/sceneEnemies';
 import { DROPPED_ITEMS } from '../config/droppedItems';
 import { QuestNPC } from './quests/QuestNPC';
@@ -194,10 +196,22 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
           <WaterExperience key={water.id} obj={water} />
         ))}
 
-        <EnemySpawner currentScene={currentScene} />
-        {renderItemsByScene()}
-        {renderDroppedItems()}
-        {renderNPCsFromJSON()}
+        <OptimizedRenderer radius={40}>
+          <EnemySpawner currentScene={currentScene} />
+        </OptimizedRenderer>
+
+        <OptimizedRenderer radius={22}>
+          {renderItemsByScene()}
+        </OptimizedRenderer>
+
+        <OptimizedRenderer radius={20}>
+          {renderDroppedItems()}
+        </OptimizedRenderer>
+
+        <OptimizedRenderer radius={26}>
+          {renderNPCsFromJSON()}
+        </OptimizedRenderer>
+
 
         {/* 🔥 AVATAR PLAYER SE TIVER userId, SENÃO USA O PLAYER ORIGINAL */}
         {userId ? (

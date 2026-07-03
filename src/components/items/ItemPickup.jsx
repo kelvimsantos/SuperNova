@@ -1,12 +1,22 @@
 // components/items/ItemPickup.jsx
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Box, Text, Ring } from '@react-three/drei';
 import * as THREE from 'three';
 import useGameStore from '../../hooks/useGameStore';
 import { ItemDatabase, ItemTypes } from '../inventory/ItemTypes';
 
-export const ItemPickup = ({ itemId, position, autoEquip = false, onPickup }) => {
+// Otimizações para muitos dropped items:
+// - longe: desativa animação/iluminação e simplifica geometria (sem Text)
+// - chão: encaixa no Y do terreno quando possível (heightmap ainda não está no store, então mantém fallback)
+export const ItemPickup = ({
+  itemId,
+  position,
+  autoEquip = false,
+  onPickup,
+  raioRender = 22,
+  raioInteracao = 4.5,
+}) => {
   const ref = useRef();
   const [isNear, setIsNear] = useState(false);
   const [collected, setCollected] = useState(false);
@@ -37,16 +47,19 @@ export const ItemPickup = ({ itemId, position, autoEquip = false, onPickup }) =>
     return itemInfo.rarity?.color || '#ffaa44';
   };
   
-  // Animação flutuante
+  // Animação flutuante + rotação (só quando perto para economizar)
   useFrame(({ clock }) => {
-    if (ref.current && !collected) {
-      const time = clock.getElapsedTime();
-      ref.current.position.y = position[1] + Math.sin(time * 2) * 0.15;
-      ref.current.rotation.y = time;
-    }
+    if (!ref.current || collected) return;
+    if (!isNear) return;
+
+    const time = clock.getElapsedTime();
+    // flutuação pequena quando o jogador está perto
+    ref.current.position.y = position[1] + Math.sin(time * 2) * 0.15;
+    ref.current.rotation.y = time;
   });
   
   const collectingRef = useRef(false);
+
 
   // Detecção de proximidade e coleta (leve)
   useFrame(() => {
@@ -103,12 +116,14 @@ export const ItemPickup = ({ itemId, position, autoEquip = false, onPickup }) =>
   
   return (
     <group ref={ref} position={position}>
-      {/* Luz de brilho */}
-      <pointLight
-        intensity={isNear ? 0.8 : 0.3}
-        distance={2}
-        color={itemColor}
-      />
+      {/* Luz de brilho (só quando perto para economizar) */}
+      {isNear && (
+        <pointLight
+          intensity={0.8}
+          distance={2}
+          color={itemColor}
+        />
+      )}
       
       {/* Anel de brilho no chão */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.3, 0]}>
