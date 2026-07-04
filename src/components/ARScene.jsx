@@ -115,14 +115,16 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
     
     loadScene();
   }, [currentScene, playerRigidBody, setPlayerPosition]);
-
+//aaaaaaaaaaaaaaaaaaaaaaa
   useEffect(() => {
     if (!cameraInitialized && playerRigidBody && !isLoading) {
       const pos = playerRigidBody.translation();
       if (pos) {
 //        console.log(`📷 Posição do player para câmera:`, pos);
         camera.position.set(pos.x + 5, pos.y + 3, pos.z + 8);
+        // Ajuste de inclinação vertical: diminuindo o Y do lookAt a câmera inclina para baixo
         camera.lookAt(pos.x, pos.y + 0.8, pos.z);
+        
         setCameraInitialized(true);
       }
     }

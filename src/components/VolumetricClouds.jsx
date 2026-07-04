@@ -8,7 +8,7 @@ function createNoiseTexture3D() {
   if (cachedTexture) return cachedTexture;
   
   console.log('🌥️ Gerando textura 3D...');
-  const size = 48;
+  const size = 50;
   const data = new Uint8Array(size * size * size);
   
   for (let z = 0; z < size; z++) {

@@ -195,7 +195,7 @@ export const Player = () => {
 
     const cameraDirection = new Vector3();
     camera.getWorldDirection(cameraDirection);
-    cameraDirection.y = 0;
+    cameraDirection.y = -5;
     cameraDirection.normalize();
     
     const right = new Vector3(-cameraDirection.z, 0, cameraDirection.x);

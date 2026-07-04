@@ -33,8 +33,8 @@ export const RepositionButton = () => {
   // Botão "Aproximar" – reposiciona a câmera atrás do jogador
   const handleManualReposition = () => {
     if (!playerPosition) return;
-    const playerPos = new Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
-    const defaultOffset = new Vector3(0, 6, 8); // atrás e acima
+    const playerPos = new Vector3(playerPosition.x, playerPosition.y-3, playerPosition.z);
+    const defaultOffset = new Vector3(0, 3, 8); // atrás e acima
     const targetPos = playerPos.clone().add(defaultOffset);
     camera.position.copy(targetPos);
     camera.lookAt(playerPos); // orienta para o jogador
@@ -43,6 +43,7 @@ export const RepositionButton = () => {
 
     // Se estivermos no modo seguir, atualiza o offset e a orientação capturados
     if (followMode) {
+      playerPosition.y-= 5
       cameraOffset.current.copy(camera.position).sub(playerPos);
       cameraQuat.current.copy(camera.quaternion);
     }
@@ -53,7 +54,7 @@ export const RepositionButton = () => {
   const handleToggleFollow = () => {
     if (!followMode) {
       // Ativa o modo seguir: captura o offset e a orientação atuais
-      const playerPos = new Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
+      const playerPos = new Vector3(playerPosition.x, playerPosition.y+1, playerPosition.z);
       cameraOffset.current.copy(camera.position).sub(playerPos);
       cameraQuat.current.copy(camera.quaternion);
       currentCameraPos.current.copy(camera.position);
@@ -62,8 +63,10 @@ export const RepositionButton = () => {
       console.log('🟢 Modo seguir ATIVADO – orientação mantida');
     } else {
       toggleFollowMode();
+      
       console.log('🔴 Modo seguir DESATIVADO');
     }
+    
   };
 
   // Modo seguir: mantém o offset e a orientação capturados
@@ -78,7 +81,7 @@ export const RepositionButton = () => {
     // Suaviza a orientação (slerp)
     currentCameraQuat.current.slerp(cameraQuat.current, FOLLOW_SMOOTHNESS);
 
-    camera.position.copy(currentCameraPos.current);
+    camera.position.copy(currentCameraPos.current).sub;
     camera.quaternion.copy(currentCameraQuat.current);
   });
 
