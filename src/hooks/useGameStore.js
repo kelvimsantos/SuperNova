@@ -221,8 +221,75 @@ const useGameStore = create((set, get) => ({
   
   resetKills: () => set({ playerKills: { slime: 0, scorpion: 0, cactus_monster: 0 } }),
 
+  // 🔥 PET (um pet por vez)
+  pet: {
+    type: 'sphere',
+    name: 'Petzinho',
+    isActive: false,
+    life: 1, // 0..1 (placeholder)
+    size: 0.45,
+    isUnlocked: true,
+  },
+  petUnlockedTypes: ['sphere'],
+  setPetUnlockedTypes: (types) => set({ petUnlockedTypes: Array.isArray(types) ? types : ['sphere'] }),
+
+  setPetType: (type) => set((state) => {
+    const unlocked = (state.petUnlockedTypes || []).includes(type);
+    return {
+      pet: {
+        ...state.pet,
+        type,
+        isUnlocked: unlocked,
+        // mantém ativo apenas se desbloqueado
+        isActive: unlocked ? state.pet.isActive : false,
+      },
+    };
+  }),
+  setPetName: (name) => set((state) => ({
+
+    pet: { ...state.pet, name: String(name || '') },
+  })),
+
+  setPetLife: (life) => set((state) => ({
+    pet: { ...state.pet, life: Math.max(0, Math.min(1, life)) },
+  })),
+
+
+  setPetActive: (val) => set((state) => ({
+    pet: {
+      ...state.pet,
+      isActive: Boolean(val) && Boolean(state.pet?.isUnlocked),
+    },
+  })),
+  setPetUnlockedType: (type) => set((state) => {
+    const current = state.petUnlockedTypes || [];
+    if (current.includes(type)) return state;
+    return {
+      petUnlockedTypes: [...current, type],
+      pet: {
+        ...state.pet,
+        type: state.pet.type === type ? state.pet.type : state.pet.type,
+        isUnlocked: state.pet.type === type ? true : state.pet.isUnlocked,
+      },
+    };
+  }),
+  callPet: () => set((state) => ({
+    pet: {
+      ...state.pet,
+      isActive: Boolean(state.pet?.isUnlocked),
+    },
+  })),
+  storePet: () => set((state) => ({
+    pet: {
+      ...state.pet,
+      isActive: false,
+    },
+  })),
+  savePet: () => {},
+
   // 🔥 CONFIGURAÇÕES (sessão)
   waterMode: (() => {
+
     try {
       const saved = sessionStorage.getItem('waterMode');
       if (saved === 'light' || saved === 'full') return saved;

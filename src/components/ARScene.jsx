@@ -22,6 +22,8 @@ import { OptimizedRenderer } from './OptimizedRenderer';
 import { sceneItems } from '../config/sceneEnemies';
 import { DROPPED_ITEMS } from '../config/droppedItems';
 import { QuestNPC } from './quests/QuestNPC';
+import { Pet } from './pets/Pet';
+import { PetMenu } from './pets/PetMenu';
 
 const weatherNames = {
   clear: '☀️ Claro',
@@ -241,8 +243,11 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
       )}
       
       <RepositionButton />
+      <Pet />
+      <PetMenu />
       
       <Html transform={false}>
+
         <div style={{
           position: 'fixed',
           bottom: 20,

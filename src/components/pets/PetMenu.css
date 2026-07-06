@@ -1,0 +1,105 @@
+.pet-menu{
+  width: 280px;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 18px;
+  padding: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  color: #fff;
+  font-family: monospace;
+}
+.pet-menu-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom: 8px;
+}
+.pet-menu-title{
+  font-weight: 800;
+  font-size: 14px;
+}
+.pet-menu-close{
+  border: none;
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor:pointer;
+}
+.pet-menu-body{ display:flex; flex-direction:column; gap: 10px; }
+.pet-section{ border-top: 1px solid rgba(255,255,255,0.12); padding-top: 10px; }
+.pet-section:first-child{ border-top:none; padding-top:0; }
+.pet-label{ font-size: 12px; opacity:0.9; margin-bottom: 6px; }
+.pet-type-grid{ display:grid; grid-template-columns: 1fr; gap: 6px; }
+.pet-type-btn{
+  width:100%;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06);
+  color:#fff;
+  border-radius: 14px;
+  padding: 10px 10px;
+  cursor:pointer;
+  font-weight:700;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.pet-type-btn.selected{ border-color: rgba(120,200,255,0.7); background: rgba(120,200,255,0.18); }
+.pet-type-btn:disabled{ opacity:0.45; cursor:not-allowed; }
+.pet-lock{ font-size: 12px; opacity:0.9; }
+.pet-unlock-row{ margin-top: 8px; }
+.pet-unlock-btn{
+  width:100%;
+  border:none;
+  background: rgba(0,170,255,0.18);
+  border: 1px solid rgba(0,170,255,0.35);
+  color:#d9f3ff;
+  border-radius: 14px;
+  padding: 10px;
+  font-weight:800;
+  cursor:pointer;
+}
+.pet-name-input{
+  width:100%;
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.35);
+  color:#fff;
+  outline:none;
+  font-family: monospace;
+}
+.pet-name-actions{ margin-top: 8px; }
+.pet-action-row{ display:flex; gap: 8px; }
+.pet-action-btn{
+  flex: 1;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06);
+  color:#fff;
+  padding: 10px;
+  cursor:pointer;
+  font-weight: 900;
+}
+.pet-action-btn.primary{ background: rgba(0,170,90,0.18); border-color: rgba(0,170,90,0.35); }
+.pet-action-btn:disabled{ opacity:0.45; cursor:not-allowed; }
+.pet-muted{ font-size: 12px; opacity: 0.85; }
+
+.pet-menu-minibar{
+  width: 90px;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.2);
+  color:#fff;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-family: monospace;
+  cursor:pointer;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap: 8px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+}
+.pet-menu-minibar-dot{ font-weight:900; }
+

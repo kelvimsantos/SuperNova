@@ -28,7 +28,9 @@ export const useSaveSystem = () => {
         equipment: gameState.equippedItems || {},
         quests: questState.playerQuests || {}, // 🔥 SALVA TODAS AS QUESTS
         playerKills: gameState.playerKills || { slime: 0 },
-        currentClass: gameState.currentClass || 'warrior'
+        currentClass: gameState.currentClass || 'warrior',
+        pet: gameState.pet || null,
+        petUnlockedTypes: gameState.petUnlockedTypes || []
       };
       
       localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
@@ -121,7 +123,16 @@ export const useSaveSystem = () => {
       if (saveData.player.unlockedSkills) {
         gameState.setUnlockedSkills(saveData.player.unlockedSkills);
       }
-      
+
+      // 🔥 PET (persistência)
+      if (saveData.pet) {
+        if (saveData.petUnlockedTypes) gameState.setPetUnlockedTypes(saveData.petUnlockedTypes);
+        if (saveData.pet.type) gameState.setPetType(saveData.pet.type);
+        if (typeof saveData.pet.name === 'string') gameState.setPetName(saveData.pet.name);
+        if (typeof saveData.pet.life === 'number') gameState.setPetLife(saveData.pet.life);
+        if (typeof saveData.pet.isActive === 'boolean') gameState.setPetActive(saveData.pet.isActive);
+      }
+
       console.log('✅ Save aplicado com sucesso!');
       return true;
     } catch (error) {
