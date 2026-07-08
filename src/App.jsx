@@ -16,6 +16,7 @@ import { JoystickOverlay } from './components/JoystickOverlay';
 import { SmoothTarget } from './components/SmoothTarget';
 import { Inventory } from './components/inventory/Inventory';
 import { HealthBar } from './components/HealthBar';
+import { WarcraftWeatherHud } from './components/ui/WarcraftWeatherHud';
 import { SkillTree } from './components/skills/SkillTree';
 import { useSkillHotkeys } from './hooks/useSkillHotkeys';
 import { RPGUI } from './components/ui/RPGUI';
@@ -177,7 +178,9 @@ function App() {
       />
     }>
       <SkillTree />
+      <WarcraftWeatherHud />
       <HealthBar />
+
       <Inventory />
       <RPGUI />
       <SkillBar />

@@ -84,6 +84,12 @@ const useGameStore = create((set, get) => ({
   isNight: false,
   setIsNight: (val) => set({ isNight: val }),
 
+  currentWeather: 'clear',
+  setCurrentWeather: (val) => set({ currentWeather: String(val || 'clear') }),
+
+  timeOfDay01: 0,
+  setTimeOfDay01: (val) => set({ timeOfDay01: Math.max(0, Math.min(1, Number(val) || 0)) }),
+
   currentScene: 'default',
   setCurrentScene: (scene) => set({ currentScene: scene }),
 

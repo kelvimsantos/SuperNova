@@ -1,0 +1,61 @@
+.hud-status-root{
+  position:fixed;
+  top:12px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:10002;
+  pointer-events:none;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  font-family:'Courier New', monospace;
+}
+
+.hud-top-center{
+  pointer-events:none;
+  display:flex;
+  justify-content:center;
+}
+
+.hud-health-panel{
+  pointer-events:none;
+  width:260px;
+  padding:10px 14px;
+  background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.18);
+  border-radius:14px;
+}
+
+.hud-health-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+  margin-bottom:8px;
+  text-shadow:0 0 3px rgba(0,0,0,0.7);
+}
+
+.hud-health-inv{
+  color:#cfe7ff;
+  font-weight:700;
+}
+
+.hud-health-bar{
+  width:100%;
+  height:10px;
+  background:rgba(0,0,0,0.35);
+  border-radius:6px;
+  overflow:hidden;
+}
+
+.hud-health-bar-fill{
+  height:100%;
+  background:linear-gradient(90deg,#ff3333,#ff6666);
+  transition:width 0.25s ease;
+  box-shadow:0 0 8px rgba(255,0,0,0.35);
+}
+

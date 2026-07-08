@@ -50,18 +50,19 @@ export const ItemPickup = ({
   };
   
 
-  // animação/rotacao + flutuação só quando perto
-  useFrame(({ clock }) => {
-    if (!ref.current || collected) return;
+  // animação/rotacao + flutuação (DESATIVADO)
+  // useFrame(({ clock }) => {
+  //   if (!ref.current || collected) return;
+  //
+  //   if (isNear) {
+  //     const time = clock.getElapsedTime();
+  //     ref.current.position.y = position[1] + Math.sin(time * 2) * 0.15;
+  //     ref.current.rotation.y = time;
+  //   } else {
+  //     ref.current.position.y = position[1];
+  //   }
+  // });
 
-    if (isNear) {
-      const time = clock.getElapsedTime();
-      ref.current.position.y = position[1] + Math.sin(time * 2) * 0.15;
-      ref.current.rotation.y = time;
-    } else {
-      ref.current.position.y = position[1];
-    }
-  });
 
 
 

@@ -34,14 +34,15 @@ export const SlimeEnemy = ({
     return { x: window.innerWidth / 2, y: window.innerHeight / 3 };
   };
   
-  // Animação de flutuação
-  useFrame(({ clock }) => {
-    if (ref.current && !isDead) {
-      const time = clock.getElapsedTime();
-      ref.current.position.y = position[1] + Math.sin(time * 3) * 0.1;
-      ref.current.rotation.y = time;
-    }
-  });
+  // Animação de flutuação/rotação DESATIVADA
+  // useFrame(({ clock }) => {
+  //   if (ref.current && !isDead) {
+  //     const time = clock.getElapsedTime();
+  //     ref.current.position.y = position[1] + Math.sin(time * 3) * 0.1;
+  //     ref.current.rotation.y = time;
+  //   }
+  // });
+
   
   // Verifica distância
   useFrame(() => {

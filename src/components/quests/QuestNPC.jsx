@@ -30,13 +30,15 @@ export const QuestNPC = ({ questId, position, sceneName }) => {
   
   console.log(`📌 NPC ${questId} - Status: ${currentStatus}`);
   
-  useFrame(({ clock }) => {
-    if (ref.current) {
-      const time = clock.getElapsedTime();
-      ref.current.position.y = position[1] + Math.sin(time * 2) * 0.05;
-      ref.current.rotation.y = time * 0.5;
-    }
-  });
+  // Animação flutuante/rotação DESATIVADA
+  // useFrame(({ clock }) => {
+  //   if (ref.current) {
+  //     const time = clock.getElapsedTime();
+  //     ref.current.position.y = position[1] + Math.sin(time * 2) * 0.05;
+  //     ref.current.rotation.y = time * 0.5;
+  //   }
+  // });
+
   
   useFrame(() => {
     if (!player) return;

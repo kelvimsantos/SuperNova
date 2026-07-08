@@ -28,13 +28,14 @@ export const Enemy = ({
   const raycaster = useRef(new THREE.Raycaster());
   const mouse = useRef(new THREE.Vector2());
   
-  // Animação flutuante
-  useFrame(({ clock }) => {
-    if (ref.current && !isDead) {
-      const time = clock.getElapsedTime();
-      ref.current.position.y = position[1] + Math.sin(time * 2) * 0.1;
-    }
-  });
+  // Animação flutuante DESATIVADA (remover bobbing/rotação)
+  // useFrame(({ clock }) => {
+  //   if (ref.current && !isDead) {
+  //     const time = clock.getElapsedTime();
+  //     ref.current.position.y = position[1] + Math.sin(time * 2) * 0.1;
+  //   }
+  // });
+
   
   // Efeito de dano visual
   useFrame(() => {

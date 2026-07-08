@@ -23,7 +23,7 @@ import { sceneItems } from '../config/sceneEnemies';
 import { DROPPED_ITEMS } from '../config/droppedItems';
 import { QuestNPC } from './quests/QuestNPC';
 import { Pet } from './pets/Pet';
-import { PetMenu } from './pets/PetMenu';
+//import { PetMenu } from './pets/PetMenu';
 
 const weatherNames = {
   clear: '☀️ Claro',
@@ -160,6 +160,12 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
     setIsNight(isNight);
   };
 
+  useEffect(() => {
+    const onTeleportUp = () => teleportUp();
+    window.addEventListener('teleport-up', onTeleportUp);
+    return () => window.removeEventListener('teleport-up', onTeleportUp);
+  }, [playerRigidBody]);
+
   if (isLoading) {
     return (
       <Html center>
@@ -241,54 +247,22 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
           renderOrder={999}
         />
       )}
-      
+//ttttttttttttttttttttt
       <RepositionButton />
       <Pet />
-      <PetMenu />
+      {/* <PetMenu /> */}
       
       <Html transform={false}>
-
         <div style={{
           position: 'fixed',
-          bottom: 20,
-          right: 20,
-          zIndex: 10002,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-        }}>
-          <button 
-            onClick={teleportUp}
-            style={{
-              padding: '12px 24px',
-              background: 'rgba(0,0,0,0.75)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.25)',
-              borderRadius: '40px',
-              color: 'white',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              fontFamily: 'monospace',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
-            }}
-            onMouseEnter={(e) => e.target.style.background = 'rgba(0,100,200,0.8)'}
-            onMouseLeave={(e) => e.target.style.background = 'rgba(0,0,0,0.75)'}
-          >
-            ⬆️ Teleportar
-          </button>
-        </div>
-        <div style={{ 
-          position: 'fixed', 
-          top: 20, 
+          top: 20,
           left: '50%',
           transform: 'translateX(-50%)',
-          zIndex: 10002, 
-          background: 'rgba(0,0,0,0.7)', 
-          padding: '8px 20px', 
-          borderRadius: '40px', 
-          color: 'white', 
+          zIndex: 10002,
+          background: 'rgba(0,0,0,0.7)',
+          padding: '8px 20px',
+          borderRadius: '40px',
+          color: 'white',
           fontSize: '16px',
           fontWeight: 'bold',
           fontFamily: 'monospace',

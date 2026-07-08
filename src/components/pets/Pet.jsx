@@ -43,7 +43,7 @@ export function Pet({ className }) {
     const def = PET_TYPES[typeKey] || PET_TYPES.sphere;
 
     // distância mínima antes de começar a “seguir de verdade”
-    const TELEPORT_DIST = 32;
+    const TELEPORT_DIST = 20;
     const FOLLOW_DIST = def.kind === 'land' ? 10.5 : 9.0;
 
     // offset “pra trás do player” baseado na direção em que o player está virado.
@@ -92,26 +92,21 @@ export function Pet({ className }) {
 
 
 
-    // rotação: olhar para o player e “na direção” do movimento
-    // (sem depender de animação — apenas face ao player)
-    // rotação: só atualiza quando tiver deslocamento real (evita “travamento” do ângulo)
+    // rotação para “olhar” em direção ao player (retoma o comportamento)
+    // sem fazer bob/swing, só orienta.
     const toPlayer = new THREE.Vector3(
       playerPosition.x - group.position.x,
       0,
       playerPosition.z - group.position.z
     );
-
-    if (toPlayer.lengthSq() > 0.0001) {
-      const desiredYaw = Math.atan2(toPlayer.x, toPlayer.z);
-      // suaviza para acompanhar a virada do player
-      // (lerpAngle não está disponível em algumas versões do three; usamos lerp simples com wrap)
-      const a = group.rotation.y;
-      const b = desiredYaw;
-      let diff = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI;
-      const alpha = Math.min(1, delta * 6);
-      group.rotation.y = a + diff * alpha;
-
+    if (toPlayer.lengthSq() > 1e-6) {
+      const angle = Math.atan2(toPlayer.x, toPlayer.z);
+      // THREE: rotation.y gira no eixo Y; ajustamos por consistência visual
+      group.rotation.y = angle;
     }
+
+
+
 
   });
 

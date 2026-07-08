@@ -181,6 +181,8 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
   const weatherQueue = useRef(['cloudy', 'windy', 'rainy', 'heavyRain', 'snowy', 'blizzard', 'foggy']);
   let weatherIndex = 0;
 
+  const setGameCurrentWeather = useGameStore((s) => s.setCurrentWeather);
+
   useEffect(() => {
     const getNextWeather = () => {
       const next = weatherQueue.current[weatherIndex % weatherQueue.current.length];
@@ -190,12 +192,17 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
     const changeWeather = () => {
       const newWeather = getNextWeather();
       setCurrentWeather(newWeather);
+
+      // sincroniza o clima para o HUD global (WarcraftWeatherHud)
+      if (setGameCurrentWeather) setGameCurrentWeather(newWeather);
+
       if (onWeatherChange) onWeatherChange(newWeather);
       const weather = weatherList[newWeather];
       console.log(`🌤️ CLIMA: ${weather.name} | Relâmpagos: ${weather.lightning ? '⚡ ATIVADO' : '❌'}`);
       if (weatherResetTimeoutRef.current) clearTimeout(weatherResetTimeoutRef.current);
       weatherResetTimeoutRef.current = setTimeout(() => {
         setCurrentWeather('clear');
+        if (setGameCurrentWeather) setGameCurrentWeather('clear');
         if (onWeatherChange) onWeatherChange('clear');
         console.log(`🌤️ CLIMA: Voltou ao normal (Claro)`);
       }, WEATHER_DURATION);
@@ -205,7 +212,7 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
       clearInterval(interval);
       if (weatherResetTimeoutRef.current) clearTimeout(weatherResetTimeoutRef.current);
     };
-  }, [onWeatherChange]);
+  }, [onWeatherChange, setGameCurrentWeather]);
 
   useFrame(({ scene, clock }) => {
     const weather = weatherList[currentWeather];

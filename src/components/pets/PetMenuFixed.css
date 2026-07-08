@@ -1,0 +1,16 @@
+.pet-fixed-root{
+  position:fixed;
+  top:130px;
+ 
+  right:-400;
+  z-index:10005;
+  pointer-events:auto;
+  font-family:monospace;
+}
+
+/* reusa estilos do PetMenu.css via mesma classe names */
+.pet-menu-fixed{
+  /* qualquer ajuste extra aqui */
+  max-width:320px;
+}
+

@@ -1,0 +1,159 @@
+.wc-weather-hud-root{
+  position:fixed;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:10050;
+  pointer-events:none;
+  font-family: monospace;
+  color:#fff;
+}
+
+
+.wc-weather-hud-center{
+  pointer-events:none;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+}
+
+.wc-weather-titlebar{
+  pointer-events:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  background:rgba(0,0,0,0.45);
+  border:1px solid rgba(255,255,255,0.16);
+  border-radius:22px;
+  padding:10px 16px;
+  backdrop-filter: blur(8px);
+  min-width:560px;
+}
+
+.wc-daynight{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:900;
+}
+
+.wc-daynight-ic{
+  font-size:18px;
+  text-shadow:0 0 16px rgba(255,255,255,0.14);
+}
+
+.wc-daynight-txt{ font-size:14px; opacity:0.95; }
+
+.wc-weather-category{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding-left:6px;
+}
+
+.wc-weather-cat-ic{ font-size:20px; filter: drop-shadow(0 0 10px rgba(255,255,255,0.12)); }
+.wc-weather-cat-txt{ font-weight:900; font-size:14px; opacity:0.95; }
+
+.wc-weather-toprow{ pointer-events:none; }
+
+.wc-two-status{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:rgba(0,0,0,0.40);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:18px;
+  padding:8px 12px;
+  min-width:260px;
+  justify-content:center;
+}
+
+.wc-status{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  border-radius:14px;
+  opacity:0.65;
+}
+
+.wc-status.active{ opacity:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10); }
+
+.wc-status-ic{ font-size:16px; }
+.wc-status-txt{ font-weight:900; font-size:13px; }
+
+.wc-weather-buttom-row{ pointer-events:auto; }
+
+.wc-teleport-btn{
+  pointer-events:auto;
+  padding:10px 18px;
+  width: 160px;
+
+  background:rgba(0,0,0,0.75);
+  backdrop-filter: blur(8px);
+  border:1px solid rgba(255,255,255,0.25);
+  border-radius:18px;
+  color:#fff;
+  font-size:13px;
+  font-weight:900;
+  cursor:pointer;
+  font-family:monospace;
+  box-shadow:0 2px 10px rgba(0,0,0,0.3);
+}
+
+.wc-teleport-btn:hover{ background:rgba(0,100,200,0.85); }
+
+.wc-pc-clock{
+  pointer-events:none;
+  font-weight:900;
+  font-size:12px;
+  opacity:0.95;
+  letter-spacing:0.6px;
+  text-shadow:0 0 10px rgba(0,0,0,0.45);
+}
+
+.wc-weather-pet-right{
+  position:static;
+}
+
+/* garante que a HUD central continua visível mesmo em layouts/stacking */
+.wc-weather-hud-top{
+  position:relative;
+  z-index:10050;
+  pointer-events:none;
+  display:flex;
+  flex-direction:row;
+  align-items:flex-start;
+  justify-content:center;
+  gap:18px;
+}
+
+
+.wc-left-stack{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+}
+
+.wc-right-stack{
+  position:fixed;
+  top:60px;
+  right:-600px;
+  z-index:10060;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  pointer-events:auto;
+}
+
+
+
+.wc-weather-pet-right{
+  position:static;
+}
+
+
+
