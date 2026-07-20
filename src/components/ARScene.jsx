@@ -18,6 +18,8 @@ import { Portal } from './Portal';
 import { ItemPickup } from './items/ItemPickup';
 import { EnemySpawner } from './enemies/EnemySpawner';
 import { OptimizedRenderer } from './OptimizedRenderer';
+import { WorldStreamingManager } from './streaming/WorldStreamingManager';
+import DistanceFogOverlay from './rendering/DistanceFogOverlay';
 
 import { sceneItems } from '../config/sceneEnemies';
 import { DROPPED_ITEMS } from '../config/droppedItems';
@@ -189,8 +191,19 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
       onNightChange={handleNightChange}
     >
       {showStars && <StarField enabled={true} />}
-      <group ref={worldGroupRef} position={[0, 0, 0]} userData={{ isWorldGroup: true }}>
+        <group ref={worldGroupRef} position={[0, 0, 0]} userData={{ isWorldGroup: true }}>
         <World />
+
+        {/* DistanceFogOverlay removido temporariamente (só para validar o fog nativo do Canvas). */}
+        {/* streaming por chunk */}
+        {playerRigidBody && (
+          <WorldStreamingManager
+            worldScene={worldGroupRef.current}
+            mode="renderOff"
+            debug={false}
+            playerRigidBody={playerRigidBody}
+          />
+        )}
         {sceneData?.portals?.map(portal => (
           <Portal key={portal.id} data={portal} />
         ))}
@@ -222,6 +235,8 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
         <OptimizedRenderer radius={26}>
           {renderNPCsFromJSON()}
         </OptimizedRenderer>
+
+
 
 
         {/* 🔥 AVATAR PLAYER SE TIVER userId, SENÃO USA O PLAYER ORIGINAL */}

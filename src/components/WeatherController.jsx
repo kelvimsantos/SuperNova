@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { VolumetricFog } from './VolumetricFog';
 import { ParticleSystem } from './ParticleSystem';
@@ -69,7 +69,7 @@ const sunColors = {
   sunrise: { r: 4.00, g: 0.30, b: 0.20, intensity: 6.20 },
   noon:    { r: 3.00, g: 3.00, b: 0.95, intensity: 5.80 },
   sunset:  { r: 4.00, g: 0.65, b: 0.35, intensity: 6.20 },
-  night:   { r: 0.0,  g: 5.80, b: 10.85, intensity: 10.01 },  // ← pode reduzir este valor também
+  night:   { r: 0.0,  g: 5.80, b: 10.85, intensity: 10.01 },
 };
 
 const lightningColors = {
@@ -119,14 +119,14 @@ const getBackgroundColor = (angle, weather) => {
     if (isStormy) return new THREE.Color(0x2d3748);
     if (isFoggy) return new THREE.Color(0x4a5568);
     if (isSnowy) return new THREE.Color(0x1e293b);
-    return null; // noite limpa – fundo preto + estrelas
+    return null;
   }
 };
 
 export const WeatherController = ({ children, onWeatherChange, onNightChange, onStarsChange }) => {
   const sunLightRef = useRef();
   const ambientRef = useRef();
-  const hemisphereLightRef = useRef(); // ← nova ref
+  const hemisphereLightRef = useRef();
   const lightningLightRef = useRef();
   const [currentWeather, setCurrentWeather] = useState('clear');
   const [fogIntensity, setFogIntensity] = useState(0);
@@ -136,6 +136,7 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
   const weatherResetTimeoutRef = useRef(null);
 
   const setLight = useGameStore((state) => state.setLight);
+  const setIsNight = useGameStore((state) => state.setIsNight);
 
   const triggerLightning = () => {
     if (!isLightning && lightningLightRef.current) {
@@ -192,10 +193,7 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
     const changeWeather = () => {
       const newWeather = getNextWeather();
       setCurrentWeather(newWeather);
-
-      // sincroniza o clima para o HUD global (WarcraftWeatherHud)
       if (setGameCurrentWeather) setGameCurrentWeather(newWeather);
-
       if (onWeatherChange) onWeatherChange(newWeather);
       const weather = weatherList[newWeather];
       console.log(`🌤️ CLIMA: ${weather.name} | Relâmpagos: ${weather.lightning ? '⚡ ATIVADO' : '❌'}`);
@@ -239,14 +237,9 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
       if (currentWeather === 'cloudy') weatherIntensity = 0.82;
       let baseIntensity = sunColor.intensity * weatherIntensity;
 
-      // === AJUSTE NOTURNO (PONTO 1) ===
-      // Este fator controla o quanto a luz do sol escurece à noite.
-      // Quanto menor, mais escuro. Valores típicos: 0.02 a 0.1.
-       if (isNight) {
-        // Noite azul escura – intensidade bem baixa
-        baseIntensity = 0.08; // luz da lua fraca
-        // Cor mais azulada para a luz noturna
-           sunLightRef.current.color.setRGB(0.3, 0.35, 0.8);
+      if (isNight) {
+        baseIntensity = 0.08;
+        sunLightRef.current.color.setRGB(0.3, 0.35, 0.8);
       }
       sunLightRef.current.intensity = baseIntensity;
 
@@ -257,18 +250,14 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
     // ===== LUZ AMBIENTE =====
     if (ambientRef.current) {
       let ambientIntensity = 0.52 + Math.max(0, Math.sin(angle)) * 0.28;
-      // === AJUSTE NOTURNO (PONTO 2) ===
-      if (isNight) ambientIntensity *= 0.08; // ← modifique aqui (0.1 já é bem escuro)
+      if (isNight) ambientIntensity *= 0.08;
       ambientRef.current.intensity = ambientIntensity;
     }
 
-    // ===== LUZ HEMISFÉRICA (céu e chão) =====
+    // ===== LUZ HEMISFÉRICA =====
     if (hemisphereLightRef.current) {
-      // === AJUSTE NOTURNO (PONTO 3) ===
-      // Este valor também contribui para a iluminação geral.
-       hemisphereLightRef.current.intensity = isNight ? 0.05 : 0.42; // ← modifique o valor noturno
-      
-      }
+      hemisphereLightRef.current.intensity = isNight ? 0.05 : 0.42;
+    }
 
     // ===== FUNDO =====
     const bgColor = getBackgroundColor(angle, weather);
@@ -281,8 +270,11 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
     }
 
     if (onNightChange) onNightChange(isNight);
+    if (setIsNight) setIsNight(isNight);
 
-    // Neblina e partículas
+    // >>> scene.fog removido daqui - agora gerenciado exclusivamente por DynamicFogController <<<
+
+    // Neblina volumétrica e partículas
     const targetFogDensity = weather.fogDensity;
     setFogIntensity(prev => prev + (targetFogDensity - prev) * 0.08);
     const targetParticleIntensity = weather.particleIntensity;

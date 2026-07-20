@@ -27,6 +27,8 @@ import { EquipmentPanel } from './components/equipment/EquipmentPanel';
 import { QuestDialogGlobal } from './components/quests/QuestDialogGlobal';
 import { QuestMenu } from './components/quests/QuestMenu';
 import { SaveMenu } from './components/ui/SaveMenu';
+import DynamicFogController from './components/rendering/DynamicFogController';
+import RadialFarFade from './components/rendering/RadialFarFade';
 import './App.css';
 
 const loadingTips = [
@@ -41,7 +43,7 @@ const loadingTips = [
   '💡 Salve o jogo com [F5]',
   '💡 Cada cidade tem seus próprios segredos'
 ];
-
+//aaaaaaaaaaaa
 function App() {
   // 🔥 PEGA O userId DA URL SEM react-router-dom
   const userId = new URLSearchParams(window.location.search).get('userId');
@@ -198,7 +200,7 @@ function App() {
 
       <Canvas
         shadows
-        camera={{ position: [8, 6, 12], fov: 60 }}
+camera={{ position: [8, 6, 12], fov: 60, far: 25, near: 0.5 }}
         style={{
           width: '100vw',
           height: '100vh',
@@ -207,7 +209,7 @@ function App() {
           left: 0,
           zIndex: 1,
         }}
-      >
+>
         <ambientLight intensity={0.2} />
         
         <Physics gravity={[0, -9.81, 0]}>
@@ -232,6 +234,8 @@ function App() {
           enableDamping={true}
           dampingFactor={0.05}
         />
+<DynamicFogController />
+        <RadialFarFade innerRadius={0.50} softness={0.25} maxOpacity={0.90} />
       </Canvas>
     </Suspense>
   );
