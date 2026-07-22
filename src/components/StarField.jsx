@@ -4,7 +4,7 @@ import * as THREE from 'three';
 
 export const StarField = ({ enabled = true }) => {
   const pointsRef = useRef();
-  const count = 2000;
+  const count = 500;
   const positions = useMemo(() => {
   const pos = new Float32Array(count * 3);
   for (let i = 0; i < count; i++) {
@@ -27,14 +27,6 @@ export const StarField = ({ enabled = true }) => {
       blending: THREE.AdditiveBlending,
     });
   }, []);
-
-  useFrame(() => {
-    if (!enabled) return;
-    // pequena rotação para dar movimento sutil
-    if (pointsRef.current) {
-      pointsRef.current.rotation.y += 0.0005;
-    }
-  });
 
   if (!enabled) return null;
 

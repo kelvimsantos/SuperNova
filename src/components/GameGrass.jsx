@@ -50,7 +50,7 @@ export const GameGrass = ({
   const currentWindSpeed = useRef(getWindSpeed());
 
   const bladeGeo = useMemo(
-    () => createBladeGeometry(grassWidth, grassHeight, 4),
+    () => createBladeGeometry(grassWidth, grassHeight, 3),
     [grassWidth, grassHeight]
   );
 
@@ -148,8 +148,8 @@ export const GameGrass = ({
           rotatedPos.z += wind * 0.25;
 
           vec3 worldPos = rotatedPos + offset;
-          float dx = worldPos.x - (playerPosition.x + 0.0);
-          float dz = worldPos.z - (playerPosition.z + 8.8);
+          float dx = worldPos.x - playerPosition.x;
+          float dz = worldPos.z - playerPosition.z;
           float dist = sqrt(dx*dx + dz*dz);
           
           float bend = 0.0;

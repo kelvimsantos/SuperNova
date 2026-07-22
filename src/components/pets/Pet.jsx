@@ -33,9 +33,7 @@ export function Pet({ className }) {
   const isActive = !!pet?.isActive;
 
   useFrame((_, delta) => {
-    if (!isActive) return;
-    if (!petGroupRef.current) return;
-    if (!playerPosition) return;
+    if (!isActive || !petGroupRef.current || !playerPosition) return;
 
     const group = petGroupRef.current;
 

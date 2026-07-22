@@ -1,12 +1,15 @@
 // components/enemies/Enemy.jsx
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Box, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import useGameStore from '../../hooks/useGameStore';
 import { ItemDatabase } from '../inventory/ItemTypes';
 
-export const Enemy = ({ 
+// Geometrias compartilhadas
+const sharedEyeGlow = new THREE.SphereGeometry(0.1, 12, 12);
+
+export const Enemy = ({
   position, 
   health = 30, 
   damage = 10,

@@ -212,6 +212,19 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
     };
   }, [onWeatherChange, setGameCurrentWeather]);
 
+  // Cache de cores (evitar new THREE.Color a cada frame)
+  const bgColorCache = useRef(new THREE.Color());
+  const nightColor = useRef(new THREE.Color(0x000000));
+
+  // Ciclo de clima separado em interval (não no frame loop)
+  useEffect(() => {
+    const weather = weatherList[currentWeather];
+    const interval = setInterval(() => {
+      updateWindFromWeather(currentWeather, weather.wind);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [currentWeather]);
+
   useFrame(({ scene, clock }) => {
     const weather = weatherList[currentWeather];
     const time = clock.getElapsedTime();
@@ -259,27 +272,24 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
       hemisphereLightRef.current.intensity = isNight ? 0.05 : 0.42;
     }
 
-    // ===== FUNDO =====
+    // ===== FUNDO (usando cache de cores) =====
     const bgColor = getBackgroundColor(angle, weather);
     if (bgColor) {
       scene.background = bgColor;
       if (onStarsChange) onStarsChange(false);
     } else {
-      scene.background = new THREE.Color(0x000000);
+      scene.background = nightColor.current;
       if (onStarsChange) onStarsChange(true);
     }
 
     if (onNightChange) onNightChange(isNight);
     if (setIsNight) setIsNight(isNight);
 
-    // >>> scene.fog removido daqui - agora gerenciado exclusivamente por DynamicFogController <<<
-
-    // Neblina volumétrica e partículas
+    // Neblina volumétrica e partículas - apenas interpolação suave aqui
     const targetFogDensity = weather.fogDensity;
     setFogIntensity(prev => prev + (targetFogDensity - prev) * 0.08);
     const targetParticleIntensity = weather.particleIntensity;
     setParticleIntensity(prev => prev + (targetParticleIntensity - prev) * 0.1);
-    updateWindFromWeather(currentWeather, weather.wind);
   });
 
   const weather = weatherList[currentWeather];

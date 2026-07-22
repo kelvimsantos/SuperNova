@@ -175,7 +175,7 @@ export default function RadialFarFade({
     <mesh
       ref={meshRef}
       frustumCulled={false}
-      renderOrder={100001}
+renderOrder={0}
     >
       <primitive object={material} attach="material" />
     </mesh>

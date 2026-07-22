@@ -28,8 +28,6 @@ export const QuestNPC = ({ questId, position, sceneName }) => {
   // 🔥 Pega o status real do store
   const currentStatus = getQuestStatus(questId);
   
-  console.log(`📌 NPC ${questId} - Status: ${currentStatus}`);
-  
   // Animação flutuante/rotação DESATIVADA
   // useFrame(({ clock }) => {
   //   if (ref.current) {

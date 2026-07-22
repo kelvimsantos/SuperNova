@@ -38,11 +38,11 @@ const weatherNames = {
 
 const cloudConfig = {
   clear:   { enabled: false, density: 0,    tiling: 5.6, speed: 2.08, scale: 70, position: [0, 0.5, 0.2] },
-  cloudy:  { enabled: true,  density: 1.7 ,  tiling: 5.6, speed: 1.08, scale: 70, position: [0, 20.5, 3.2] },
+  cloudy:  { enabled: true,  density: 6.0,  tiling: 5.6, speed: 1.08, scale: 70, position: [0, 20.5, 3.2] },
   foggy:   { enabled: false, density: 0,    tiling: 5.6, speed: 2.08, scale: 70, position: [0, 20.5, 3.2] },
-  windy:   { enabled: true,  density: 2.0,  tiling: 5.6, speed: 1.5,  scale: 70, position: [0, 20.5, 3.2] },
-  rainy:   { enabled: true,  density: 2.5,  tiling: 5.6, speed: 2.5,  scale: 70, position: [0, 20.5, 3.2] },
-  snowy:   { enabled: true,  density: 2.3,  tiling: 5.6, speed: 1.8,  scale: 70, position: [0, 20.5, 3.2] },
+  windy:   { enabled: true,  density: 6.0,  tiling: 5.6, speed: 1.5,  scale: 70, position: [0, 20.5, 3.2] },
+  rainy:   { enabled: true,  density: 7.0,  tiling: 5.6, speed: 2.5,  scale: 70, position: [0, 20.5, 3.2] },
+  snowy:   { enabled: true,  density: 7.0,  tiling: 5.6, speed: 1.8,  scale: 70, position: [0, 20.5, 3.2] },
 };
 
 const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
@@ -119,16 +119,13 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
     
     loadScene();
   }, [currentScene, playerRigidBody, setPlayerPosition]);
-//aaaaaaaaaaaaaaaaaaaaaaa
+
   useEffect(() => {
     if (!cameraInitialized && playerRigidBody && !isLoading) {
       const pos = playerRigidBody.translation();
       if (pos) {
-//        console.log(`📷 Posição do player para câmera:`, pos);
         camera.position.set(pos.x + 5, pos.y + 3, pos.z + 8);
-        // Ajuste de inclinação vertical: diminuindo o Y do lookAt a câmera inclina para baixo
         camera.lookAt(pos.x, pos.y + 0.8, pos.z);
-        
         setCameraInitialized(true);
       }
     }
@@ -227,17 +224,11 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
           {renderItemsByScene()}
         </OptimizedRenderer>
 
-        {/* Drops: deixo fora do culling por visibilidade do wrapper para não “sumir” quando o raio oscila.
-            O ItemPickup já controla o render de Text/luz e animação por proximidade. */}
         {renderDroppedItems()}
-
 
         <OptimizedRenderer radius={26}>
           {renderNPCsFromJSON()}
         </OptimizedRenderer>
-
-
-
 
         {/* 🔥 AVATAR PLAYER SE TIVER userId, SENÃO USA O PLAYER ORIGINAL */}
         {userId ? (
@@ -256,16 +247,15 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
           density={cloud.density}
           tiling={cloud.tiling}
           speed={cloud.speed}
-          scale={cloud.scale * 2}
-          position={[0, 5.8, -8.2]}
+          scale={cloud.scale * 0.15}
+          position={[0, 8, -6]}
           enabled={true}
           renderOrder={999}
         />
       )}
-//ttttttttttttttttttttt
+
       <RepositionButton />
       <Pet />
-      {/* <PetMenu /> */}
       
       <Html transform={false}>
         <div style={{

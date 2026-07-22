@@ -130,22 +130,13 @@ export const ItemPickup = ({
   
   return (
     <group ref={ref} position={position}>
-      {/* Luz de brilho (só quando perto para economizar) */}
-      {isNear && (
-        <pointLight
-          intensity={0.8}
-          distance={2}
-          color={itemColor}
-        />
-      )}
-      
-      {/* Anel de brilho no chão */}
+      {/* Anel de brilho no chão (emissivo substitui pointLight) */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.3, 0]}>
         <ringGeometry args={[0.4, 0.7, 16]} />
         <meshStandardMaterial 
           color={itemColor} 
           emissive={itemColor}
-          emissiveIntensity={0.3}
+          emissiveIntensity={isNear ? 0.6 : 0.3}
           transparent
           opacity={0.6}
           side={THREE.DoubleSide}
@@ -159,7 +150,7 @@ export const ItemPickup = ({
           <meshStandardMaterial 
             color={itemColor} 
             emissive={itemColor}
-            emissiveIntensity={0.2}
+            emissiveIntensity={isNear ? 0.5 : 0.2}
             metalness={0.7}
             roughness={0.3}
           />
@@ -171,7 +162,7 @@ export const ItemPickup = ({
           <meshStandardMaterial 
             color={itemColor} 
             emissive={itemColor}
-            emissiveIntensity={0.2}
+            emissiveIntensity={isNear ? 0.5 : 0.2}
           />
         </mesh>
       )}
@@ -181,76 +172,26 @@ export const ItemPickup = ({
         <meshStandardMaterial 
           color={itemColor} 
           emissive={itemColor}
-          emissiveIntensity={0.4}
+          emissiveIntensity={isNear ? 0.6 : 0.3}
           transparent
           opacity={0.5}
           side={THREE.DoubleSide}
         />
       </Ring>
       
-      {/* Texto flutuante quando perto */}
+      {/* Texto flutuante só no hover (não na proximidade) */}
       {isNear && (
-        <>
-          <Text
-            position={[0, 0.8, 0]}
-            fontSize={0.2}
-            color={itemInfo.rarity?.color || '#fff'}
-            anchorX="center"
-            anchorY="middle"
-            outlineWidth={0.02}
-            outlineColor="black"
-          >
-            {itemInfo.name}
-          </Text>
-          {isEquipment && itemInfo.stats && (
-            <Text
-              position={[0, 0.55, 0]}
-              fontSize={0.12}
-              color="#aaffaa"
-              anchorX="center"
-              anchorY="middle"
-              outlineWidth={0.01}
-              outlineColor="black"
-            >
-              {Object.entries(itemInfo.stats).map(([stat, value]) => `+${value} ${stat}`).join(' | ')}
-            </Text>
-          )}
-          {itemInfo.damage && (
-            <Text
-              position={[0, 0.55, 0]}
-              fontSize={0.12}
-              color="#ff8888"
-              anchorX="center"
-              anchorY="middle"
-              outlineWidth={0.01}
-              outlineColor="black"
-            >
-              ⚔️ Dano: {itemInfo.damage}
-            </Text>
-          )}
-          {itemInfo.defense && (
-            <Text
-              position={[0, 0.55, 0]}
-              fontSize={0.12}
-              color="#8888ff"
-              anchorX="center"
-              anchorY="middle"
-              outlineWidth={0.01}
-              outlineColor="black"
-            >
-              🛡️ Defesa: {itemInfo.defense}
-            </Text>
-          )}
-          <Text
-            position={[0, 0.4, 0]}
-            fontSize={0.1}
-            color="#aaa"
-            anchorX="center"
-            anchorY="middle"
-          >
-            🖱️ Aproxime-se para coletar
-          </Text>
-        </>
+        <Text
+          position={[0, 0.8, 0]}
+          fontSize={0.2}
+          color={itemInfo.rarity?.color || '#fff'}
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={0.02}
+          outlineColor="black"
+        >
+          {itemInfo.name}
+        </Text>
       )}
     </group>
   );

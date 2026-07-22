@@ -8,7 +8,7 @@ function createNoiseTexture3D() {
   if (cachedTexture) return cachedTexture;
   
   console.log('🌥️ Gerando textura 3D...');
-  const size = 50;
+  const size = 32;
   const data = new Uint8Array(size * size * size);
   
   for (let z = 0; z < size; z++) {
@@ -133,7 +133,7 @@ const fragmentShader = `
 `;
 
 export const VolumetricClouds = ({ 
-  density = 5.0,
+  density = 8.0,
   tiling = 1.5,
   speed = 0.05,
   scale = 14,
@@ -165,7 +165,7 @@ export const VolumetricClouds = ({
       transparent: true,
       side: THREE.BackSide,
       depthWrite: false,
-       depthTest: false,
+      depthTest: false,
     });
   }, [texture, density, tiling]);
   
@@ -178,11 +178,11 @@ export const VolumetricClouds = ({
     
     // ===== LOD POR DISTÂNCIA =====
     const distToCamera = camera.position.distanceTo(meshRef.current.position);
-    let quality = 48;
-    if (distToCamera < 15) quality = 72;
+    let quality = 64;
+    if (distToCamera < 15) quality = 64;
     else if (distToCamera < 30) quality = 56;
-    else if (distToCamera < 50) quality = 40;
-    else quality = 32;
+    else if (distToCamera < 50) quality = 48;
+    else quality = 40;
     
     if (qualityRef.current !== quality) {
       qualityRef.current = quality;
@@ -203,6 +203,7 @@ export const VolumetricClouds = ({
       ref={meshRef} 
       position={position}
       scale={[scale, scale * 0.55, scale]}
+      renderOrder={999}
     >
       <boxGeometry args={[1, 1, 1]} />
       <primitive ref={materialRef} object={material} attach="material" />

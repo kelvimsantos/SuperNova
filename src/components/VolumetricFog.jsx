@@ -77,7 +77,7 @@ export const VolumetricFog = ({
     // Plano fixo no mundo — NÃO ACOMPANHA A CÂMERA
     const width = 50;
     const heightPlane = 50;
-    const geometry = new THREE.PlaneGeometry(width, heightPlane, 80, 80);
+    const geometry = new THREE.PlaneGeometry(width, heightPlane, 32, 32);
     geometry.rotateX(-Math.PI / 2);
     geometry.translate(0, 1.8, -8);
     return geometry;
@@ -114,7 +114,7 @@ export const VolumetricFog = ({
   if (!enabled) return null;
   
   return (
-    <mesh ref={meshRef} geometry={geometry}>
+    <mesh ref={meshRef} geometry={geometry} renderOrder={0}>
       <primitive ref={materialRef} object={material} attach="material" />
     </mesh>
   );

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Sphere, Box, Text, Ring } from '@react-three/drei';
 import * as THREE from 'three';
@@ -6,7 +6,13 @@ import useGameStore from '../../hooks/useGameStore';
 import { ItemDatabase } from '../inventory/ItemTypes';
 import { generateDrops } from '../../config/droppedItems';
 
-export const SlimeEnemy = ({ 
+// Geometrias compartilhadas (não recriar a cada render)
+const sharedSphereGeo = new THREE.SphereGeometry(0.6, 16, 16);
+const sharedEyeGeo = new THREE.SphereGeometry(0.12, 12, 12);
+const sharedPupilGeo = new THREE.SphereGeometry(0.06, 12, 12);
+const sharedOrbGeo = new THREE.SphereGeometry(0.15, 12, 12);
+
+export const SlimeEnemy = ({
   id,
   position, 
   health = 25, 
