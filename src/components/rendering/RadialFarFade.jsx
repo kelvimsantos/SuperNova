@@ -9,35 +9,37 @@ import useGameStore from '../../hooks/useGameStore';
  *
  * Como funciona:
  * - Renderiza um quad SEMPRE na frente da câmera (screen-space)
- * - O tamanho do quad é calculado dinamicamente baseado no FOV,
- *   aspect ratio e distância da câmera, garantindo que cobre a tela inteira
+ * - O tamanho do quad é calculado baseado no FOV, aspect ratio e distância,
+ *   garantindo que cobre a tela inteira
  * - Aplica um gradiente radial levando em conta o aspect ratio
  *   para manter o círculo perfeito independente da resolução da tela
  * - Centro = transparente, bordas = cor do fog (acompanha clima/dia-noite)
- * - Assim, objetos distantes somem suavemente num círculo, não num quadrado
  *
- * Dica: Aumente o `far` da câmera no App.jsx (ex: far={80}) para que
- *       o frustum não corte objetos antes do fade aparecer.
- *
- * Uso: colocar DENTRO do <Canvas>, após os outros elementos de cena.
+ * Otimizações:
+ * - Vetores cacheados para evitar GC
+ * - Geometria só recriada se tamanho mudar significativamente
+ * - Cor do fog só atualiza quando clima/dia-noite muda
  */
 export default function RadialFarFade({
-  innerRadius = 0.40,   // onde começa o fade (0=centro, ~1=borda)
-  softness = 0.30,       // suavidade da transição
-  maxOpacity = 0.95,     // opacidade máxima nas bordas
+  innerRadius = 0.40,
+  softness = 0.30,
+  maxOpacity = 0.95,
 } = {}) {
   const { camera, size } = useThree();
   const meshRef = useRef(null);
   const currentWeather = useGameStore((s) => s.currentWeather);
   const isNight = useGameStore((s) => s.isNight);
 
-  // Guarda último estado para evitar recriar objetos desnecessariamente
   const lastStateRef = useRef({ weather: '', night: false });
   const colorCacheRef = useRef(new THREE.Color());
   const sizeRef = useRef({ width: 0, height: 0 });
 
   // Distância do quad em relação à câmera
   const quadDist = 2;
+
+  // Vectores cacheados (evita new dentro do useFrame)
+  const dirVec = useRef(new THREE.Vector3());
+  const posVec = useRef(new THREE.Vector3());
 
   const material = useMemo(() => {
     const uniforms = {
@@ -67,20 +69,15 @@ export default function RadialFarFade({
       void main() {
         // Centraliza e corrige aspect ratio para círculo perfeito
         vec2 center = vUv - vec2(0.5);
-        center.x *= uAspect; // corrige para manter círculo mesmo em wide screen
+        center.x *= uAspect;
 
         float dist = length(center);
-        // Normaliza: distância máxima num retângulo corrigido por aspect
         float maxDist = length(vec2(uAspect * 0.5, 0.5));
         float normalizedDist = dist / maxDist;
 
-        // Fade: começa após innerRadius, transiciona suavemente até a borda
         float fadeFactor = smoothstep(uInnerRadius, uInnerRadius + uSoftness, normalizedDist);
-
-        // Limita à opacidade máxima
         float alpha = fadeFactor * uMaxOpacity;
 
-        // Output: cor do fog com alpha (blending normal)
         gl_FragColor = vec4(uFogColor, alpha);
       }
     `;
@@ -99,13 +96,10 @@ export default function RadialFarFade({
   useFrame(() => {
     if (!meshRef.current || !material) return;
 
-    // Mantém o quad sempre na frente da câmera
-    const dir = new THREE.Vector3();
-    camera.getWorldDirection(dir);
-    const pos = new THREE.Vector3()
-      .copy(camera.position)
-      .add(dir.multiplyScalar(quadDist));
-    meshRef.current.position.copy(pos);
+    // Segue a câmera INSTANTANEAMENTE — sem lerp, sem delay
+    camera.getWorldDirection(dirVec.current);
+    posVec.current.copy(camera.position).add(dirVec.current.multiplyScalar(quadDist));
+    meshRef.current.position.copy(posVec.current);
     meshRef.current.quaternion.copy(camera.quaternion);
 
     // Recalcula tamanho do quad para cobrir FULLSCREEN
@@ -114,21 +108,22 @@ export default function RadialFarFade({
     const aspect = size.width / size.height;
     const halfHeight = quadDist * Math.tan(vFovRad / 2);
     const halfWidth = halfHeight * aspect;
-    const neededWidth = halfWidth * 2 * 1.05; // 5% extra para cobrir bordas
+    const neededWidth = halfWidth * 2 * 1.05;
     const neededHeight = halfHeight * 2 * 1.05;
 
+    // Só recria geometria se tamanho mudou significativamente
     if (
       Math.abs(sizeRef.current.width - neededWidth) > 0.01 ||
       Math.abs(sizeRef.current.height - neededHeight) > 0.01
     ) {
       sizeRef.current.width = neededWidth;
       sizeRef.current.height = neededHeight;
-      meshRef.current.geometry.dispose();
+      if (meshRef.current.geometry) meshRef.current.geometry.dispose();
       meshRef.current.geometry = new THREE.PlaneGeometry(neededWidth, neededHeight);
     }
 
-    // Atualiza aspect ratio dinamicamente (se a janela redimensionar)
-    if (material.uniforms.uAspect.value !== aspect) {
+    // Atualiza aspect ratio (se a janela redimensionar)
+    if (Math.abs(material.uniforms.uAspect.value - aspect) > 0.001) {
       material.uniforms.uAspect.value = aspect;
     }
 
@@ -166,8 +161,8 @@ export default function RadialFarFade({
         }
       }
 
-      const targetColor = colorCacheRef.current.set(colorHex);
-      material.uniforms.uFogColor.value.copy(targetColor);
+      colorCacheRef.current.set(colorHex);
+      material.uniforms.uFogColor.value.copy(colorCacheRef.current);
     }
   });
 
@@ -175,7 +170,7 @@ export default function RadialFarFade({
     <mesh
       ref={meshRef}
       frustumCulled={false}
-renderOrder={0}
+      renderOrder={0}
     >
       <primitive object={material} attach="material" />
     </mesh>

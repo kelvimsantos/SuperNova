@@ -1,6 +1,7 @@
 import React, { useRef, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import useGameStore from '../hooks/useGameStore';
 
 let cachedTexture = null;
 
@@ -94,7 +95,6 @@ const fragmentShader = `
   }
   
   void main() {
-    // Ajusta qualidade baseado no uniform
     MAX_STEPS = uQuality;
     STEP_SIZE = 0.12 * (64.0 / float(uQuality));
     
@@ -133,12 +133,14 @@ const fragmentShader = `
 `;
 
 export const VolumetricClouds = ({ 
-  density = 8.0,
+  density = 2.0,
   tiling = 1.5,
   speed = 0.05,
   scale = 14,
   position = [0, 5.2, -1.5],
-  enabled = true
+  enabled = true,
+  followPlayer = false,
+  followOffset = [0, 8, 0]
 }) => {
   const { camera } = useThree();
   const meshRef = useRef();
@@ -176,6 +178,16 @@ export const VolumetricClouds = ({
     offsetRef.current.x += 0.008 * speed;
     offsetRef.current.z += 0.005 * speed;
     
+    // ===== SEGUIR O PLAYER =====
+    if (followPlayer && meshRef.current) {
+      const playerPos = useGameStore.getState().playerPosition;
+      if (playerPos) {
+        meshRef.current.position.x = playerPos.x + followOffset[0];
+        meshRef.current.position.y = followOffset[1];
+        meshRef.current.position.z = playerPos.z + followOffset[2];
+      }
+    }
+    
     // ===== LOD POR DISTÂNCIA =====
     const distToCamera = camera.position.distanceTo(meshRef.current.position);
     let quality = 64;
@@ -204,6 +216,7 @@ export const VolumetricClouds = ({
       position={position}
       scale={[scale, scale * 0.55, scale]}
       renderOrder={999}
+      frustumCulled={false}
     >
       <boxGeometry args={[1, 1, 1]} />
       <primitive ref={materialRef} object={material} attach="material" />

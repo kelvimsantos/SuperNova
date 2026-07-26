@@ -48,8 +48,14 @@
 ### ✅ FASE 1.11 - WeatherController (updateWind em interval)
 - [x] `updateWindFromWeather` agora roda a cada 1s (setInterval), não mais a 60fps
 
-### 🔄 FASE 2 - Pendentes (não aplicados pois requerem mudanças mais profundas)
-- [ ] Lazy loading para componentes UI pesados
+### ✅ FASE 1.12 - RadialFarFade reescrito (geometria dinâmica)
+- [x] Agora calcula tamanho do quad baseado em FOV + aspect ratio + distância
+- [x] Geometria só recriada quando tamanho muda significativamente
+- [x] Cor do fog atualiza apenas quando clima/dia-noite muda
+- [x] Render order: 999 → 0 (não precisa ficar por cima de tudo)
+
+### ✅ FASE 1.13 - App.jsx restaurado (valores originais)
+- [x] `smoothTarget` → `[0, 1, 0]
 - [ ] Otimizar Raycaster do Player (limitar scan a 30)
 - [ ] Ajustar worldStreamingConfig (histerese muito grande)
 - [ ] Criar logger utilitário para console.log condicional

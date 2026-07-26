@@ -38,9 +38,9 @@ const weatherNames = {
 
 const cloudConfig = {
   clear:   { enabled: false, density: 0,    tiling: 5.6, speed: 2.08, scale: 70, position: [0, 0.5, 0.2] },
-  cloudy:  { enabled: true,  density: 6.0,  tiling: 5.6, speed: 1.08, scale: 70, position: [0, 20.5, 3.2] },
+  cloudy:  { enabled: true,  density: 3.0,  tiling: 5.6, speed: 1.08, scale: 70, position: [0, 20.5, 3.2] },
   foggy:   { enabled: false, density: 0,    tiling: 5.6, speed: 2.08, scale: 70, position: [0, 20.5, 3.2] },
-  windy:   { enabled: true,  density: 6.0,  tiling: 5.6, speed: 1.5,  scale: 70, position: [0, 20.5, 3.2] },
+  windy:   { enabled: true,  density: 3.0,  tiling: 5.6, speed: 1.5,  scale: 70, position: [0, 20.5, 3.2] },
   rainy:   { enabled: true,  density: 7.0,  tiling: 5.6, speed: 2.5,  scale: 70, position: [0, 20.5, 3.2] },
   snowy:   { enabled: true,  density: 7.0,  tiling: 5.6, speed: 1.8,  scale: 70, position: [0, 20.5, 3.2] },
 };
@@ -242,15 +242,17 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
         )}
       </group>
 
-      {cloud.enabled && (
+{cloud.enabled && (
         <VolumetricClouds
-          density={cloud.density}
+          density={cloud.density*0.5}
           tiling={cloud.tiling}
           speed={cloud.speed}
-          scale={cloud.scale * 0.15}
-          position={[0, 8, -6]}
+          scale={cloud.scale * 0.4}
+          position={[0, 8, 0]}
           enabled={true}
           renderOrder={999}
+          followPlayer={true}
+          followOffset={[0, 10, 0]}
         />
       )}
 

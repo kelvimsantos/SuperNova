@@ -27,6 +27,7 @@ import { EquipmentPanel } from './components/equipment/EquipmentPanel';
 import { QuestDialogGlobal } from './components/quests/QuestDialogGlobal';
 import { QuestMenu } from './components/quests/QuestMenu';
 import { SaveMenu } from './components/ui/SaveMenu';
+import { SmartFollowCamera } from './components/SmartFollowCamera';
 import DynamicFogController from './components/rendering/DynamicFogController';
 import RadialFarFade from './components/rendering/RadialFarFade';
 import './App.css';
@@ -219,6 +220,8 @@ function App() {
         </Physics>
 
         <SmoothTarget onTargetUpdate={setSmoothTarget} />
+
+        <SmartFollowCamera maxDistanceLimite={10} />
 
         <OrbitControls
           enabled={!followMode}

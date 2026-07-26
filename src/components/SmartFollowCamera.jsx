@@ -1,151 +1,82 @@
 // src/components/SmartFollowCamera.jsx
 import { useFrame, useThree } from '@react-three/fiber';
-import { useRef, useMemo, useEffect } from 'react';
-import { Vector3, Spherical } from 'three';
+import { useRef } from 'react';
+import { Vector3 } from 'three';
 import useGameStore from '../hooks/useGameStore';
 
 /**
  * SmartFollowCamera
  * 
  * followMode = true:
- *   - Orbita ao redor do player com mouse
- *   - Quando player se move, a câmera rotaciona automaticamente para trás dele
+ *   - Câmera orbita suavemente para ficar atrás do jogador baseado na direção do movimento
+ *   - SINCORNIZA com a posição atual da câmera ao ativar o modo
+ *   - O movimento do jogador (Player.jsx) já usa camera.getWorldDirection()
+ *   - Portanto a câmera influencia a direção do movimento
  * 
  * followMode = false (livre):
- *   - Orbita livremente como OrbitControls
- *   - Porém, se a distância do player exceder `maxDistance`, a câmera é puxada de volta
- *   - Se o ângulo vertical ficar muito alto (acima do player), também corrige
+ *   - NÃO mexe em rotação (OrbitControls assume)
+ *   - Só verifica distância: se ultrapassar maxDistanceLimite, puxa de volta
+ *   - SEM lookAt para não conflitar com OrbitControls
  */
 export const SmartFollowCamera = ({
-  maxDistance = 18,
+  maxDistanceLimite = 20,
   minDistance = 3,
   defaultDistance = 10,
-  minPolarAngle = 0.2,    // ângulo mínimo (radianos) - impede de ir acima demais
-  maxPolarAngle = Math.PI / 2.2, // ângulo máximo
-  autoRotateSpeed = 2.0,  // velocidade com que rotaciona atrás do player
-  dampingFactor = 0.08,
+  minPolarAngle = 0.1,
+  maxPolarAngle = Math.PI / 2.5,
+  autoRotateSpeed = 1.5,
   distanceClampSpeed = 3.0,
 }) => {
-  const { camera, gl } = useThree();
+  const { camera } = useThree();
   const playerPosition = useGameStore((s) => s.playerPosition);
   const followMode = useGameStore((s) => s.followMode);
   const movementDirection = useGameStore((s) => s.movementDirection);
 
-  // Estado interno da câmera esférica
-  const spherical = useRef(new Spherical(defaultDistance, Math.PI / 3, 0));
   const target = useRef(new Vector3(0, 0, 0));
-  const isDragging = useRef(false);
-  const prevMouse = useRef({ x: 0, y: 0 });
-
-  // Offset de altura do target (para olhar um pouco acima dos pés)
   const targetHeight = 0.8;
+
+  // Estado da câmera esférica para follow mode
+  const theta = useRef(0);
+  const phi = useRef(Math.PI / 4);
+  const radius = useRef(defaultDistance);
 
   // Saber se o player está se movendo
   const isMoving = useRef(false);
   const lastMoveTime = useRef(0);
 
-  useEffect(() => {
-    // Mouse events no canvas
-    const canvas = gl.domElement;
-
-    const onMouseDown = (e) => {
-      isDragging.current = true;
-      prevMouse.current = { x: e.clientX, y: e.clientY };
-    };
-
-    const onMouseMove = (e) => {
-      if (!isDragging.current) return;
-
-      const dx = e.clientX - prevMouse.current.x;
-      const dy = e.clientY - prevMouse.current.y;
-      prevMouse.current = { x: e.clientX, y: e.clientY };
-
-      // Rotação horizontal (azimuth)
-      spherical.current.theta -= dx * 0.005;
-      // Rotação vertical (polar)
-      spherical.current.phi = Math.max(
-        minPolarAngle,
-        Math.min(maxPolarAngle, spherical.current.phi - dy * 0.005)
-      );
-    };
-
-    const onMouseUp = () => {
-      isDragging.current = false;
-    };
-
-    // Zoom com scroll
-    const onWheel = (e) => {
-      const delta = e.deltaY * 0.01;
-      spherical.current.radius = Math.max(
-        minDistance,
-        Math.min(maxDistance, spherical.current.radius + delta)
-      );
-    };
-
-    // Touch events para mobile
-    const onTouchStart = (e) => {
-      if (e.touches.length === 1) {
-        isDragging.current = true;
-        prevMouse.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      }
-    };
-
-    const onTouchMove = (e) => {
-      if (!isDragging.current || e.touches.length !== 1) return;
-      const dx = e.touches[0].clientX - prevMouse.current.x;
-      const dy = e.touches[0].clientY - prevMouse.current.y;
-      prevMouse.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-
-      spherical.current.theta -= dx * 0.005;
-      spherical.current.phi = Math.max(
-        minPolarAngle,
-        Math.min(maxPolarAngle, spherical.current.phi - dy * 0.005)
-      );
-    };
-
-    const onTouchEnd = () => {
-      isDragging.current = false;
-    };
-
-    canvas.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    canvas.addEventListener('wheel', onWheel, { passive: true });
-    canvas.addEventListener('touchstart', onTouchStart, { passive: true });
-    canvas.addEventListener('touchmove', onTouchMove, { passive: true });
-    canvas.addEventListener('touchend', onTouchEnd);
-
-    return () => {
-      canvas.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      canvas.removeEventListener('wheel', onWheel);
-      canvas.removeEventListener('touchstart', onTouchStart);
-      canvas.removeEventListener('touchmove', onTouchMove);
-      canvas.removeEventListener('touchend', onTouchEnd);
-    };
-  }, [gl, minPolarAngle, maxPolarAngle, minDistance, maxDistance]);
+  // 🔥 Sincroniza coordenadas esféricas com a posição real da câmera quando entrar no follow mode
+  const wasFollowMode = useRef(false);
 
   useFrame(() => {
     if (!playerPosition) return;
 
-    // Atualiza target (posição do player)
     target.current.set(playerPosition.x, playerPosition.y + targetHeight, playerPosition.z);
 
-    // Detecta se o player está se movendo
     const now = performance.now();
     if (movementDirection) {
       isMoving.current = true;
       lastMoveTime.current = now;
-    } else if (now - lastMoveTime.current > 200) {
+    } else if (now - lastMoveTime.current > 300) {
       isMoving.current = false;
     }
 
     if (followMode) {
-      // --- FOLLOW MODE ---
-      // Se o player está se movendo, auto-rotaciona câmera para trás dele
+      // 🔥 Sincroniza com a posição real da câmera ao ATIVAR follow mode
+      if (!wasFollowMode.current) {
+        const offset = new Vector3().copy(camera.position);
+        offset.sub(new Vector3(playerPosition.x, playerPosition.y + targetHeight, playerPosition.z));
+        radius.current = Math.max(minDistance, Math.min(maxDistanceLimite, offset.length()));
+        if (offset.length() > 0.001) {
+          theta.current = Math.atan2(offset.x, offset.z);
+          phi.current = Math.acos(Math.max(-1, Math.min(1, offset.y / offset.length())));
+          phi.current = Math.max(minPolarAngle, Math.min(maxPolarAngle, phi.current));
+        }
+        wasFollowMode.current = true;
+      }
+
+      // ===== FOLLOW MODE =====
+      // Se o player está se movendo, calcula o ângulo desejado baseado na DIREÇÃO DO MOVIMENTO
       if (isMoving.current && movementDirection) {
-        // Calcula o ângulo da direção do movimento
         let moveAngle = 0;
         switch (movementDirection) {
           case 'forward': moveAngle = 0; break;
@@ -154,40 +85,39 @@ export const SmartFollowCamera = ({
           case 'right': moveAngle = -Math.PI / 2; break;
         }
 
-        // A câmera deve ficar atrás do jogador (oposto da direção)
-        const desiredTheta = moveAngle;
-        
+        // Ângulo desejado para a câmera (atrás do jogador)
+        const desiredTheta = moveAngle + Math.PI;
+
         // Interpola suavemente para o ângulo desejado
-        const diff = desiredTheta - spherical.current.theta;
-        // Normaliza diff para o menor caminho
+        const diff = desiredTheta - theta.current;
         let shortest = ((diff % (Math.PI * 2)) + (Math.PI * 3)) % (Math.PI * 2) - Math.PI;
-        spherical.current.theta += shortest * autoRotateSpeed * 0.02;
+        theta.current += shortest * 0.04 * autoRotateSpeed;
       }
+
+      // Aplica posição esférica à câmera
+      const offset = new Vector3();
+      offset.x = radius.current * Math.sin(phi.current) * Math.sin(theta.current);
+      offset.y = radius.current * Math.cos(phi.current);
+      offset.z = radius.current * Math.sin(phi.current) * Math.cos(theta.current);
+
+      camera.position.copy(target.current).add(offset);
+      camera.lookAt(target.current);
+
     } else {
-      // --- MODO LIVRE (com limite de distância) ---
-      // Se o jogador está muito longe, puxa a câmera de volta
+      // ===== MODO LIVRE / OFF =====
+      wasFollowMode.current = false;
+
       const cameraPos = camera.position;
       const distToPlayer = cameraPos.distanceTo(target.current);
-      
-      if (distToPlayer > maxDistance * 1.3) {
-        // Puxa suavemente o raio para o limite
-        spherical.current.radius = Math.max(
-          minDistance,
-          Math.min(maxDistance, spherical.current.radius - distanceClampSpeed * 0.02)
-        );
+
+      if (distToPlayer > maxDistanceLimite) {
+        // Puxa a câmera de volta na MESMA direção
+        const dir = new Vector3().copy(cameraPos).sub(target.current).normalize();
+        const newPos = target.current.clone().add(dir.multiplyScalar(maxDistanceLimite * 0.9));
+        camera.position.lerp(newPos, 0.03);
+        // NÃO faz lookAt - OrbitControls cuida disso
       }
     }
-
-    // Aplica posição esférica à câmera
-    const offset = new Vector3();
-    offset.setFromSpherical(spherical.current);
-    camera.position.copy(target.current).add(offset);
-
-    // Olha para o target
-    camera.lookAt(target.current);
-
-    // Aplica damping suave na posição (opcional - para movimento mais fluido)
-    // Não fazemos damping aqui porque os controles de mouse já são suaves
   });
 
   return null;
