@@ -1,5 +1,4 @@
-// src/components/AvatarPlayer.jsx
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { RigidBody, CapsuleCollider } from '@react-three/rapier';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
@@ -10,23 +9,27 @@ import { EquipmentAttachment } from './equipment/EquipmentAttachment';
 const AVATAR_MODEL_PATH = '/models/avatar/body.glb';
 const HAIR_BASE_PATH = '/models/avatar/hair/hair-';
 
-// 🔥 ESCALA
 const AVATAR_SCALE = 0.006;
 
-// 🔥 POSIÇÕES ORIGINAIS DO CABELO
 const HAIR_POSITIONS = {
-  0: { y: -175.1 },  // Cabelo 1
-  1: { y: -195.1 },  // Cabelo 2
-  2: { y: -195.1 },  // Cabelo 3
-  3: { y: -195.1 },  // Cabelo 4
-  4: { y: -180.1 },  // Cabelo 5
-  5: { y: -195.1 },  // Cabelo 6
-  6: { y: -175.1 }   // Cabelo 7
+  0: { y: -175.1 },
+  1: { y: -195.1 },
+  2: { y: -195.1 },
+  3: { y: -195.1 },
+  4: { y: -180.1 },
+  5: { y: -195.1 },
+  6: { y: -175.1 }
 };
 
-// 🔥 AJUSTE DO CABELO (subir no Y)
 const HAIR_Y_OFFSET = -10;
 const HAIR_SCALE_FACTOR = 0.8;
+
+// 🔥 CONSTANTE PARA ALTURA DO CHÃO (MESMA DA MONTARIA)
+const GROUND_OFFSET = 0.01;
+
+// 🔥 POSIÇÃO VISUAL DO PLAYER NO CHÃO
+const VISUAL_OFFSET_Y = -1.6;
+const VISUAL_OFFSET_Z = -0.1;
 
 export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const rigidBodyRef = useRef();
@@ -45,13 +48,18 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const setPlayerPosition = useGameStore((state) => state.setPlayerPosition);
   const playerHealth = useGameStore((state) => state.playerHealth);
   const isDead = playerHealth <= 0;
+  
+  const mount = useGameStore((s) => s.mount);
+  const mountRotation = useGameStore((s) => s.mountRotation);
+  const isMounted = !!mount?.isActive;
 
-  // 🔥 EQUIPAMENTOS
   const equippedItems = useGameStore(state => state.equippedItems);
 
-  // 🔥 Ref para controlar tentativas de desengate
   const stuckAttempts = useRef(0);
   const lastStuckTime = useRef(0);
+  const frameCounter = useRef(0);
+  const isFallingRef = useRef(false);
+  const wasMountedRef = useRef(false);
 
   const { scene: bodyScene, animations } = useGLTF(AVATAR_MODEL_PATH);
   
@@ -123,7 +131,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     });
   }, [hairModelRef, avatarConfig]);
 
-  // 🔥 POSICIONA O CABELO NO OSSO DA CABEÇA
   useEffect(() => {
     if (!bodyModelRef.current || !hairModelRef.current) return;
     
@@ -154,160 +161,149 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return () => setPlayerRigidBody(null);
   }, [setPlayerRigidBody]);
 
-  // 🔥 FUNÇÃO PARA AJUSTAR AO CHÃO
-  const findGroundAndAdjust = () => {
-    if (!rigidBodyRef.current || !worldGroupRef?.current || isAdjusting) return;
-    setIsAdjusting(true);
+  // 🔥 DESATIVA A FÍSICA DO PLAYER QUANDO MONTADO
+  useEffect(() => {
+    if (!rigidBodyRef.current) return;
+    rigidBodyRef.current.setEnabled(!isMounted);
+    if (isMounted) {
+      const mountPos = useGameStore.getState().playerPosition;
+      if (mountPos) {
+        rigidBodyRef.current.setTranslation(
+          { x: mountPos.x, y: mountPos.y, z: mountPos.z },
+          true
+        );
+        rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      }
+    }
+  }, [isMounted]);
 
-    const currentPos = rigidBodyRef.current.translation();
+  // 🔥 FUNÇÃO PARA ENCONTRAR O CHÃO (MESMA DA MONTARIA)
+  const findGroundY = useCallback((x, z) => {
+    if (!worldGroupRef?.current) return null;
+    
     const raycaster = new Raycaster();
+    const origin = new Vector3(x, 100, z);
+    const direction = new Vector3(0, -1, 0);
+    raycaster.set(origin, direction);
+    raycaster.far = 200;
 
-    const tryFindGround = (startY) => {
-      return new Promise((resolve) => {
-        let foundGround = false;
-        let groundY = null;
-
-        for (let yOffset = 0; yOffset <= 120; yOffset += 5) {
-          const origin = new Vector3(currentPos.x, startY + yOffset, currentPos.z);
-          const direction = new Vector3(0, -1, 0);
-          raycaster.set(origin, direction);
-
-          const allObjects = [];
-          const collectObjects = (obj) => {
-            if (obj.isMesh && obj.visible) allObjects.push(obj);
-            if (obj.children) obj.children.forEach(child => collectObjects(child));
-          };
-
-          if (worldGroupRef.current) collectObjects(worldGroupRef.current);
-
-          for (const obj of allObjects) {
-            const intersects = raycaster.intersectObject(obj, true);
-            if (intersects.length > 0) {
-              const hitPoint = intersects[0].point;
-              if (groundY === null || hitPoint.y > groundY) {
-                groundY = hitPoint.y;
-                foundGround = true;
-              }
-            }
-          }
-
-          if (foundGround) break;
-        }
-
-        resolve({ foundGround, groundY });
-      });
+    const allObjects = [];
+    const collectObjects = (obj) => {
+      if (obj.isMesh && obj.visible) allObjects.push(obj);
+      if (obj.children) obj.children.forEach(child => collectObjects(child));
     };
 
-    const epsilon = 0.015;
+    if (worldGroupRef.current) collectObjects(worldGroupRef.current);
 
-    tryFindGround(currentPos.y).then(({ foundGround, groundY }) => {
-      if (foundGround && groundY !== null) {
-        const vel = rigidBodyRef.current.linvel();
-        const horizontalSpeed = Math.sqrt((vel.x * vel.x) + (vel.z * vel.z));
-        const CONTACT_EPSILON = 0.02;
-        const targetY = groundY + CONTACT_EPSILON;
-        const currentY = currentPos.y;
-        const delta = targetY - currentY;
-        const deltaAbs = Math.abs(delta);
-        const snapDistance = 0.1;
-        const shouldForceSnap = deltaAbs > snapDistance;
-        const speedThreshold = 0.05;
-        const shouldSnapY = horizontalSpeed < speedThreshold;
+    let closestHit = null;
+    let closestDist = Infinity;
 
-        if (deltaAbs > epsilon && (shouldForceSnap || shouldSnapY)) {
-          rigidBodyRef.current.setTranslation(
-            { x: currentPos.x, y: targetY, z: currentPos.z },
-            true
-          );
-        }
-      } else {
-        const newY = currentPos.y + 0.1;
-        rigidBodyRef.current.setTranslation({ x: currentPos.x, y: newY, z: currentPos.z }, true);
-        setTimeout(() => {
-          setIsAdjusting(false);
-          findGroundAndAdjust();
-        }, 500);
-        return;
+    for (const obj of allObjects) {
+      const intersects = raycaster.intersectObject(obj, true);
+      if (intersects.length > 0 && intersects[0].distance < closestDist) {
+        closestDist = intersects[0].distance;
+        closestHit = intersects[0];
       }
+    }
 
-      setIsAdjusting(false);
-    });
-  };
+    if (closestHit) {
+      return closestHit.point.y;
+    }
+    return null;
+  }, [worldGroupRef]);
 
-  // 🔥 FUNÇÃO PARA DETECTAR E RESOLVER TRAVAMENTO EM QUINAS
-  const checkAndResolveStuck = () => {
-    if (!rigidBodyRef.current) return;
+  // 🔥 FUNÇÃO PARA FORÇAR O PLAYER AO CHÃO (IGUAL À MONTARIA)
+  const forceSnapToGround = useCallback(() => {
+    if (!rigidBodyRef.current || isMounted) return;
+    
+    const currentPos = rigidBodyRef.current.translation();
+    const groundY = findGroundY(currentPos.x, currentPos.z);
+    
+    if (groundY !== null) {
+      const targetY = groundY + GROUND_OFFSET;
+      
+      rigidBodyRef.current.setTranslation(
+        { x: currentPos.x, y: targetY, z: currentPos.z },
+        true
+      );
+      rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      setPlayerPosition({ x: currentPos.x, y: targetY, z: currentPos.z });
+      
+      console.log(`🔧 Forçado ao chão: Y=${targetY.toFixed(4)}`);
+      return true;
+    }
+    return false;
+  }, [isMounted, findGroundY, setPlayerPosition]);
+
+  // 🔥 EXPÕE A FUNÇÃO PARA O BOTÃO DE DEBUG
+  useEffect(() => {
+    window.forceSnapToGround = forceSnapToGround;
+    return () => { delete window.forceSnapToGround; };
+  }, [forceSnapToGround]);
+
+  // 🔥 QUANDO DESMONTA DO CAVALO - FORÇA AJUSTE AO CHÃO (IGUAL À MONTARIA)
+  useEffect(() => {
+    if (!isMounted && wasMountedRef.current) {
+      // 🔥 ACABOU DE DESMONTAR - FORÇA AJUSTE AO CHÃO IGUAL À MONTARIA
+      console.log('🔧 Desmontou do cavalo - ajustando ao chão...');
+      setTimeout(() => {
+        forceSnapToGround();
+      }, 50);
+    }
+    wasMountedRef.current = isMounted;
+  }, [isMounted, forceSnapToGround]);
+
+  // 🔥 VERIFICAÇÃO PERIÓDICA A CADA 3 SEGUNDOS (IGUAL À MONTARIA)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (rigidBodyRef.current && !isAdjusting && !loadingAvatar && !isMounted) {
+        const pos = rigidBodyRef.current.translation();
+        // 🔥 SE O PLAYER ESTIVER FLUTUANDO (Y > 1), FORÇA AJUSTE
+        if (pos.y > 1) {
+          console.log('🔄 Verificação periódica (3s): ajustando player ao chão...');
+          forceSnapToGround();
+        }
+      }
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [loadingAvatar, isAdjusting, isMounted, forceSnapToGround]);
+
+  // 🔥 DETECTA QUEDA E AJUSTA AO CHÃO
+  useFrame(() => {
+    if (!rigidBodyRef.current || loadingAvatar || isMounted) return;
     
     const vel = rigidBodyRef.current.linvel();
-    const horizontalSpeed = Math.sqrt((vel.x * vel.x) + (vel.z * vel.z));
-    const isMoving = moveDir.current.x !== 0 || moveDir.current.z !== 0;
-    
-    if (isMoving && horizontalSpeed < 0.01) {
-      const now = Date.now();
-      
-      if (now - lastStuckTime.current < 100) return;
-      lastStuckTime.current = now;
-      
-      stuckAttempts.current += 1;
-      
-      if (stuckAttempts.current >= 3) {
-        rigidBodyRef.current.setLinvel({ 
-          x: vel.x * 0.5, 
-          y: 0.5, 
-          z: vel.z * 0.5 
-        }, true);
-        
-        stuckAttempts.current = 0;
-      }
-    } else {
-      stuckAttempts.current = 0;
-    }
-  };
-
-  // 🔥 CHAMADA INICIAL E QUANDO A CENA MUDA
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (rigidBodyRef.current && worldGroupRef?.current) {
-        findGroundAndAdjust();
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [currentScene, worldGroupRef]);
-
-  // 🔥 VERIFICAÇÃO CONTÍNUA
-  useFrame(() => {
-    if (!rigidBodyRef.current || isAdjusting) return;
     const pos = rigidBodyRef.current.translation();
     
-    checkAndResolveStuck();
+    if (vel.y < -2 && pos.y > 2) {
+      isFallingRef.current = true;
+    }
     
-    if (pos.y < -10) {
-      findGroundAndAdjust();
+    if (isFallingRef.current && Math.abs(vel.y) < 0.05) {
+      isFallingRef.current = false;
+      forceSnapToGround();
     }
   });
 
-  // 🔥 VERIFICAÇÃO PERIÓDICA
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (rigidBodyRef.current && !isAdjusting && !loadingAvatar) {
-        const pos = rigidBodyRef.current.translation();
-        if (pos.y > 1) {
-          findGroundAndAdjust();
-        }
-      }
-    }, 2000);
-    
-    return () => clearInterval(interval);
-  }, [loadingAvatar, isAdjusting]);
-
   useFrame(({ camera }) => {
     if (!rigidBodyRef.current || loadingAvatar) return;
+    frameCounter.current++;
+
+    if (isMounted) {
+      playAnimation('idle2');
+      if (visualRef.current) {
+        visualRef.current.rotation.y = mountRotation;
+      }
+      return;
+    }
+
     const position = rigidBodyRef.current.translation();
     setPlayerPosition({ x: position.x, y: position.y, z: position.z });
 
     const { x: dx, z: dz } = moveDir.current;
     const currentVel = rigidBodyRef.current.linvel();
-    const grounded = Math.abs(currentVel.y) < 0.1;
+    const grounded = Math.abs(currentVel.y) < 0.05;
     setIsGrounded(grounded);
     const isMoving = dx !== 0 || dz !== 0;
     
@@ -341,7 +337,50 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
         visualRef.current.rotation.y = angle;
       }
     }
+
+    // 🔥 AJUSTA CHÃO A CADA 30 FRAMES
+    if (frameCounter.current % 30 === 0 && grounded && !isFallingRef.current) {
+      forceSnapToGround();
+    }
+
+    // 🔥 VERIFICA SE ESTÁ PRESO
+    if (frameCounter.current % 60 === 0) {
+      const vel = rigidBodyRef.current.linvel();
+      const horizontalSpeed = Math.sqrt((vel.x * vel.x) + (vel.z * vel.z));
+      const isMovingCheck = moveDir.current.x !== 0 || moveDir.current.z !== 0;
+      
+      if (isMovingCheck && horizontalSpeed < 0.01 && grounded) {
+        const now = Date.now();
+        if (now - lastStuckTime.current > 100) {
+          lastStuckTime.current = now;
+          stuckAttempts.current += 1;
+          if (stuckAttempts.current >= 3) {
+            const snapResult = forceSnapToGround();
+            if (!snapResult) {
+              rigidBodyRef.current.setLinvel({ 
+                x: vel.x * 0.5, 
+                y: 0.5, 
+                z: vel.z * 0.5 
+              }, true);
+            }
+            stuckAttempts.current = 0;
+          }
+        }
+      } else {
+        stuckAttempts.current = 0;
+      }
+    }
   });
+
+  // 🔥 AJUSTE INICIAL E QUANDO A CENA MUDA
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (rigidBodyRef.current && worldGroupRef?.current && !isMounted) {
+        forceSnapToGround();
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [currentScene, worldGroupRef, isMounted, forceSnapToGround]);
 
   if (loadingAvatar) {
     return (
@@ -359,7 +398,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     <RigidBody
       ref={rigidBodyRef}
       mass={1}
-      position={[0, 50, 0]}
+      position={[0, 20, 0]}
       linearDamping={0.5}
       enabledRotations={[false, false, false]}
     >
@@ -375,14 +414,22 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
           />
         )}
         
-        <group ref={visualRef} scale={AVATAR_SCALE} position={[0, -0.7, 0]}>
+        {/* 🔥 VISUAL COM OFFSET APENAS QUANDO NÃO ESTÁ MONTADO */}
+        <group 
+          ref={visualRef} 
+          scale={AVATAR_SCALE} 
+          position={[
+            0, 
+            isMounted ? 0 : VISUAL_OFFSET_Y, 
+            isMounted ? 0 : VISUAL_OFFSET_Z
+          ]}
+        >
           <primitive object={bodyScene} ref={bodyModelRef} />
           
           {hairIndex >= 0 && hairScene && (
             <primitive object={hairScene} ref={hairModelRef} />
           )}
 
-          {/* 🔥 EQUIPAMENTOS VISÍVEIS */}
           {bodyModelRef.current && (
             <>
               {equippedItems.weapon && (

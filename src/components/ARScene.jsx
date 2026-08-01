@@ -1,4 +1,3 @@
-// src/components/ARScene.jsx
 import { useRef, useEffect, useState } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -26,6 +25,7 @@ import { DROPPED_ITEMS } from '../config/droppedItems';
 import { QuestNPC } from './quests/QuestNPC';
 import { Pet } from './pets/Pet';
 //import { PetMenu } from './pets/PetMenu';
+import { Mount } from './mounts/Mount';
 
 const weatherNames = {
   clear: '☀️ Claro',
@@ -143,10 +143,66 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
     ));
   };
 
+  // 🔥 FUNÇÃO DE TELEPORTE CORRIGIDA
   const teleportUp = () => {
     if (!playerRigidBody) return;
     const pos = playerRigidBody.translation();
+    
+    // 🔥 TELEPORTA PARA CIMA
     playerRigidBody.setTranslation({ x: pos.x, y: pos.y + 10, z: pos.z }, true);
+    playerRigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    
+    // 🔥 AGUARDA A QUEDA E AJUSTA AO CHÃO
+    setTimeout(() => {
+      // Tenta usar a função forceSnapToGround se disponível
+      if (window.forceSnapToGround) {
+        console.log('🔧 Forçando ajuste ao chão após teleporte...');
+        window.forceSnapToGround();
+      } else {
+        // Fallback: tenta encontrar o chão manualmente
+        try {
+          const currentPos = playerRigidBody.translation();
+          const raycaster = new THREE.Raycaster();
+          const origin = new THREE.Vector3(currentPos.x, 100, currentPos.z);
+          const direction = new THREE.Vector3(0, -1, 0);
+          raycaster.set(origin, direction);
+          raycaster.far = 200;
+
+          const allObjects = [];
+          const collectObjects = (obj) => {
+            if (obj.isMesh && obj.visible) allObjects.push(obj);
+            if (obj.children) obj.children.forEach(child => collectObjects(child));
+          };
+
+          if (worldGroupRef.current) collectObjects(worldGroupRef.current);
+
+          let closestHit = null;
+          let closestDist = Infinity;
+
+          for (const obj of allObjects) {
+            const intersects = raycaster.intersectObject(obj, true);
+            if (intersects.length > 0 && intersects[0].distance < closestDist) {
+              closestDist = intersects[0].distance;
+              closestHit = intersects[0];
+            }
+          }
+
+          if (closestHit) {
+            const groundY = closestHit.point.y;
+            const targetY = groundY + 0.01; // GROUND_OFFSET
+            playerRigidBody.setTranslation(
+              { x: currentPos.x, y: targetY, z: currentPos.z },
+              true
+            );
+            playerRigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+            setPlayerPosition({ x: currentPos.x, y: targetY, z: currentPos.z });
+            console.log(`🔧 Ajustado ao chão: Y=${targetY.toFixed(3)}`);
+          }
+        } catch (e) {
+          console.warn('Erro ao ajustar chão:', e);
+        }
+      }
+    }, 1500); // Aguarda 1.5 segundos para a queda
   };
 
   const heightmap = sceneData?.terrainParams?.heightmap;
@@ -216,17 +272,17 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
           <WaterExperience key={water.id} obj={water} />
         ))}
 
-        <OptimizedRenderer radius={40}>
+        <OptimizedRenderer radius={30}>
           <EnemySpawner currentScene={currentScene} />
         </OptimizedRenderer>
 
-        <OptimizedRenderer radius={22}>
+        <OptimizedRenderer radius={15}>
           {renderItemsByScene()}
         </OptimizedRenderer>
 
         {renderDroppedItems()}
 
-        <OptimizedRenderer radius={26}>
+        <OptimizedRenderer radius={20}>
           {renderNPCsFromJSON()}
         </OptimizedRenderer>
 
@@ -240,6 +296,7 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
         ) : (
           <Player />
         )}
+        <Mount />
       </group>
 
 {cloud.enabled && (

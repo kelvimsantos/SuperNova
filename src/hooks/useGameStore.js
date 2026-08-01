@@ -320,7 +320,28 @@ const useGameStore = create((set, get) => ({
   lightDir: new THREE.Vector3(0.5, 0.8, 0.3),
   lightIntensity: 1.0,
   setLight: (dir, intensity) => set({ lightDir: dir.clone(), lightIntensity: intensity }),
+
+  // 🔥 SISTEMA DE MONTARIA
+mount: { isActive: false, type: 'horse' },
+mountMoveDir: { x: 0, z: 0 },
+mountRotation: 0,
+mountRotationRef: { current: 0 },
+
+mountSummon: () => set((state) => ({
+  mount: { ...state.mount, isActive: true },
+})),
+mountStore: () => set((state) => ({
+  mount: { ...state.mount, isActive: false },
+})),
+setMountType: (type) => set((state) => ({
+  mount: { ...state.mount, type },
+})),
+setMountMoveDir: (dir) => set({ mountMoveDir: dir }),
+setMountRotation: (rot) => set({ mountRotation: rot }),
+
 }));
+
+
 
 
 export default useGameStore;

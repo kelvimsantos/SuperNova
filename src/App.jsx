@@ -31,6 +31,7 @@ import { SmartFollowCamera } from './components/SmartFollowCamera';
 import DynamicFogController from './components/rendering/DynamicFogController';
 import RadialFarFade from './components/rendering/RadialFarFade';
 import './App.css';
+import { MountMenu } from './components/mounts/MountMenu';
 
 const loadingTips = [
   '💡 Use [E] ou [I] para abrir o inventário',
@@ -191,7 +192,8 @@ function App() {
       <QuestMenu />
       <QuestDialogGlobal />
       <SaveMenu />
-      
+      <MountMenu />
+
       <KeyboardControls />
       <JoystickVisual side="left" />
       <JoystickVisual side="right" />
@@ -199,7 +201,7 @@ function App() {
 
       <Canvas
         shadows
-        camera={{ position: [8, 6, 12], fov: 60, far: 25, near: 0.5 }}
+        camera={{ position: [8, 6, 12], fov: 60, far: 35, near: 0.5 }}
         style={{
           width: '100vw',
           height: '100vh',
@@ -209,7 +211,7 @@ function App() {
           zIndex: 1,
         }}
       >
-        <ambientLight intensity={0.2} />
+        <ambientLight intensity={0.05} />
         
         <Physics gravity={[0, -9.81, 0]}>
           <ARScene 
