@@ -301,13 +301,9 @@ const useGameStore = create((set, get) => ({
       if (saved === 'light' || saved === 'full') return saved;
     } catch (e) {}
 
-    // mobile default = light
-    try {
-      const isMobile = window.matchMedia?.('(pointer: coarse)').matches || window.innerWidth < 768;
-      return isMobile ? 'light' : 'full';
-    } catch (e) {
-      return 'full';
-    }
+    // Padrão de fábrica = light (simples, mais performático).
+    // 'full' vira opt-in (usuário escolhe no menu/configurações).
+    return 'light';
   })(),
   setWaterMode: (mode) => set(() => {
     try {
@@ -316,10 +312,18 @@ const useGameStore = create((set, get) => ({
     return { waterMode: mode };
   }),
 
-  // 🔥 LUZ
+// 🔥 SISTEMA DE LUZ (objetos cacheados para evitar new a cada frame)
+  _lightDirCache: new THREE.Vector3(0.5, 0.8, 0.3),
+  _lightIntensityCache: 1.0,
   lightDir: new THREE.Vector3(0.5, 0.8, 0.3),
   lightIntensity: 1.0,
-  setLight: (dir, intensity) => set({ lightDir: dir.clone(), lightIntensity: intensity }),
+  setLight: (dir, intensity) => {
+    const cache = get()._lightDirCache;
+    if (cache.distanceTo(dir) < 0.001 && Math.abs(get()._lightIntensityCache - intensity) < 0.001) return;
+    cache.copy(dir);
+    get()._lightIntensityCache = intensity;
+    set({ lightDir: dir.clone(), lightIntensity: intensity });
+  },
 
   // 🔥 SISTEMA DE MONTARIA
 mount: { isActive: false, type: 'horse' },

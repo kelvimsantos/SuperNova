@@ -125,7 +125,7 @@ const snowFragmentShader = `
 
 const particleTypes = {
   rain: {
-    count: 3500,
+    count: 1800,
     color: [0.55, 0.75, 0.98],
     speed: 0.32,
     size: 0.14,
@@ -136,7 +136,7 @@ const particleTypes = {
     yMax: 38.0,
   },
   heavyRain: {
-    count: 5000,
+    count: 2500,
     color: [0.50, 0.70, 0.95],
     speed: 0.38,
     size: 0.15,
@@ -147,7 +147,7 @@ const particleTypes = {
     yMax: 38.0,
   },
   snow: {
-    count: 2200,
+    count: 1200,
     color: [0.96, 0.98, 1.00],
     speed: 0.08,
     size: 0.35,
@@ -157,7 +157,7 @@ const particleTypes = {
     yMax: 36.0,
   },
   blizzard: {
-    count: 3000,
+    count: 1600,
     color: [0.94, 0.97, 1.00],
     speed: 0.12,
     size: 0.24,

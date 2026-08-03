@@ -148,10 +148,9 @@ export const VolumetricClouds = ({
   const texture = useMemo(() => createNoiseTexture3D(), []);
   const timeRef = useRef(0);
   const offsetRef = useRef(new THREE.Vector3(0, 0, 0));
-  const qualityRef = useRef(64);
+const qualityRef = useRef(24);
   
   const material = useMemo(() => {
-    console.log('🎨 Criando nuvem branca densa...');
     return new THREE.ShaderMaterial({
       uniforms: {
         uVolumeTexture: { value: texture },
@@ -160,7 +159,7 @@ export const VolumetricClouds = ({
         uTextureOffset: { value: new THREE.Vector3(0, 0, 0) },
         uTextureTiling: { value: tiling },
         cameraPos: { value: camera.position },
-        uQuality: { value: 64 },
+        uQuality: { value: 24 },
       },
       vertexShader,
       fragmentShader,
@@ -188,13 +187,13 @@ export const VolumetricClouds = ({
       }
     }
     
-    // ===== LOD POR DISTÂNCIA =====
+// ===== LOD POR DISTÂNCIA (máx 16, mínimo 8) =====
     const distToCamera = camera.position.distanceTo(meshRef.current.position);
-    let quality = 64;
-    if (distToCamera < 15) quality = 64;
-    else if (distToCamera < 30) quality = 56;
-    else if (distToCamera < 50) quality = 48;
-    else quality = 40;
+    let quality = 16;
+    if (distToCamera < 15) quality = 16;
+    else if (distToCamera < 30) quality = 12;
+    else if (distToCamera < 50) quality = 10;
+    else quality = 8;
     
     if (qualityRef.current !== quality) {
       qualityRef.current = quality;

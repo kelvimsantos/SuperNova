@@ -71,6 +71,7 @@ export const ItemPickup = ({
 
 
   // Detecção de proximidade e coleta (leve)
+  const isNearRef = useRef(false);
   useFrame(() => {
     if (!player || collected || collectingRef.current) return;
 
@@ -90,7 +91,12 @@ export const ItemPickup = ({
     // evita Math.sqrt (mais leve no celular)
     const dist2 = dx * dx + dy * dy + dz * dz;
 
-    setIsNear(dist2 < raioInteracao * raioInteracao);
+    // 🔥 Só seta estado React quando muda de fato (evita re-render por frame)
+    const near = dist2 < raioInteracao * raioInteracao;
+    if (isNearRef.current !== near) {
+      isNearRef.current = near;
+      setIsNear(near);
+    }
 
     // Coleta automática (lock anti-múltiplas chamadas na mesma proximidade)
     if (dist2 < 1.2 * 1.2) {

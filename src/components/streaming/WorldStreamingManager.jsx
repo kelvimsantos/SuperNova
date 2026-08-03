@@ -35,7 +35,11 @@ export function WorldStreamingManager({
 
   const chunkCentersRef = useRef(new Map());
 
-  const playerVec = useMemo(() => new Vector3(), []);
+const playerVec = useMemo(() => new Vector3(), []);
+  const playerXZVec = useMemo(() => new Vector3(), []);
+  const centerXZVec = useMemo(() => new Vector3(), []);
+  const hasChunks = useRef(false);
+
   useEffect(() => {
     // build index when worldScene available
     if (!worldScene) return;
@@ -57,13 +61,16 @@ export function WorldStreamingManager({
 
     const index = buildChunkIndexFromCandidates(candidates);
 
-    chunksRef.current = index;
-
-    // Se por algum motivo center não veio, loga um exemplo.
-    if (index.length > 0) {
-      const sample = index[0];
-      console.log('[WorldStreamingManager] sample chunk userData:', sample.userData);
+    // Se não tem chunks, desliga o streaming completamente
+    if (index.length === 0) {
+      console.log('[WorldStreamingManager] Nenhum chunk encontrado. Streaming desligado.');
+      hasChunks.current = false;
+      setIsReady(false);
+      return;
     }
+
+    hasChunks.current = true;
+    chunksRef.current = index;
 
     // Cache center
     const centers = new Map();
@@ -74,20 +81,13 @@ export function WorldStreamingManager({
     chunkCentersRef.current = centers;
 
     setIsReady(true);
-
-    // inicializa tudo como off (opcional) 
-    // mas não alteramos enquanto não temos playerPosition.
-    // eslint-disable-next-line no-console
-    console.log('[WorldStreamingManager] chunks found:', index.length, index.map((c) => c.name).slice(0, 30));
-
-
+    console.log('[WorldStreamingManager] chunks found:', index.length);
   }, [worldScene, mergedConfig.chunkNameRegex, debug]);
 
-  useEffect(() => {
-    if (!isReady) return;
+useEffect(() => {
+    if (!isReady || !hasChunks.current) return;
 
     const updateEveryMs = 1000 / mergedConfig.updateHz;
-    let lastPlayer = null;
 
     const tick = () => {
       // Preferir posição real do rigidbody (atualiza enquanto o player anda)
@@ -102,23 +102,26 @@ export function WorldStreamingManager({
       const player = playerVec;
       player.set(p.x || 0, p.y || 0, p.z || 0);
 
-
-      // Para isolar só XZ
-      const playerXZ = new Vector3(player.x, 0, player.z);
+      // Reusa Vector3 cacheados em vez de criar novos
+      const playerXZ = playerXZVec;
+      playerXZ.set(player.x, 0, player.z);
 
       const activeRadius = mergedConfig.activeRadiusMeters;
       const deactivateRadius = mergedConfig.deactivateRadiusMeters;
 
       const desiredActive = new Set();
+      const chunks = chunksRef.current;
+      const centers = chunkCentersRef.current;
 
-      for (const chunk of chunksRef.current) {
-        const center = chunkCentersRef.current.get(chunk.key);
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const center = centers.get(chunk.key);
         if (!center) continue;
 
-        const centerXZ = new Vector3(center.x, 0, center.z);
+        const centerXZ = centerXZVec;
+        centerXZ.set(center.x, 0, center.z);
         const d = distXZ(centerXZ, playerXZ);
 
-        // Histerese: se já está ativo, só desativa depois do deactivateRadius.
         const currentlyActive = activeKeysRef.current.has(chunk.key);
 
         if (currentlyActive) {
@@ -133,7 +136,7 @@ export function WorldStreamingManager({
 
       for (const key of previously) {
         if (!desiredActive.has(key)) {
-          const chunk = chunksRef.current.find((c) => c.key === key);
+          const chunk = chunks.find((c) => c.key === key);
           if (chunk) setChunkActive(chunk, { active: false, mode });
           previously.delete(key);
         }
@@ -141,25 +144,20 @@ export function WorldStreamingManager({
 
       for (const key of desiredActive) {
         if (!previously.has(key)) {
-          const chunk = chunksRef.current.find((c) => c.key === key);
+          const chunk = chunks.find((c) => c.key === key);
           if (chunk) setChunkActive(chunk, { active: true, mode });
           previously.add(key);
         }
       }
 
-
-      // Ajuste de render quando necessário
       invalidate();
-      lastPlayer = p;
     };
 
-    // intervalo (não por frame)
     const t = setInterval(tick, updateEveryMs);
-    // roda 1x imediatamente
     tick();
 
     return () => clearInterval(t);
-  }, [isReady, playerPosition, mergedConfig.activeRadiusMeters, mergedConfig.deactivateRadiusMeters, mergedConfig.updateHz, invalidate, mode, playerVec]);
+  }, [isReady, playerPosition, mergedConfig.activeRadiusMeters, mergedConfig.deactivateRadiusMeters, mergedConfig.updateHz, invalidate, mode, playerVec, playerXZVec, centerXZVec]);
 
   return null;
 }

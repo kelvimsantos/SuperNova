@@ -2,13 +2,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SlimeEnemy } from './SlimeEnemy';
 import { TestDummy } from '../TestDummy';
+import { ZombieHorde } from './ZombieHorde';
 
 // Configuração dos inimigos com IDs únicos
 const ENEMIES_CONFIG = {
   default: [
     { id: 'slime_1', type: 'slime', position: [3, 13, 3], health: 30, damage: 8, expReward: 50, dropItems: ['small_health_potion', 'golden_coin'] },
     { id: 'slime_2', type: 'slime', position: [6, 13, 2], health: 25, damage: 6, expReward: 40, dropItems: ['golden_coin'] },
-    { id: 'dummy_1', type: 'dummy', position: [8, 13, 5], dropItems: ['golden_coin', 'small_health_potion'] }
+    { id: 'dummy_1', type: 'dummy', position: [8, 13, 5], dropItems: ['golden_coin', 'small_health_potion'] },
+    { id: 'zombie_1', type: 'zombie', position: [14, 13, 10], health: 80, damage: 12, expReward: 120, dropItems: ['golden_coin', 'small_health_potion'] },
+    { id: 'zombie_2', type: 'zombie', position: [-12, 13, 8], health: 80, damage: 12, expReward: 120, dropItems: ['golden_coin', 'small_health_potion'] },
+    { id: 'zombie_3', type: 'zombie', position: [10, 13, -10], health: 80, damage: 12, expReward: 120, dropItems: ['golden_coin', 'small_health_potion'] }
   ],
   deserto: [
     { id: 'desert_slime_1', type: 'slime', position: [5, 15, 5], health: 40, damage: 12, expReward: 80, dropItems: ['golden_coin', 'small_health_potion'] },
@@ -83,6 +87,21 @@ export const EnemySpawner = ({ currentScene }) => {
         return null;
     }
   };
+
+  // 🔥 Zombies usam Object Pooling (ZombieHorde) — 1 modelo, N clones, 1 useFrame
+  const zombies = enemies.filter(e => e.type === 'zombie');
+  const nonZombies = enemies.filter(e => e.type !== 'zombie');
   
-  return <>{enemies.map(renderEnemy)}</>;
+  return (
+    <>
+      {nonZombies.map(renderEnemy)}
+      {zombies.length > 0 && (
+        <ZombieHorde
+          config={zombies}
+          count={zombies.length}
+          respawnDelay={3000}
+        />
+      )}
+    </>
+  );
 };

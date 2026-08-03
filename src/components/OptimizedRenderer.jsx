@@ -1,10 +1,14 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import useGameStore from '../hooks/useGameStore';
 
 /**
  * Componente que só renderiza objetos dentro de um raio do jogador
  * Use como wrapper nos objetos que quer otimizar
+ *
+ * 🔥 OTIMIZADO: lê `playerPosition` via getState() dentro do useFrame
+ * em vez de assinar com selector. Assinar o store aqui fazia o componente
+ * re-renderizar a CADA frame (porque Player atualiza playerPosition por frame).
  */
 export const OptimizedRenderer = ({ 
   children, 
@@ -13,10 +17,13 @@ export const OptimizedRenderer = ({
   enabled = true 
 }) => {
   const ref = useRef();
-  const playerPosition = useGameStore((state) => state.playerPosition);
   
   useFrame(() => {
-    if (!enabled || !ref.current || !playerPosition) return;
+    if (!enabled || !ref.current) return;
+    
+    // 🔥 getState() NÃO causa re-render (ao contrário de assinar com selector)
+    const playerPosition = useGameStore.getState().playerPosition;
+    if (!playerPosition) return;
     
     const dx = ref.current.position.x - playerPosition.x;
     const dz = ref.current.position.z - playerPosition.z;
@@ -30,3 +37,4 @@ export const OptimizedRenderer = ({
   
   return <group ref={ref}>{children}</group>;
 };
+

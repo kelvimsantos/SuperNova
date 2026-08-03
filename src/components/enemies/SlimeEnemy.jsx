@@ -11,6 +11,9 @@ const sharedSphereGeo = new THREE.SphereGeometry(0.6, 16, 16);
 const sharedEyeGeo = new THREE.SphereGeometry(0.12, 12, 12);
 const sharedPupilGeo = new THREE.SphereGeometry(0.06, 12, 12);
 const sharedOrbGeo = new THREE.SphereGeometry(0.15, 12, 12);
+// 🔥 Geometrias de HP bar (compartilhadas — não recriar a cada render)
+const sharedHpBgGeo = new THREE.BoxGeometry(1.2, 0.12, 0.1);
+const sharedHpFillGeo = new THREE.BoxGeometry(1.2, 0.12, 0.1);
 
 export const SlimeEnemy = ({
   id,
@@ -34,6 +37,8 @@ export const SlimeEnemy = ({
   const addToInventory = useGameStore(state => state.addToInventory);
   const addExp = useGameStore(state => state.addExp);
   const attackTimer = useRef(0);
+  // 🔥 isInRange em ref (evita re-render por frame; só re-render na transição)
+  const inRangeRef = useRef(false);
   
   // 🔥 Função para obter posição da câmera para o texto de dano
   const getScreenPosition = () => {
@@ -62,7 +67,12 @@ export const SlimeEnemy = ({
       const dz = playerPos.z - enemyPos.z;
       const distance = Math.sqrt(dx * dx + dz * dz);
       
-      setIsInRange(distance < attackRange);
+      // 🔥 Só seta estado React quando muda de fato (evita re-render por frame)
+      const inRange = distance < attackRange;
+      if (inRangeRef.current !== inRange) {
+        inRangeRef.current = inRange;
+        setIsInRange(inRange);
+      }
       
       if (distance < attackRange) {
         attackTimer.current += 0.016;

@@ -7,6 +7,7 @@ import { MenuScreen } from './components/MenuScreen';
 import { LoadingScreen } from './components/LoadingScreen';
 import { useSaveSystem } from './hooks/useSaveSystem';
 import useGameStore from './hooks/useGameStore';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const ARScene = lazy(() => import('./components/ARScene'));
 
@@ -199,46 +200,56 @@ function App() {
       <JoystickVisual side="right" />
       <JoystickOverlay />
 
-      <Canvas
-        shadows
-        camera={{ position: [8, 6, 12], fov: 60, far: 35, near: 0.5 }}
-        style={{
-          width: '100vw',
-          height: '100vh',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          zIndex: 1,
-        }}
-      >
-        <ambientLight intensity={0.05} />
-        
-        <Physics gravity={[0, -9.81, 0]}>
-          <ARScene 
-            userId={userId} 
-            avatarConfig={avatarConfig} 
-            loadingAvatar={loadingAvatar} 
+      <ErrorBoundary>
+        <Canvas
+          shadows
+          dpr={[1, Math.min(window.devicePixelRatio || 1, 1.5)]}
+          camera={{ position: [8, 6, 12], fov: 60, far: 35, near: 0.5 }}
+          style={{
+            width: '100vw',
+            height: '100vh',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            zIndex: 1,
+          }}
+          gl={{
+            powerPreference: 'low-power',
+            antialias: false,
+            failIfMajorPerformanceCaveat: false,
+            preserveDrawingBuffer: false,
+            stencil: false,
+          }}
+        >
+          <ambientLight intensity={0.05} />
+          
+          <Physics gravity={[0, -9.81, 0]}>
+            <ARScene 
+              userId={userId} 
+              avatarConfig={avatarConfig} 
+              loadingAvatar={loadingAvatar} 
+            />
+          </Physics>
+
+          <SmoothTarget onTargetUpdate={setSmoothTarget} />
+
+          <SmartFollowCamera maxDistanceLimite={10} />
+
+          <OrbitControls
+            enabled={!followMode}
+            target={smoothTarget}
+            enablePan={false}
+            enableZoom={true}
+            enableRotate={true}
+            zoomSpeed={0.6}
+            rotateSpeed={0.5}
+            enableDamping={true}
+            dampingFactor={0.05}
           />
-        </Physics>
-
-        <SmoothTarget onTargetUpdate={setSmoothTarget} />
-
-        <SmartFollowCamera maxDistanceLimite={10} />
-
-        <OrbitControls
-          enabled={!followMode}
-          target={smoothTarget}
-          enablePan={false}
-          enableZoom={true}
-          enableRotate={true}
-          zoomSpeed={0.6}
-          rotateSpeed={0.5}
-          enableDamping={true}
-          dampingFactor={0.05}
-        />
-        <DynamicFogController />
-        <RadialFarFade innerRadius={0.60} softness={0.35} maxOpacity={0.90} />
-      </Canvas>
+          <DynamicFogController />
+          <RadialFarFade innerRadius={0.60} softness={0.35} maxOpacity={0.90} />
+        </Canvas>
+      </ErrorBoundary>
     </Suspense>
   );
 }

@@ -22,6 +22,11 @@ export const World = () => {
 
     scene.traverse((child) => {
       if (child.isMesh) {
+        // 🔥 MARCAÇÃO DE TERRENO: usada pelo ZombiePool para fazer raycast
+        //    SOMENTE no chão real do GLB (evita acertar slimes/player/itens
+        //    que também vivem dentro do worldGroupRef e fazem o zumbi flutuar).
+        child.userData.isTerrain = true;
+
         child.receiveShadow = true;
         child.castShadow = false;
 

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { AvatarPlayer } from './AvatarPlayer';
@@ -17,8 +17,8 @@ import { Portal } from './Portal';
 import { ItemPickup } from './items/ItemPickup';
 import { EnemySpawner } from './enemies/EnemySpawner';
 import { OptimizedRenderer } from './OptimizedRenderer';
-import { WorldStreamingManager } from './streaming/WorldStreamingManager';
-import DistanceFogOverlay from './rendering/DistanceFogOverlay';
+//import { WorldStreamingManager } from './streaming/WorldStreamingManager';
+// DistanceFogOverlay removido temporariamente (só para validar o fog nativo do Canvas).
 
 import { sceneItems } from '../config/sceneEnemies';
 import { DROPPED_ITEMS } from '../config/droppedItems';
@@ -57,8 +57,16 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
   const [isNightUI, setIsNightUI] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    setWorldGroupRef(worldGroupRef.current);  
+  // 🔥 CORREÇÃO CRÍTICA: worldGroupRef agora é setado via REF CALLBACK.
+  //    Antes era um useEffect que rodava NA MONTAGEM (isLoading=true), quando
+  //    o <group> ainda não existia → worldGroupRef ficava null PARA SEMPRE.
+  //    Consequência: o ZombiePool/ZombieEnemy nunca achavam o terreno e os
+  //    zumbis andavam flutuando a uma altura fixa (fallback do player).
+  //    O callback ref roda SEMPRE que o group monta/desmonta, então o valor
+  //    é atualizado corretamente quando isLoading=false e a cena aparece.
+  const setWorldGroupRefCallback = useCallback((node) => {
+    worldGroupRef.current = node;
+    setWorldGroupRef(node);
   }, [setWorldGroupRef]);
 
   const renderItemsByScene = () => {
@@ -149,7 +157,7 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
     const pos = playerRigidBody.translation();
     
     // 🔥 TELEPORTA PARA CIMA
-    playerRigidBody.setTranslation({ x: pos.x, y: pos.y + 10, z: pos.z }, true);
+    playerRigidBody.setTranslation({ x: pos.x, y: pos.y + 5, z: pos.z }, true);
     playerRigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
     
     // 🔥 AGUARDA A QUEDA E AJUSTA AO CHÃO
@@ -244,19 +252,12 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
       onNightChange={handleNightChange}
     >
       {showStars && <StarField enabled={true} />}
-        <group ref={worldGroupRef} position={[0, 0, 0]} userData={{ isWorldGroup: true }}>
+        <group ref={setWorldGroupRefCallback} position={[0, 0, 0]} userData={{ isWorldGroup: true }}>
         <World />
 
         {/* DistanceFogOverlay removido temporariamente (só para validar o fog nativo do Canvas). */}
-        {/* streaming por chunk */}
-        {playerRigidBody && (
-          <WorldStreamingManager
-            worldScene={worldGroupRef.current}
-            mode="renderOff"
-            debug={false}
-            playerRigidBody={playerRigidBody}
-          />
-        )}
+{/* streaming por chunk — removido, não há chunks no mundo */}
+        
         {sceneData?.portals?.map(portal => (
           <Portal key={portal.id} data={portal} />
         ))}
@@ -276,11 +277,13 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
           <EnemySpawner currentScene={currentScene} />
         </OptimizedRenderer>
 
-        <OptimizedRenderer radius={15}>
+<OptimizedRenderer radius={15}>
           {renderItemsByScene()}
         </OptimizedRenderer>
 
-        {renderDroppedItems()}
+        <OptimizedRenderer radius={20}>
+          {renderDroppedItems()}
+        </OptimizedRenderer>
 
         <OptimizedRenderer radius={20}>
           {renderNPCsFromJSON()}

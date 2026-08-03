@@ -24,7 +24,13 @@ export const WaterSurfacePRO = forwardRef(function WaterSurfacePRO({
   const meshRef = useRef()
   const { gl, scene, camera } = useThree()
 
-  const target = useFBO(128, 128)
+  // 🔥 FBO menor (128->64) + throttling: re-render da cena inteira a cada frame
+  // era um dos maiores causadores de "Context Lost" em GPU integrada.
+  // Agora o reflection render acontece no máx ~10x/segundo.
+  const target = useFBO(64, 64)
+  const fboTimerRef = useRef(0)
+  const lastRenderTimeRef = useRef(0)
+  const FBO_INTERVAL = 0.1 // 10 FPS
 
   const normalMap = useTexture('/textures/waternormals.jpg')
   const skyTexture = useTexture('/textures/ypos.jpg')
@@ -34,7 +40,9 @@ export const WaterSurfacePRO = forwardRef(function WaterSurfacePRO({
   useImperativeHandle(ref, () => ({ size, waterLevel }))
 
   const geometry = useMemo(() => {
-    return new THREE.PlaneGeometry(size, size, 64, 64)
+    // 🔥 Reduz segmentos 64x64 -> 32x32 (economia enorme de vértices)
+    // A água fica visualmente quase igual com ondas grandes
+    return new THREE.PlaneGeometry(size, size, 32, 32)
   }, [size])
 
   const ripples = useRef([])
@@ -201,7 +209,12 @@ export const WaterSurfacePRO = forwardRef(function WaterSurfacePRO({
       }
     }
 
-    if (dist < 12) {
+    // 🔥 Throttling: só re-renderiza o FBO a cada FBO_INTERVAL segundos
+    // (o reflection target 64x64 é ~8x mais barato que 128x128)
+    const now = state.clock.elapsedTime
+    if (dist < 12 && now - lastRenderTimeRef.current >= FBO_INTERVAL) {
+      lastRenderTimeRef.current = now
+
       meshRef.current.visible = false
 
       gl.setRenderTarget(target)

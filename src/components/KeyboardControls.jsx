@@ -83,8 +83,8 @@ export const KeyboardControls = () => {
           window.dispatchEvent(new CustomEvent('mountJump'));
         } else if (playerRigidBody) {
           const vel = playerRigidBody.linvel();
-          if (Math.abs(vel.y) < 1.0) {
-            playerRigidBody.setLinvel({ x: vel.x, y: 8, z: vel.z }, true);
+          if (Math.abs(vel.y) < 2.0) {
+            playerRigidBody.setLinvel({ x: vel.x, y: 4, z: vel.z }, true);
           }
         }
         keysPressed.current.space = false;
@@ -101,16 +101,16 @@ export const KeyboardControls = () => {
       }
       
       // Atalhos para montarias (1, 2, 3)
-      if (key === '1' || key === '2' || key === '3') {
-        const mountTypes = ['horse', 'wolf', 'tiger'];
-        const index = parseInt(key) - 1;
-        if (index < mountTypes.length) {
-          setMountType(mountTypes[index]);
-          if (!isMounted) {
-            mountSummon();
-          }
-        }
-      }
+ //    if (key === '1' || key === '2' || key === '3') {
+ //      const mountTypes = ['horse', 'wolf', 'tiger'];
+ //      const index = parseInt(key) - 1;
+ //      if (index < mountTypes.length) {
+ //        setMountType(mountTypes[index]);
+ //        if (!isMounted) {
+ //          mountSummon();
+ //        }
+ //      }
+ //    }
     };
     
     const handleKeyUp = (e) => {

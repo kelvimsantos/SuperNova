@@ -39,11 +39,13 @@ export const GameGrass = ({
   const meshRef = useRef();
   const rigidBodyRef = useRef();
   const timeRef = useRef(0);
-  const playerPosition = useGameStore((state) => state.playerPosition);
   
-  // Luz do store (vem do WeatherController)
-  const lightDir = useGameStore((state) => state.lightDir);
-  const lightIntensity = useGameStore((state) => state.lightIntensity);
+  // 🔥 Lê playerPosition/luz via getState() dentro do useFrame.
+  // Assinar o store com selector aqui fazia o componente re-renderizar a CADA frame
+  // (porque Player atualiza playerPosition no store todo frame).
+  const playerPositionRef = useRef(null);
+  const lightDirCache = useRef(new THREE.Vector3(0.5, 0.8, 0.3));
+  const lightIntensityCache = useRef(1.0);
   const ambientIntensity = 0.5; // valor fixo, pode ser ajustado
   
   const currentWindStrength = useRef(getWindStrength());
@@ -60,9 +62,16 @@ export const GameGrass = ({
     const step = terrainSize / terrainResolution;
     const width = terrainResolution;
     const count = instances.offsets.length / 3;
+
+    // 🔥 DECIMAÇÃO: usa ~50% das instâncias de grama.
+    // 30k+ blades com shader custom por vértice era o MAIOR custo individual de GPU.
+    const STRIDE = 2;
+
     const finalOffsets = [];
+    const finalRotations = [];
+    const finalScales = [];
     
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < count; i += STRIDE) {
       const ix = i * 3;
       const x = instances.offsets[ix];
       const z = instances.offsets[ix + 2];
@@ -73,12 +82,14 @@ export const GameGrass = ({
       const y = heightmap[idx] ?? 0;
       
       finalOffsets.push(x, y, z);
+      finalRotations.push(instances.rotations[i]);
+      finalScales.push(instances.scales[i]);
     }
 
     return {
       offsets: new Float32Array(finalOffsets),
-      rotations: new Float32Array(instances.rotations),
-      scales: new Float32Array(instances.scales),
+      rotations: new Float32Array(finalRotations),
+      scales: new Float32Array(finalScales),
     };
   }, [instances, heightmap, terrainSize, terrainResolution]);
 
@@ -108,8 +119,8 @@ export const GameGrass = ({
         interactionStrength: { value: 0.7 },
         windSpeed: { value: currentWindSpeed.current },
         windStrength: { value: currentWindStrength.current },
-        uLightDir: { value: lightDir.clone() },
-        uLightIntensity: { value: lightIntensity },
+        uLightDir: { value: new THREE.Vector3(0.5, 0.8, 0.3) },
+        uLightIntensity: { value: 1.0 },
         uAmbientIntensity: { value: ambientIntensity },
       },
       vertexShader: `
@@ -189,7 +200,7 @@ export const GameGrass = ({
           // Iluminação com fator de redução para evitar estouro
           vec3 normal = vec3(0.0, 1.0, 0.0);
           float diff = max(dot(normal, normalize(uLightDir)), 0.0);
-          float lightFactor = 0.2; // ← ajuste este valor (menor = menos brilho no dia)
+          float lightFactor = 0.2;
           vec3 diffuse = diff * uLightIntensity * lightFactor * color;
           vec3 ambient = uAmbientIntensity * color;
           
@@ -206,6 +217,10 @@ export const GameGrass = ({
 
   useFrame(() => {
     if (!meshRef.current || !material) return;
+    
+    // 🔥 getState() NÃO causa re-render (ao contrário de assinar com selector)
+    const state = useGameStore.getState();
+    const playerPosition = state.playerPosition;
     
     // Culling por distância
     if (playerPosition && meshRef.current.parent) {
@@ -241,10 +256,13 @@ export const GameGrass = ({
       );
     }
 
-    // Atualiza uniformes de luz (vêm do store)
-    material.uniforms.uLightDir.value.copy(lightDir);
-    material.uniforms.uLightIntensity.value = lightIntensity;
-    // uAmbientIntensity permanece fixo ou pode ser obtido do store
+    // Atualiza uniformes de luz (vêm do store) — sem re-render
+    if (state.lightDir) {
+      lightDirCache.current.copy(state.lightDir);
+      material.uniforms.uLightDir.value.copy(lightDirCache.current);
+    }
+    lightIntensityCache.current = state.lightIntensity ?? 1.0;
+    material.uniforms.uLightIntensity.value = lightIntensityCache.current;
   });
 
   useEffect(() => {
@@ -252,12 +270,8 @@ export const GameGrass = ({
     
     meshRef.current.geometry = instancedGeo;
     meshRef.current.count = finalInstances.offsets.length / 3;
-    meshRef.current.receiveShadow = true;
+    meshRef.current.receiveShadow = false;
     meshRef.current.castShadow = false;
-    
-    if (meshRef.current.material) {
-      meshRef.current.material.shadowSide = THREE.FrontSide;
-    }
   }, [instancedGeo, finalInstances]);
 
   if (!instancedGeo || !finalInstances) return null;
@@ -287,9 +301,10 @@ export const GameGrass = ({
           args={[null, material, finalInstances.offsets.length / 3]}
           frustumCulled={false}
           castShadow={false}
-          receiveShadow={true}
+          receiveShadow={false}
         />
       </group>
     </RigidBody>
   );
 };
+

@@ -523,7 +523,7 @@ export function Mount() {
   });
 
   return (
-    <RigidBody
+<RigidBody
       ref={rigidBodyRef}
       type="dynamic"
       mass={10}
@@ -532,6 +532,7 @@ export function Mount() {
       linearDamping={0.5}
       angularDamping={1.0}
       lockRotations={true}
+      enabled={isActive}
     >
       <CapsuleCollider args={[0.3, 0.6]} />
       <group ref={mountGroupRef} visible={isActive}>

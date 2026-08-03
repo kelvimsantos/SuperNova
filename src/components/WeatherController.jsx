@@ -129,9 +129,8 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
   const hemisphereLightRef = useRef();
   const lightningLightRef = useRef();
   const [currentWeather, setCurrentWeather] = useState('clear');
-  const [fogIntensity, setFogIntensity] = useState(0);
-  const [particleIntensity, setParticleIntensity] = useState(0);
-  const [isLightning, setIsLightning] = useState(false);
+
+const isLightningRef = useRef(false);
   const lightningTimerRef = useRef(null);
   const weatherResetTimeoutRef = useRef(null);
 
@@ -139,8 +138,8 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
   const setIsNight = useGameStore((state) => state.setIsNight);
 
   const triggerLightning = () => {
-    if (!isLightning && lightningLightRef.current) {
-      setIsLightning(true);
+    if (!isLightningRef.current && lightningLightRef.current) {
+      isLightningRef.current = true;
       lightningLightRef.current.intensity = lightningColors.flash.intensity;
       lightningLightRef.current.color.setRGB(lightningColors.flash.r, lightningColors.flash.g, lightningColors.flash.b);
       setTimeout(() => {
@@ -149,7 +148,7 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
           lightningLightRef.current.color.setRGB(lightningColors.afterglow.r, lightningColors.afterglow.g, lightningColors.afterglow.b);
         }
         setTimeout(() => {
-          setIsLightning(false);
+          isLightningRef.current = false;
           if (lightningLightRef.current) lightningLightRef.current.intensity = 0;
         }, 150);
       }, 100);
@@ -171,7 +170,7 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
     } else {
       if (lightningTimerRef.current) clearTimeout(lightningTimerRef.current);
       if (lightningLightRef.current) lightningLightRef.current.intensity = 0;
-      setIsLightning(false);
+      isLightningRef.current = false;
     }
     return () => { if (lightningTimerRef.current) clearTimeout(lightningTimerRef.current); };
   }, [currentWeather]);
@@ -212,9 +211,15 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
     };
   }, [onWeatherChange, setGameCurrentWeather]);
 
-  // Cache de cores (evitar new THREE.Color a cada frame)
-  const bgColorCache = useRef(new THREE.Color());
-  const nightColor = useRef(new THREE.Color(0x000000));
+const nightColor = useRef(new THREE.Color(0x000000));
+  const frameCount = useRef(0);
+
+  // 🔥 Refs de throttle (evitam notificar o store / re-render sem necessidade)
+  const prevLightIntensity = useRef(-1);
+  const lastLightStoreUpdate = useRef(0);
+  const sunDirCache = useRef(new THREE.Vector3());
+  const prevStars = useRef(false);
+  const prevNight = useRef(false);
 
   // Ciclo de clima separado em interval (não no frame loop)
   useEffect(() => {
@@ -226,6 +231,10 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
   }, [currentWeather]);
 
   useFrame(({ scene, clock }) => {
+    // Só atualiza a cada 2 frames para aliviar GPU
+    frameCount.current++;
+    if (frameCount.current % 2 !== 0) return;
+
     const weather = weatherList[currentWeather];
     const time = clock.getElapsedTime();
     const cycleTime = (time % CYCLE_DURATION) / CYCLE_DURATION;
@@ -256,8 +265,16 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
       }
       sunLightRef.current.intensity = baseIntensity;
 
-      const sunDir = new THREE.Vector3(sunX, sunY, sunZ).normalize();
-      setLight(sunDir, baseIntensity);
+      // 🔥 Só notifica o store quando a intensidade muda de verdade (~4x/s em vez de 30x/s).
+      // setLight dispara re-render em todos os subscribers do store (GameGrass etc).
+      const now = performance.now();
+      const intensityChanged = Math.abs(prevLightIntensity.current - baseIntensity) > 0.05;
+      if (intensityChanged || now - lastLightStoreUpdate.current > 250) {
+        prevLightIntensity.current = baseIntensity;
+        lastLightStoreUpdate.current = now;
+        sunDirCache.current.set(sunX, sunY, sunZ).normalize();
+        setLight(sunDirCache.current, baseIntensity);
+      }
     }
 
     // ===== LUZ AMBIENTE =====
@@ -276,35 +293,39 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
     const bgColor = getBackgroundColor(angle, weather);
     if (bgColor) {
       scene.background = bgColor;
-      if (onStarsChange) onStarsChange(false);
+      if (prevStars.current !== false) {
+        prevStars.current = false;
+        if (onStarsChange) onStarsChange(false);
+      }
     } else {
       scene.background = nightColor.current;
-      if (onStarsChange) onStarsChange(true);
+      if (prevStars.current !== true) {
+        prevStars.current = true;
+        if (onStarsChange) onStarsChange(true);
+      }
     }
 
-    if (onNightChange) onNightChange(isNight);
-    if (setIsNight) setIsNight(isNight);
+    // 🔥 Só chama onNightChange/setIsNight quando o estado REALMENTE muda
+    if (prevNight.current !== isNight) {
+      prevNight.current = isNight;
+      if (onNightChange) onNightChange(isNight);
+      if (setIsNight) setIsNight(isNight);
+    }
 
-    // Neblina volumétrica e partículas - apenas interpolação suave aqui
-    const targetFogDensity = weather.fogDensity;
-    setFogIntensity(prev => prev + (targetFogDensity - prev) * 0.08);
-    const targetParticleIntensity = weather.particleIntensity;
-    setParticleIntensity(prev => prev + (targetParticleIntensity - prev) * 0.1);
-  });
+});
 
   const weather = weatherList[currentWeather];
-  const showParticles = weather.particles && particleIntensity > 0.05;
 
   return (
     <>
-      <directionalLight
+<directionalLight
         ref={sunLightRef}
         position={[10, 15, 5]}
         intensity={1.5}
         castShadow
-        shadow-mapSize-width={512}
-        shadow-mapSize-height={512}
-        shadow-camera-far={40}
+        shadow-mapSize-width={256}
+        shadow-mapSize-height={256}
+        shadow-camera-far={30}
       />
       <pointLight
         ref={lightningLightRef}
@@ -316,17 +337,17 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
       />
       <ambientLight ref={ambientRef} intensity={0.52} />
       <hemisphereLight ref={hemisphereLightRef} intensity={0.42} color={0x88aaff} groundColor={0x553322} />
-      <VolumetricFog
-        density={fogIntensity}
+<VolumetricFog
+        density={weather.fogDensity}
         color={weather.fogColor}
         height={weather.fogHeight}
         noiseScale={2.5}
         enabled={true}
       />
-      {showParticles && (
+      {weather.particles && (
         <ParticleSystem
           type={weather.particles}
-          intensity={particleIntensity}
+          intensity={weather.particleIntensity}
           windStrength={weather.wind}
           enabled={true}
         />
