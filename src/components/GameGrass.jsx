@@ -1,7 +1,6 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { RigidBody } from '@react-three/rapier';
 import useGameStore from '../hooks/useGameStore';
 import { getWindStrength, getWindSpeed } from '../config/windConfig';
 
@@ -33,11 +32,17 @@ export const GameGrass = ({
   heightmap, 
   terrainSize, 
   terrainResolution, 
-  grassWidth = 0.05,
-  grassHeight = 0.55
+grassWidth = 0.05,
+  grassHeight = 0.55,
+  // 🔥 DENSIDADE: quantas lâminas pular entre cada instância.
+  //    STRIDE=1 → usa TODAS as lâminas (dobro da densidade atual)
+  //    STRIDE=2 → usa metade (comportamento anterior, mais leve)
+  //    STRIDE=3 → usa 1/3 (mais leve ainda)
+  //    Como é instanced mesh (1 draw call), o custo extra por lâmina é
+  //    só vertex shader (barato) — o fill rate da tela é o limitador real.
+  stride = 1
 }) => {
   const meshRef = useRef();
-  const rigidBodyRef = useRef();
   const timeRef = useRef(0);
   
   // 🔥 Lê playerPosition/luz via getState() dentro do useFrame.
@@ -63,9 +68,13 @@ export const GameGrass = ({
     const width = terrainResolution;
     const count = instances.offsets.length / 3;
 
-    // 🔥 DECIMAÇÃO: usa ~50% das instâncias de grama.
-    // 30k+ blades com shader custom por vértice era o MAIOR custo individual de GPU.
-    const STRIDE = 2;
+    // 🔥 DENSIDADE controlada pela prop `stride`:
+    //    stride=1 → usa TODAS as lâminas (densidade máxima)
+    //    stride=2 → usa metade (mais leve)
+    //    stride=3 → usa 1/3
+    // 30k+ blades com shader custom por vértice era o MAIOR custo individual de GPU,
+    // mas como é instanced mesh (1 draw call), o custo extra é só vertex shader barato.
+    const STRIDE = Math.max(1, Math.floor(stride || 1));
 
     const finalOffsets = [];
     const finalRotations = [];
@@ -86,12 +95,12 @@ export const GameGrass = ({
       finalScales.push(instances.scales[i]);
     }
 
-    return {
+return {
       offsets: new Float32Array(finalOffsets),
       rotations: new Float32Array(finalRotations),
       scales: new Float32Array(finalScales),
     };
-  }, [instances, heightmap, terrainSize, terrainResolution]);
+  }, [instances, heightmap, terrainSize, terrainResolution, stride]);
 
   const instancedGeo = useMemo(() => {
     if (!finalInstances) return null;
@@ -288,13 +297,8 @@ export const GameGrass = ({
   const centerZ = (minZ + maxZ) / 2;
   const centerY = offsets[1] || 0;
 
-  return (
-    <RigidBody
-      ref={rigidBodyRef}
-      position={[centerX, centerY, centerZ]}
-      type="fixed"
-      colliders={false}
-    >
+return (
+    <group position={[centerX, centerY, centerZ]}>
       <group position={[-centerX, -centerY, -centerZ]}>
         <instancedMesh
           ref={meshRef}
@@ -304,7 +308,7 @@ export const GameGrass = ({
           receiveShadow={false}
         />
       </group>
-    </RigidBody>
+    </group>
   );
 };
 

@@ -31,17 +31,17 @@ const SceneObject = ({ data }) => {
       </group>
 
       {/* Collider manual */}
-      <CuboidCollider
+     {/* <CuboidCollider
         args={colliderSize}
         position={colliderOffset}
         rotation={rotation}
-      />
+      />*/}
 
-      {/* Debug: cubo wireframe */}
+      {/* Debug: cubo wireframe 
       <mesh visible={false} position={colliderOffset} rotation={rotation}>
         <boxGeometry args={colliderSize.map(s => s * 2)} />
         <meshStandardMaterial color="red" wireframe />
-      </mesh>
+      </mesh> */}
     </RigidBody>
   );
 };

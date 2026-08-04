@@ -24,10 +24,7 @@ const HAIR_POSITIONS = {
 const HAIR_Y_OFFSET = -10;
 const HAIR_SCALE_FACTOR = 0.8;
 
-// 🔥 CONSTANTE PARA ALTURA DO CHÃO (MESMA DA MONTARIA)
 const GROUND_OFFSET = 0.01;
-
-// 🔥 POSIÇÃO VISUAL DO PLAYER NO CHÃO
 const VISUAL_OFFSET_Y = -1.6;
 const VISUAL_OFFSET_Z = -0.1;
 
@@ -75,6 +72,32 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     actions[name].reset().play();
     currentAnim.current = name;
   };
+
+  // 🔥 REMOVE O CUBO DO GLB
+  useEffect(() => {
+    if (!bodyScene) return;
+    
+    const toRemove = [];
+    bodyScene.traverse((child) => {
+      if (child.isMesh && child.geometry?.type === 'BoxGeometry') {
+        const params = child.geometry.parameters || {};
+        if (params.width < 0.5 && params.height < 0.5 && params.depth < 0.5) {
+          console.log(`🗑️ Removendo cubo do GLB: "${child.name || 'sem nome'}"`);
+          toRemove.push(child);
+        }
+      }
+    });
+    
+    toRemove.forEach(child => {
+      if (child.parent) {
+        child.parent.remove(child);
+      }
+    });
+    
+    if (toRemove.length > 0) {
+      console.log(`✅ Removidos ${toRemove.length} cubos do modelo GLB`);
+    }
+  }, [bodyScene]);
 
   useEffect(() => {
     if (animations && animations.length > 0) {
@@ -161,7 +184,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return () => setPlayerRigidBody(null);
   }, [setPlayerRigidBody]);
 
-  // 🔥 DESATIVA A FÍSICA DO PLAYER QUANDO MONTADO
   useEffect(() => {
     if (!rigidBodyRef.current) return;
     rigidBodyRef.current.setEnabled(!isMounted);
@@ -177,7 +199,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     }
   }, [isMounted]);
 
-  // 🔥 FUNÇÃO PARA ENCONTRAR O CHÃO (MESMA DA MONTARIA)
   const findGroundY = useCallback((x, z) => {
     if (!worldGroupRef?.current) return null;
     
@@ -212,7 +233,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return null;
   }, [worldGroupRef]);
 
-  // 🔥 FUNÇÃO PARA FORÇAR O PLAYER AO CHÃO (IGUAL À MONTARIA)
   const forceSnapToGround = useCallback(() => {
     if (!rigidBodyRef.current || isMounted) return;
     
@@ -235,16 +255,13 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return false;
   }, [isMounted, findGroundY, setPlayerPosition]);
 
-  // 🔥 EXPÕE A FUNÇÃO PARA O BOTÃO DE DEBUG
   useEffect(() => {
     window.forceSnapToGround = forceSnapToGround;
     return () => { delete window.forceSnapToGround; };
   }, [forceSnapToGround]);
 
-  // 🔥 QUANDO DESMONTA DO CAVALO - FORÇA AJUSTE AO CHÃO (IGUAL À MONTARIA)
   useEffect(() => {
     if (!isMounted && wasMountedRef.current) {
-      // 🔥 ACABOU DE DESMONTAR - FORÇA AJUSTE AO CHÃO IGUAL À MONTARIA
       console.log('🔧 Desmontou do cavalo - ajustando ao chão...');
       setTimeout(() => {
         forceSnapToGround();
@@ -253,12 +270,10 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     wasMountedRef.current = isMounted;
   }, [isMounted, forceSnapToGround]);
 
-  // 🔥 VERIFICAÇÃO PERIÓDICA A CADA 3 SEGUNDOS (IGUAL À MONTARIA)
   useEffect(() => {
     const interval = setInterval(() => {
       if (rigidBodyRef.current && !isAdjusting && !loadingAvatar && !isMounted) {
         const pos = rigidBodyRef.current.translation();
-        // 🔥 SE O PLAYER ESTIVER FLUTUANDO (Y > 1), FORÇA AJUSTE
         if (pos.y > 1) {
           console.log('🔄 Verificação periódica (3s): ajustando player ao chão...');
           forceSnapToGround();
@@ -269,7 +284,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return () => clearInterval(interval);
   }, [loadingAvatar, isAdjusting, isMounted, forceSnapToGround]);
 
-  // 🔥 DETECTA QUEDA E AJUSTA AO CHÃO
   useFrame(() => {
     if (!rigidBodyRef.current || loadingAvatar || isMounted) return;
     
@@ -338,13 +352,11 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       }
     }
 
-    // 🔥 AJUSTA CHÃO A CADA 30 FRAMES
-    if (frameCounter.current % 30 === 0 && grounded && !isFallingRef.current) {
+    if (frameCounter.current % 10 === 0 && grounded && !isFallingRef.current) {
       forceSnapToGround();
     }
 
-    // 🔥 VERIFICA SE ESTÁ PRESO
-    if (frameCounter.current % 60 === 0) {
+    if (frameCounter.current % 30 === 0) {
       const vel = rigidBodyRef.current.linvel();
       const horizontalSpeed = Math.sqrt((vel.x * vel.x) + (vel.z * vel.z));
       const isMovingCheck = moveDir.current.x !== 0 || moveDir.current.z !== 0;
@@ -372,7 +384,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     }
   });
 
-  // 🔥 AJUSTE INICIAL E QUANDO A CENA MUDA
   useEffect(() => {
     const timer = setTimeout(() => {
       if (rigidBodyRef.current && worldGroupRef?.current && !isMounted) {
@@ -386,10 +397,6 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     return (
       <RigidBody ref={rigidBodyRef} mass={1} position={[0, 50, 0]}>
         <CapsuleCollider args={[0.3, 0.4]} />
-        <mesh>
-          <boxGeometry args={[0.5, 0.5, 0.5]} />
-          <meshStandardMaterial color="gray" wireframe transparent opacity={0.5} />
-        </mesh>
       </RigidBody>
     );
   }
@@ -401,20 +408,22 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       position={[0, 20, 0]}
       linearDamping={0.5}
       enabledRotations={[false, false, false]}
+      colliders={false}  // 🔥 IMPEDE O RAPIER DE CRIAR COLLIDERS AUTOMATICAMENTE
     >
-      <CapsuleCollider args={[0.3, 0.4]} />
+      {/* 🔥 APENAS UM CAPSULE COLLIDER - SEM CUBOS, SEM BOX */}
+      <CapsuleCollider args={[0.3, 0.4]} position={[0, VISUAL_OFFSET_Y, VISUAL_OFFSET_Z]} />
+      
       <group>
         {isNight && (
           <pointLight
-            intensity={3.2}
-            distance={2}
-            decay={5}
+            intensity={5.2}
+            distance={3}
+            decay={0.3}
             color={0xffaa66}
-            position={[0, 0.5, 0]}
+            position={[0, -0.6, 0]}
           />
         )}
         
-        {/* 🔥 VISUAL COM OFFSET APENAS QUANDO NÃO ESTÁ MONTADO */}
         <group 
           ref={visualRef} 
           scale={AVATAR_SCALE} 

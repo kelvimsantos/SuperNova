@@ -37,12 +37,12 @@ const weatherNames = {
 };
 
 const cloudConfig = {
-  clear:   { enabled: false, density: 0,    tiling: 5.6, speed: 2.08, scale: 70, position: [0, 0.5, 0.2] },
-  cloudy:  { enabled: true,  density: 3.0,  tiling: 5.6, speed: 1.08, scale: 70, position: [0, 20.5, 3.2] },
-  foggy:   { enabled: false, density: 0,    tiling: 5.6, speed: 2.08, scale: 70, position: [0, 20.5, 3.2] },
-  windy:   { enabled: true,  density: 3.0,  tiling: 5.6, speed: 1.5,  scale: 70, position: [0, 20.5, 3.2] },
-  rainy:   { enabled: true,  density: 7.0,  tiling: 5.6, speed: 2.5,  scale: 70, position: [0, 20.5, 3.2] },
-  snowy:   { enabled: true,  density: 7.0,  tiling: 5.6, speed: 1.8,  scale: 70, position: [0, 20.5, 3.2] },
+  clear:   { enabled: false, density: 0,    tiling: 4.6, speed: 2.08, scale: 90, position: [0, 0.5, 0.2] },
+  cloudy:  { enabled: true,  density: 2.0,  tiling: 4.6, speed: 1.08, scale: 90, position: [0, 20.5, 3.2] },
+  foggy:   { enabled: false, density: 2,    tiling: 4.6, speed: 2.08, scale: 90, position: [0, 20.5, 3.2] },
+  windy:   { enabled: true,  density: 3.0,  tiling: 4.6, speed: 1.5,  scale: 90, position: [0, 20.5, 3.2] },
+  rainy:   { enabled: true,  density: 3.0,  tiling: 4.6, speed: 2.5,  scale: 90, position: [0, 20.5, 3.2] },
+  snowy:   { enabled: true,  density: 2.0,  tiling: 4.6, speed: 1.8,  scale: 90, position: [0, 20.5, 3.2] },
 };
 
 const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
@@ -152,66 +152,66 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
   };
 
   // 🔥 FUNÇÃO DE TELEPORTE CORRIGIDA
-  const teleportUp = () => {
-    if (!playerRigidBody) return;
-    const pos = playerRigidBody.translation();
+ const teleportUp = useCallback(() => {
+  if (!playerRigidBody) return;
+  const pos = playerRigidBody.translation();
+  
+  // Teleporta para cima
+  playerRigidBody.setTranslation({ x: pos.x, y: pos.y + 8, z: pos.z }, true);
+  playerRigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+  
+  // 🔥 AGUARDA A QUEDA E USA A FUNÇÃO GLOBAL
+  setTimeout(() => {
+    console.log('🔧 Teleporte: ajustando ao chão...');
     
-    // 🔥 TELEPORTA PARA CIMA
-    playerRigidBody.setTranslation({ x: pos.x, y: pos.y + 5, z: pos.z }, true);
-    playerRigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
-    
-    // 🔥 AGUARDA A QUEDA E AJUSTA AO CHÃO
-    setTimeout(() => {
-      // Tenta usar a função forceSnapToGround se disponível
-      if (window.forceSnapToGround) {
-        console.log('🔧 Forçando ajuste ao chão após teleporte...');
-        window.forceSnapToGround();
-      } else {
-        // Fallback: tenta encontrar o chão manualmente
-        try {
-          const currentPos = playerRigidBody.translation();
-          const raycaster = new THREE.Raycaster();
-          const origin = new THREE.Vector3(currentPos.x, 100, currentPos.z);
-          const direction = new THREE.Vector3(0, -1, 0);
-          raycaster.set(origin, direction);
-          raycaster.far = 200;
+    if (window.forceSnapToGround) {
+      window.forceSnapToGround();
+    } else {
+      // Fallback manual com ORIGEM EM Y=100
+      try {
+        const currentPos = playerRigidBody.translation();
+        const raycaster = new THREE.Raycaster();
+        const origin = new THREE.Vector3(currentPos.x, 100, currentPos.z); // ← Y=100
+        const direction = new THREE.Vector3(0, -1, 0);
+        raycaster.set(origin, direction);
+        raycaster.far = 200;
 
-          const allObjects = [];
-          const collectObjects = (obj) => {
-            if (obj.isMesh && obj.visible) allObjects.push(obj);
-            if (obj.children) obj.children.forEach(child => collectObjects(child));
-          };
+        const allObjects = [];
+        const collectObjects = (obj) => {
+          if (obj.isMesh && obj.visible) allObjects.push(obj);
+          if (obj.children) obj.children.forEach(child => collectObjects(child));
+        };
 
-          if (worldGroupRef.current) collectObjects(worldGroupRef.current);
+        if (worldGroupRef.current) collectObjects(worldGroupRef.current);
 
-          let closestHit = null;
-          let closestDist = Infinity;
+        let closestHit = null;
+        let closestDist = Infinity;
 
-          for (const obj of allObjects) {
-            const intersects = raycaster.intersectObject(obj, true);
-            if (intersects.length > 0 && intersects[0].distance < closestDist) {
-              closestDist = intersects[0].distance;
-              closestHit = intersects[0];
-            }
+        for (const obj of allObjects) {
+          const intersects = raycaster.intersectObject(obj, true);
+          if (intersects.length > 0 && intersects[0].distance < closestDist) {
+            closestDist = intersects[0].distance;
+            closestHit = intersects[0];
           }
-
-          if (closestHit) {
-            const groundY = closestHit.point.y;
-            const targetY = groundY + 0.01; // GROUND_OFFSET
-            playerRigidBody.setTranslation(
-              { x: currentPos.x, y: targetY, z: currentPos.z },
-              true
-            );
-            playerRigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
-            setPlayerPosition({ x: currentPos.x, y: targetY, z: currentPos.z });
-            console.log(`🔧 Ajustado ao chão: Y=${targetY.toFixed(3)}`);
-          }
-        } catch (e) {
-          console.warn('Erro ao ajustar chão:', e);
         }
+
+        if (closestHit) {
+          const groundY = closestHit.point.y;
+          const targetY = groundY + 0.01;
+          playerRigidBody.setTranslation(
+            { x: currentPos.x, y: targetY, z: currentPos.z },
+            true
+          );
+          playerRigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+          setPlayerPosition({ x: currentPos.x, y: targetY, z: currentPos.z });
+          console.log(`🔧 Fallback teleporte: Y=${targetY.toFixed(3)}`);
+        }
+      } catch (e) {
+        console.warn('Erro no fallback do teleporte:', e);
       }
-    }, 1500); // Aguarda 1.5 segundos para a queda
-  };
+    }
+  }, 1500);
+}, [playerRigidBody, setPlayerPosition]);
 
   const heightmap = sceneData?.terrainParams?.heightmap;
   const terrainSize = sceneData?.terrainParams?.size || 20;
@@ -307,7 +307,7 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
           density={cloud.density*0.5}
           tiling={cloud.tiling}
           speed={cloud.speed}
-          scale={cloud.scale * 0.4}
+scale={cloud.scale * 0.25}
           position={[0, 8, 0]}
           enabled={true}
           renderOrder={999}

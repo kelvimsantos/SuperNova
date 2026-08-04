@@ -23,7 +23,7 @@ function createNoiseTexture3D() {
         let density = 0;
         
         if (radius < 0.6) {
-          density = 1.0 - radius * 1.2;
+          density = 0.9 - radius * 1.2;
           density *= 0.6 + 0.4 * Math.sin(nx * 10) * Math.sin(ny * 10) * Math.sin(nz * 10);
           density = Math.max(0, Math.min(1, density));
         }

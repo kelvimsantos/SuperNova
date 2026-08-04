@@ -2,6 +2,7 @@
 
 > **Missão:** Analisar os motivos do jogo **travar / ficar lento / cair frames** e listar as ações para melhorar.
 > **Método:** 5 agentes especializados inspecionaram o código e cruzaram diagnósticos.
+> **Status:** Atualizado — inclui correções recentes (worldGroupRef + grama).
 
 ---
 
@@ -36,7 +37,7 @@
 **Foco:** O que a GPU está desenhando e quanto custa.
 
 1. 🔴 **VolumetricClouds** — raymarching de até **96 passos** no fragment shader, textura 3D 32³, `depthTest:false` + `renderOrder:999` + `frustumCulled:false` → desenha **por cima de tudo, sempre, mesmo fora da tela**. É o **maior custo de GPU individual** quando ativo.
-2. 🔴 **GameGrass** — instâncias + ShaderMaterial com wind/interação/iluminação no shader, `frustumCulled:false` (já com STRIDE=2 = ~50% menos blades).
+2. 🔴 **GameGrass** — instâncias + ShaderMaterial com wind/interação/iluminação no shader, `frustumCulled:false`. (Side: agora com `stride=1` = densidade máxima, mas continua 1 draw call por instancing.)
 3. 🟡 **VolumetricFog** — plano 50×50 com 32×32 segmentos (1024 vértices) shaded por frame.
 4. 🟡 **ParticleSystem** — até 5000 partículas com AdditiveBlending (overdraw).
 5. 🟡 **WaterSurfacePRO** (modo full) — reflexão/refração/fresnel caros.
@@ -113,7 +114,7 @@
 
 ---
 
-## ✅ O QUE JÁ FOI FEITO (desta análise)
+## ✅ O QUE JÁ FOI FEITO
 
 | Ação | Arquivo | Status |
 |---|---|---|
@@ -121,6 +122,8 @@
 | Throttle `setLight` no store (~4x/s em vez de 60x/s) | WeatherController.jsx | ✅ |
 | GameGrass: decimação de blades (STRIDE=2) | GameGrass.jsx | ✅ |
 | GameGrass: lê `playerPosition`/luz via `getState()` (sem re-render) | GameGrass.jsx | ✅ |
+| **GameGrass: densidade configurável via `stride` (padrão 1 = todas as blades)** | GameGrass.jsx | ✅ |
+| **GameGrass: REMOVIDO `<RigidBody type="fixed">` — grama é visual-only, zero física** | GameGrass.jsx | ✅ |
 | ARScene: removeu import morto `DistanceFogOverlay` | ARScene.jsx | ✅ |
 | SlimeEnemy: `setIsInRange` só na transição | SlimeEnemy.jsx | ✅ |
 | ItemPickup: `setIsNear` só na transição | ItemPickup.jsx | ✅ |
@@ -130,6 +133,7 @@
 | ErrorBoundary no Canvas | App.jsx | ✅ |
 | ZombiePool: cache do terreno com rebuild automático (GLB assíncrono) | ZombiePool.js | ✅ |
 | ZombiePool: lerp suave no follow do relevo (evita saltos) | ZombiePool.js | ✅ |
+| **ARScene: `worldGroupRef` setado via ref callback (bug de zumbis flutuando)** | ARScene.jsx | ✅ |
 
 ---
 
@@ -174,4 +178,3 @@
 ---
 
 > **Resumo do porquê trava:** o jogo re-renderiza a UI por causa do store atualizado a cada frame, paga raymarching pesado de nuvens sempre visíveis, cria corpos físicos para coisas que não precisam de física (grama), e roda 10+ loops por frame. O stutter (micro-travada) vem de GC pressure e recompilação de shaders. As correções já aplicadas atacam os itens mais críticos; o restante está no plano acima.
-

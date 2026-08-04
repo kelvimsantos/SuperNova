@@ -223,7 +223,7 @@ function App() {
         >
           <ambientLight intensity={0.05} />
           
-          <Physics gravity={[0, -9.81, 0]}>
+          <Physics gravity={[0, -9.81, 0]} debug={false} >
             <ARScene 
               userId={userId} 
               avatarConfig={avatarConfig} 
