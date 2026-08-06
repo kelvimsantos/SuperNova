@@ -42,7 +42,7 @@ const MOUNT_TYPES = {
     offsetZ: 0.0,
     meshOffsetY: 0,
   },
-  tiger: { 
+tiger: { 
     name:'Tigre',  
     bodyColor:'#dd6b20', 
     headColor:'#ed8936', 
@@ -52,6 +52,24 @@ const MOUNT_TYPES = {
     speed:5.8, 
     jumpForce:6.5, 
     playerOffset:0.8,
+    glb:null,
+    boneName: null,
+    offsetX: 0.0,
+    offsetY: 0.0,
+    offsetZ: 0.0,
+    meshOffsetY: 0,
+  },
+  // 🔥 PLANADOR (aberto segurando espaço no ar — não é uma montaria física)
+  glider: {
+    name:'Planador',
+    bodyColor:'#2ab7ca',
+    headColor:'#7fd8be',
+    maneColor:'#ffd166',
+    glowColor:'#ffd166',
+    size:0.6,
+    speed:6.0,
+    jumpForce:1.0,
+    playerOffset:0.0,
     glb:null,
     boneName: null,
     offsetX: 0.0,

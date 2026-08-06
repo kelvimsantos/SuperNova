@@ -116,6 +116,8 @@ export function ZombieHorde({
   });
 
   // 🔥 Clique: raycast contra zombies ativos (1 hit test para todos)
+  //    🔥 AGORA usa requestAttack: o dano + sangue só aplicam quando a
+  //    animação de soco do avatar terminar (AvatarPlayer → applyPendingDamage).
   useEffect(() => {
     const handleClick = (e) => {
       if (!poolRef.current) return;
@@ -123,17 +125,13 @@ export function ZombieHorde({
       const ndcY = -(e.clientY / window.innerHeight) * 2 + 1;
       const hit = poolRef.current.hitTest(ndcX, ndcY, camera);
       if (hit) {
-        const dmg = useGameStore.getState().getPlayerDamage();
-        poolRef.current.applyDamage(hit, dmg);
-        window.dispatchEvent(
-          new CustomEvent('combatDamage', {
-            detail: {
-              damage: dmg,
-              position: { x: window.innerWidth / 2, y: window.innerHeight / 3 },
-              isPlayer: false,
-            },
-          })
-        );
+        const store = useGameStore.getState();
+        store.requestAttack({
+          applyDamage: (amount) => {
+            poolRef.current.applyDamage(hit, amount);
+          },
+          position: { x: hit.pos.x, y: hit.pos.y + 1.1, z: hit.pos.z },
+        });
       }
     };
     window.addEventListener('click', handleClick);

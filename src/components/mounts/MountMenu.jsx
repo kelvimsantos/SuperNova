@@ -3,7 +3,7 @@ import useGameStore from '../../hooks/useGameStore';
 
 const MOUNTS = [
   { id: 'horse', name: 'Cavalo', emoji: '🐴' },
-  { id: 'wolf', name: 'Lobo', emoji: '🐺' },
+  { id: 'glider', name: 'Planador', emoji: '🪂' },
   { id: 'tiger', name: 'Tigre', emoji: '🐯' },
 ];
 

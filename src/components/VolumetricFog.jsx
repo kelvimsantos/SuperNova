@@ -7,7 +7,7 @@ const fogVertexShader = `
   varying vec2 vUv;
   void main() {
     vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 0.5);
   }
 `;
 
@@ -46,27 +46,27 @@ const fogFragmentShader = `
     float n4 = noise(coord * 5.5 - uTime * 0.01);
     
     float cloudPattern = (n1 * 0.4 + n2 * 0.3 + n3 * 0.2 + n4 * 0.1);
-    cloudPattern = pow(cloudPattern, 0.85);
+    cloudPattern = pow(cloudPattern, 0.9999);
     
     // Altura
-    float heightFactor = 1.0 - abs(vUv.y - uHeight) * 1.0;
+    float heightFactor = 30.0 - abs(vUv.y - uHeight) * 1.0;
     heightFactor = clamp(heightFactor, 0.2, 1.0);
     
     float finalDensity = cloudPattern * uDensity * heightFactor;
     finalDensity = clamp(finalDensity, 0.0, 0.96);
     
     vec3 finalColor = uColor;
-    finalColor += vec3(0.08, 0.06, 0.04) * n2;
+    finalColor += vec3(0.08, 0.06, 0,9) * n2;
     
     gl_FragColor = vec4(finalColor, finalDensity);
   }
 `;
 
 export const VolumetricFog = ({ 
-  density = 0.92, 
+  density = 0.5, 
   color = [0.85, 0.88, 0.92], 
-  height = 0.85, 
-  noiseScale = 2.5, 
+  height = 15.85, 
+  noiseScale = 1.5, 
   enabled = true 
 }) => {
   const meshRef = useRef();

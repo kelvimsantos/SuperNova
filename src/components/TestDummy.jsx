@@ -11,21 +11,40 @@ export const TestDummy = ({ position, dropItems = ['golden_coin'] }) => {
   const addToInventory = useGameStore(state => state.addToInventory);
   
   const handleClick = () => {
-    const newHealth = health - 15;
-    setHealth(newHealth);
-    setHitFlash(true);
-    setTimeout(() => setHitFlash(false), 150);
-    
-    if (newHealth <= 0) {
-      console.log('🎯 Alvo destruído! Dropando itens...');
-      dropItems.forEach(itemId => {
-        const itemInfo = ItemDatabase[itemId];
-        if (itemInfo) {
-          addToInventory({ ...itemInfo, quantity: 1 });
+    const store = useGameStore.getState();
+    const dmg = store.getPlayerDamage();
+
+    store.requestAttack({
+      applyDamage: (amount) => {
+        const newHealth = health - amount;
+        setHealth(newHealth);
+        setHitFlash(true);
+        setTimeout(() => setHitFlash(false), 150);
+
+        // Sangue
+        if (ref.current) {
+          window.dispatchEvent(new CustomEvent('combatBlood', {
+            detail: { position: { x: ref.current.position.x, y: ref.current.position.y + 0.4, z: ref.current.position.z } },
+          }));
         }
-      });
-      if (ref.current) ref.current.visible = false;
-    }
+
+        if (newHealth <= 0) {
+          console.log('🎯 Alvo destruído! Dropando itens...');
+          dropItems.forEach(itemId => {
+            const itemInfo = ItemDatabase[itemId];
+            if (itemInfo) {
+              addToInventory({ ...itemInfo, quantity: 1 });
+            }
+          });
+          if (ref.current) ref.current.visible = false;
+        }
+      },
+      position: ref.current ? {
+        x: ref.current.position.x,
+        y: ref.current.position.y + 0.4,
+        z: ref.current.position.z,
+      } : null,
+    });
   };
   
   if (health <= 0) return null;

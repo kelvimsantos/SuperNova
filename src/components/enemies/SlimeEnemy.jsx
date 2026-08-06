@@ -97,51 +97,70 @@ export const SlimeEnemy = ({
   
   const attack = () => {
     if (isDead) return;
-    
-    if (player) {
-      const playerPos = player.translation();
-      const enemyPos = ref.current?.position;
-      
-      if (enemyPos) {
-        const dx = playerPos.x - enemyPos.x;
-        const dz = playerPos.z - enemyPos.z;
-        const distance = Math.sqrt(dx * dx + dz * dz);
-        
-        if (distance > attackRange) {
-          console.log(`⚠️ Muito longe para atacar!`);
-          return;
+
+    // 🔥 SÓ REGISTRA O ATAQUE — o dano + sangue só ocorrem quando a
+    //    animação de soco do avatar terminar (AvatarPlayer → applyPendingDamage).
+    const distanceCheck = () => {
+      if (player) {
+        const playerPos = player.translation();
+        const enemyPos = ref.current?.position;
+        if (enemyPos) {
+          const dx = playerPos.x - enemyPos.x;
+          const dz = playerPos.z - enemyPos.z;
+          return Math.sqrt(dx * dx + dz * dz);
         }
       }
+      return 0;
+    };
+
+    if (distanceCheck() > attackRange) {
+      console.log(`⚠️ Muito longe para atacar!`);
+      return;
     }
-    
-    const damageAmount = 15;
-    const newHealth = currentHealth - damageAmount;
-    setCurrentHealth(newHealth);
-    setHitFlash(true);
-    setTimeout(() => setHitFlash(false), 150);
-    
-    window.dispatchEvent(new CustomEvent('combatDamage', { 
-      detail: { 
-        damage: damageAmount, 
-        position: getScreenPosition(),
-        isPlayer: false
-      }
-    }));
-    
-    if (ref.current) {
-      ref.current.children.forEach(child => {
-        if (child.isMesh && child.material) {
-          child.material.emissiveIntensity = 1;
-          setTimeout(() => {
-            if (child.material) child.material.emissiveIntensity = 0;
-          }, 150);
+
+    // 🔥 Registra alvo pendente (a animação de soco começa, o dano vem depois)
+    const store = useGameStore.getState();
+    const dmg = store.getPlayerDamage();
+
+    store.requestAttack({
+      applyDamage: (amount) => {
+        const newHealth = Math.max(0, currentHealth - amount);
+        setCurrentHealth(newHealth);
+        setHitFlash(true);
+        setTimeout(() => setHitFlash(false), 150);
+
+        // Sangue no inimigo
+        if (ref.current) {
+          const p = ref.current.position;
+          window.dispatchEvent(new CustomEvent('combatBlood', {
+            detail: { position: { x: p.x, y: p.y + 0.4, z: p.z } },
+          }));
         }
-      });
-    }
-    
-    if (newHealth <= 0) {
-      die();
-    }
+
+        if (ref.current) {
+          ref.current.children.forEach(child => {
+            if (child.isMesh && child.material) {
+              child.material.emissiveIntensity = 1;
+              setTimeout(() => {
+                if (child.material) child.material.emissiveIntensity = 0;
+              }, 150);
+            }
+          });
+        }
+
+        if (newHealth <= 0) {
+          die();
+        }
+      },
+      position: ref.current ? {
+        x: ref.current.position.x,
+        y: ref.current.position.y + 0.4,
+        z: ref.current.position.z,
+      } : null,
+    });
+
+    // 🔥 O AvatarPlayer dispara 'combatDamage' quando a animação termina,
+    //    então não duplicamos o texto de dano aqui.
   };
   
   const die = () => {

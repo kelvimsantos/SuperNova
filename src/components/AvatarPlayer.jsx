@@ -50,13 +50,30 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const mountRotation = useGameStore((s) => s.mountRotation);
   const isMounted = !!mount?.isActive;
 
-  const equippedItems = useGameStore(state => state.equippedItems);
+const equippedItems = useGameStore(state => state.equippedItems);
 
   const stuckAttempts = useRef(0);
   const lastStuckTime = useRef(0);
   const frameCounter = useRef(0);
   const isFallingRef = useRef(false);
   const wasMountedRef = useRef(false);
+
+// 🔥 ESTADO DE ATAQUE
+  const attackingRef = useRef(false);
+  const attackAnimTimeRef = useRef(0);
+  const attackAnimDurationRef = useRef(0);
+  const pendingTargetRef = useRef(null);
+  const isAimingRef = useRef(false);
+
+  // 🔥 REFS DOS BRAÇOS (para rotacionar para cima enquanto plana)
+  const leftArmRef = useRef(null);
+  const rightArmRef = useRef(null);
+  const leftForeArmRef = useRef(null);
+  const rightForeArmRef = useRef(null);
+  const armRestRot = useRef(null); // guarda rotação original dos braços
+
+  const gliderOpen = useGameStore((s) => s.gliderOpen);
+  const avatarFacingRef = useGameStore((s) => s.avatarFacingRef);
 
   const { scene: bodyScene, animations } = useGLTF(AVATAR_MODEL_PATH);
   
@@ -72,6 +89,91 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     actions[name].reset().play();
     currentAnim.current = name;
   };
+
+  // 🔥 TOCA ANIMAÇÃO DE SOCO (intercalada entre Punching1 e Punching2)
+  const playPunch = useCallback(() => {
+    const idx = useGameStore.getState().attackAnimIndex;
+    const name = idx % 2 === 0 ? 'Punching1' : 'Punching2';
+    if (!actions || !actions[name]) return;
+    Object.values(actions).forEach(action => action.stop());
+    const action = actions[name];
+    action.reset().play();
+    currentAnim.current = name;
+    attackingRef.current = true;
+    attackAnimTimeRef.current = 0;
+    // 🔥 Duração aproximada do clip (fallback 0.6s)
+    attackAnimDurationRef.current = action.getClip().duration || 0.6;
+    useGameStore.getState().setPlayerAttacking(true);
+    useGameStore.getState().setAttackReady(false);
+    useGameStore.getState().setAttackAnimIndex(idx + 1);
+  }, [actions]);
+
+  // 🔥 APLICA O DANO PENDENTE (chamado quando a animação termina)
+  const applyPendingDamage = useCallback(() => {
+    const target = pendingTargetRef.current;
+    if (!target) return;
+    const dmg = useGameStore.getState().getPlayerDamage();
+
+    // Aplica dano via callback do alvo (se existir)
+    if (target.applyDamage) {
+      target.applyDamage(dmg);
+    }
+
+    // Sangue
+    if (target.position) {
+      window.dispatchEvent(new CustomEvent('combatBlood', {
+        detail: { position: { x: target.position.x, y: target.position.y, z: target.position.z } },
+      }));
+    }
+
+    // Texto de dano
+    window.dispatchEvent(new CustomEvent('combatDamage', {
+      detail: {
+        damage: dmg,
+        position: { x: window.innerWidth / 2, y: window.innerHeight / 3 },
+        isPlayer: false,
+      },
+    }));
+
+    pendingTargetRef.current = null;
+    attackingRef.current = false;
+    useGameStore.getState().setPlayerAttacking(false);
+    useGameStore.getState().setAttackReady(true);
+    useGameStore.getState().setPendingTarget(null);
+  }, []);
+
+  // 🔥 ESCUTA O EVENTO DE ATAQUE (clique no inimigo)
+  useEffect(() => {
+    const handler = (e) => {
+      const target = e.detail?.target;
+      if (!target) return;
+      if (isMounted) return; // não ataca montado
+      pendingTargetRef.current = target;
+      playPunch();
+    };
+    window.addEventListener('playerAttackRequested', handler);
+    return () => window.removeEventListener('playerAttackRequested', handler);
+  }, [playPunch, isMounted]);
+
+  // 🔥 ESCUTA MIRA (arco) — rotação horizontal
+  useEffect(() => {
+    const handler = (e) => {
+      const dx = e.detail?.dx || 0;
+      isAimingRef.current = true;
+      if (visualRef.current) {
+        visualRef.current.rotation.y += dx * 0.01;
+      }
+    };
+    const stopAim = () => {
+      isAimingRef.current = false;
+    };
+    window.addEventListener('playerAim', handler);
+    window.addEventListener('playerStopAim', stopAim);
+    return () => {
+      window.removeEventListener('playerAim', handler);
+      window.removeEventListener('playerStopAim', stopAim);
+    };
+  }, []);
 
   // 🔥 REMOVE O CUBO DO GLB
   useEffect(() => {
@@ -108,7 +210,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     }
   }, [animations]);
 
-  function findHeadBone(model) {
+function findHeadBone(model) {
     let headBone = null;
     model.traverse((child) => {
       if (child.isBone) {
@@ -123,6 +225,27 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     });
     return headBone;
   }
+
+  // 🔥 PROCURA OS OSSOS DOS BRAÇOS (para levantar cruzado enquanto plana)
+  useEffect(() => {
+    if (!bodyModelRef.current) return;
+    const model = bodyModelRef.current;
+    model.traverse((child) => {
+      if (child.isBone) {
+        const nameLower = child.name.toLowerCase();
+        if (nameLower.includes('leftarm')) leftArmRef.current = child;
+        else if (nameLower.includes('rightarm')) rightArmRef.current = child;
+        else if (nameLower.includes('leftforearm')) leftForeArmRef.current = child;
+        else if (nameLower.includes('rightforearm')) rightForeArmRef.current = child;
+      }
+    });
+    // Guarda rotação original (idle) dos braços superiores
+    armRestRot.current = {
+      left: leftArmRef.current ? leftArmRef.current.rotation.clone() : null,
+      right: rightArmRef.current ? rightArmRef.current.rotation.clone() : null,
+    };
+    console.log(`🦴 Braços do avatar: L=${!!leftArmRef.current} R=${!!rightArmRef.current}`);
+  }, [bodyModelRef]);
 
   useEffect(() => {
     if (!bodyModelRef.current || !avatarConfig) return;
@@ -300,7 +423,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     }
   });
 
-  useFrame(({ camera }) => {
+useFrame(({ camera }, delta) => {
     if (!rigidBodyRef.current || loadingAvatar) return;
     frameCounter.current++;
 
@@ -308,6 +431,18 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       playAnimation('idle2');
       if (visualRef.current) {
         visualRef.current.rotation.y = mountRotation;
+      }
+      return;
+    }
+
+    // 🔥 ATAQUE: se estiver atacando, mantém a animação de soco e,
+    //    quando ela terminar, aplica o dano pendente (só então tira sangue).
+    if (attackingRef.current) {
+      attackAnimTimeRef.current += delta;
+      if (attackAnimTimeRef.current >= attackAnimDurationRef.current) {
+        applyPendingDamage();
+        // volta ao idle quando o golpe termina
+        playAnimation('idle2');
       }
       return;
     }
@@ -320,7 +455,40 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
     const grounded = Math.abs(currentVel.y) < 0.05;
     setIsGrounded(grounded);
     const isMoving = dx !== 0 || dz !== 0;
-    
+
+    // 🔥 PLANADOR: NÃO sobrescreve a velocidade (quem controla é o Glider),
+    //    toca a mesma animação do cavalo (idle2), levanta os braços e
+    //    vira na direção do movimento.
+const gliding = useGameStore.getState().gliderOpenRef.current;
+    if (gliding) {
+      playAnimation('idle2');
+      // 🔥 SEMPRE vira na direção da câmera enquanto plana (mesmo sem input),
+      //    acompanhando o sentido do movimento (igual ao paraglider).
+      if (visualRef.current) {
+        const cameraDirection = new Vector3();
+        camera.getWorldDirection(cameraDirection);
+        cameraDirection.y = 0;
+        if (cameraDirection.length() > 0.001) {
+          cameraDirection.normalize();
+          const angle = Math.atan2(cameraDirection.x, cameraDirection.z);
+          visualRef.current.rotation.y = angle;
+          avatarFacingRef.current = angle;
+        }
+      }
+      // 🔥 Levanta os braços para cima (segurando as alças do planador)
+      const L = leftArmRef.current, R = rightArmRef.current;
+      if (L) L.rotation.x += (Math.PI - 0.8 - L.rotation.x) * 0.2;
+      if (R) R.rotation.x += (Math.PI - 0.8 - R.rotation.x) * 0.2;
+      return;
+    }
+
+    // 🔥 RESTAURA OS BRAÇOS PARA A POSIÇÃO ORIGINAL (quando não está planando)
+    if (armRestRot.current) {
+      const L = leftArmRef.current, R = rightArmRef.current;
+      if (L && armRestRot.current.left) L.rotation.copy(armRestRot.current.left);
+      if (R && armRestRot.current.right) R.rotation.copy(armRestRot.current.right);
+    }
+
     if (!isMoving) {
       playAnimation(grounded ? 'idle2' : 'Fall');
     } else {
@@ -349,6 +517,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
       if (moveVector.length() > 0.1) {
         const angle = Math.atan2(moveVector.x, moveVector.z);
         visualRef.current.rotation.y = angle;
+        avatarFacingRef.current = angle;
       }
     }
 

@@ -12,7 +12,8 @@ import { Html } from '@react-three/drei';
 import { WeatherController } from './WeatherController';
 import { VolumetricClouds } from './VolumetricClouds';
 import { StarField } from './StarField';
-import { WaterExperience } from './water/WaterExperience';
+// 🔥 ÁGUA DESATIVADA TEMPORARIAMENTE (reduzir tamanho do build). Arquivos mantidos em src/components/water/.
+// import { WaterExperience } from './water/WaterExperience';
 import { Portal } from './Portal';
 import { ItemPickup } from './items/ItemPickup';
 import { EnemySpawner } from './enemies/EnemySpawner';
@@ -26,6 +27,10 @@ import { QuestNPC } from './quests/QuestNPC';
 import { Pet } from './pets/Pet';
 //import { PetMenu } from './pets/PetMenu';
 import { Mount } from './mounts/Mount';
+import { Glider } from './mounts/Glider';
+import { BloodEffect } from './BloodEffect';
+import { ArrowProjectile } from './ArrowProjectile';
+import { CombatController } from './CombatController';
 
 const weatherNames = {
   clear: '☀️ Claro',
@@ -269,9 +274,10 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
             terrainResolution={terrainResolution}
           />
         )}
-        {sceneData?.water?.map(water => (
+        {/* 🔥 ÁGUA DESATIVADA TEMPORARIAMENTE (reduzir tamanho do build). Arquivos mantidos em src/components/water/. */}
+        {/* {sceneData?.water?.map(water => (
           <WaterExperience key={water.id} obj={water} />
-        ))}
+        ))} */}
 
         <OptimizedRenderer radius={30}>
           <EnemySpawner currentScene={currentScene} />
@@ -290,7 +296,7 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
         </OptimizedRenderer>
 
         {/* 🔥 AVATAR PLAYER SE TIVER userId, SENÃO USA O PLAYER ORIGINAL */}
-        {userId ? (
+{userId ? (
           <AvatarPlayer 
             userId={userId} 
             avatarConfig={avatarConfig}
@@ -299,8 +305,14 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
         ) : (
           <Player />
         )}
-        <Mount />
+<Mount />
+        <Glider />
       </group>
+
+      {/* 🔥 EFEITOS DE COMBATE */}
+      <BloodEffect />
+      <ArrowProjectile />
+      <CombatController />
 
 {cloud.enabled && (
         <VolumetricClouds

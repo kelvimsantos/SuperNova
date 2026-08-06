@@ -73,18 +73,31 @@ export const KeyboardControls = () => {
         e.preventDefault();
       }
       
-      // Pulo (espaço)
+// Pulo (espaço)
       if (key === ' ' || key === 'Space') {
         keysPressed.current.space = true;
         e.preventDefault();
+        
+        // 🔥 ENQUANTO O PLANADOR ESTIVER ABERTO, NÃO PODE PULAR
+        if (useGameStore.getState().gliderOpenRef.current) {
+          console.log('🪂 Planando — não pode pular!');
+          keysPressed.current.space = false;
+          return;
+        }
         
         // Pulo para montaria ou player
         if (isMounted) {
           window.dispatchEvent(new CustomEvent('mountJump'));
         } else if (playerRigidBody) {
           const vel = playerRigidBody.linvel();
-          if (Math.abs(vel.y) < 2.0) {
+          // 🔥 PULA SÓ EM CONTATO COM O CHÃO:
+          //    - No chão: vel.y ≈ 0 (entre -0.5 e 1.0) → pode pular
+          //    - Caindo: vel.y < -0.5 → NÃO pode pular no ar
+          //    - Subindo de um pulo: vel.y > 1.0 → NÃO pode pular de novo
+          if (vel.y > -0.5 && vel.y < 1.0) {
             playerRigidBody.setLinvel({ x: vel.x, y: 4, z: vel.z }, true);
+          } else {
+            console.log('⛔ Não pode pular no ar! Use o espaço segurado para planar.');
           }
         }
         keysPressed.current.space = false;

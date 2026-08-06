@@ -189,12 +189,48 @@ const useGameStore = create((set, get) => ({
     return Math.floor(15 + (stats.strength * 1.5) + stats.bonusDamage);
   },
 
-  // 🔥 SISTEMA DE COMBATE
+// 🔥 SISTEMA DE COMBATE
   playerHealth: 100,
   playerMaxHealth: 100,
   playerMana: 50,
   playerMaxMana: 50,
   playerDamage: 15,
+
+  // 🔥 ESTADO DE ATAQUE (animação + timing)
+  playerAttacking: false,
+  attackReady: false,
+  attackAnimIndex: 0,
+  isAiming: false,
+  pendingTarget: null,
+
+  setPlayerAttacking: (val) => set({ playerAttacking: Boolean(val) }),
+  setAttackReady: (val) => set({ attackReady: Boolean(val) }),
+  setAttackAnimIndex: (idx) => set({ attackAnimIndex: idx }),
+  setIsAiming: (val) => set({ isAiming: Boolean(val) }),
+  setPendingTarget: (target) => set({ pendingTarget: target }),
+
+  // 🔥 HELPER: detecta se o equipamento atual é um arco
+  isBowEquipped: () => {
+    const weapon = get().equippedItems?.weapon;
+    if (!weapon) return false;
+    const name = String(weapon.name || '').toLowerCase();
+    const id = String(weapon.id || '').toLowerCase();
+    const wc = String(weapon.weaponClass || '').toLowerCase();
+    return name.includes('bow') || name.includes('arco') ||
+           id.includes('bow') || id.includes('arco') ||
+           wc === 'archer';
+  },
+
+  /**
+   * 🔥 REGISTRA UM ALVO PENDENTE (clique no inimigo)
+   * O dano só é aplicado quando a animação de ataque termina (AvatarPlayer).
+   */
+  requestAttack: (target) => {
+    // Armazena o alvo pendente
+    set({ pendingTarget: target, playerAttacking: false, attackReady: false });
+    // Notifica o AvatarPlayer para começar a animação de soco
+    window.dispatchEvent(new CustomEvent('playerAttackRequested', { detail: { target } }));
+  },
   
   setPlayerHealth: (health) => set((state) => ({ 
     playerHealth: Math.max(0, Math.min(health, state.playerMaxHealth))
@@ -325,11 +361,23 @@ const useGameStore = create((set, get) => ({
     set({ lightDir: dir.clone(), lightIntensity: intensity });
   },
 
-  // 🔥 SISTEMA DE MONTARIA
+// 🔥 SISTEMA DE MONTARIA
 mount: { isActive: false, type: 'horse' },
 mountMoveDir: { x: 0, z: 0 },
 mountRotation: 0,
 mountRotationRef: { current: 0 },
+
+// 🔥 ROTAÇÃO DO AVATAR (sincronizada com o planador)
+avatarFacingRef: { current: 0 },
+
+// 🔥 PLANADOR (estilo Zelda)
+gliderOpen: false,
+gliderOpenRef: { current: false },
+setGliderOpen: (val) => {
+  const v = Boolean(val);
+  get().gliderOpenRef.current = v;
+  set({ gliderOpen: v });
+},
 
 mountSummon: () => set((state) => ({
   mount: { ...state.mount, isActive: true },
