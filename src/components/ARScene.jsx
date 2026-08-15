@@ -13,7 +13,7 @@ import { WeatherController } from './WeatherController';
 import { VolumetricClouds } from './VolumetricClouds';
 import { StarField } from './StarField';
 // 🔥 ÁGUA DESATIVADA TEMPORARIAMENTE (reduzir tamanho do build). Arquivos mantidos em src/components/water/.
-// import { WaterExperience } from './water/WaterExperience';
+import { WaterExperience } from './water/WaterExperience';
 import { Portal } from './Portal';
 import { ItemPickup } from './items/ItemPickup';
 import { EnemySpawner } from './enemies/EnemySpawner';
@@ -275,10 +275,9 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
             terrainResolution={terrainResolution}
           />
         )}
-        {/* 🔥 ÁGUA DESATIVADA TEMPORARIAMENTE (reduzir tamanho do build). Arquivos mantidos em src/components/water/. */}
-        {/* {sceneData?.water?.map(water => (
+        {sceneData?.water?.map(water => (
           <WaterExperience key={water.id} obj={water} />
-        ))} */}
+        ))}
 
         <OptimizedRenderer radius={30}>
           <EnemySpawner currentScene={currentScene} />
