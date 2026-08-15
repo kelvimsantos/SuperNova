@@ -14,7 +14,7 @@ export const TestDummy = ({ position, dropItems = ['golden_coin'] }) => {
     const store = useGameStore.getState();
     const dmg = store.getPlayerDamage();
 
-    store.requestAttack({
+    const targetObj = {
       applyDamage: (amount) => {
         const newHealth = health - amount;
         setHealth(newHealth);
@@ -44,14 +44,23 @@ export const TestDummy = ({ position, dropItems = ['golden_coin'] }) => {
         y: ref.current.position.y + 0.4,
         z: ref.current.position.z,
       } : null,
-    });
+    };
+
+    // 🔥 Seleciona o alvo (para hotkeys aplicarem poderes)
+    store.setSelectedTarget(targetObj);
+    store.requestAttack(targetObj);
   };
   
   if (health <= 0) return null;
   
   return (
     <group ref={ref} position={position}>
-      <Box args={[0.8, 0.8, 0.8]} onClick={handleClick}>
+      <Box args={[0.8, 0.8, 0.8]} onClick={handleClick}
+        onContextMenu={(ev) => {
+          ev.nativeEvent.preventDefault();
+          ev.stopPropagation();
+          handleClick();
+        }}>
         <meshStandardMaterial 
           color={hitFlash ? '#ff8888' : '#8888ff'} 
           emissive={hitFlash ? '#ff0000' : '#0000ff'}

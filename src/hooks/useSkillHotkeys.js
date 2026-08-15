@@ -1,5 +1,5 @@
 // hooks/useSkillHotkeys.js
-import { useEffect, useCallback, useState } from 'react'; // 🔥 ADICIONEI useState
+import { useEffect, useCallback, useState, useRef } from 'react'; // 🔥 ADICIONEI useState
 import useGameStore from './useGameStore';
 
 // Configuração das teclas de atalho
@@ -35,6 +35,7 @@ const SKILLS_SELF_TARGET = ['heal', 'shield'];
 
 export const useSkillHotkeys = () => {
   const [currentTarget, setCurrentTarget] = useState(null); // 🔥 AGORA FUNCIONA
+  const cooldownsRef = useRef({}); // 🔥 timestamps de cooldown por skill
   
   const unlockedSkills = useGameStore(state => state.unlockedSkills || []);
   const playerMana = useGameStore(state => state.playerMana || 0);
@@ -43,9 +44,20 @@ export const useSkillHotkeys = () => {
   const inventory = useGameStore(state => state.inventory || []);
   const removeFromInventory = useGameStore(state => state.removeFromInventory);
   
+  // 🔥 PEGA O ALVO SELECIONADO (setado ao clicar no inimigo — requestAttack)
   const findNearestEnemy = useCallback(() => {
-    // TODO: Implementar busca do inimigo mais próximo
-    return null;
+    const target = useGameStore.getState().selectedTarget || useGameStore.getState().pendingTarget;
+    return target || null;
+  }, []);
+  
+  // 🔥 APLICA DANO REAL NO ALVO (suporta ZombieEnemy e ZombiePool)
+  const applyDamageToTarget = useCallback((target, amount) => {
+    if (!target) return;
+    if (target.applyDamage) {
+      target.applyDamage(amount);
+    } else if (window.zombieHorde && window.zombieHorde.damage && target.id !== undefined) {
+      window.zombieHorde.damage(target.id, amount);
+    }
   }, []);
   
   const useSkill = useCallback((skillId) => {
@@ -71,6 +83,17 @@ export const useSkillHotkeys = () => {
     if (!config) {
       console.log(`❌ Skill ${skillId} não configurada`);
       return;
+    }
+
+    // 🔥 COOLDOWN
+    if (config.cooldown) {
+      const now = Date.now();
+      const last = cooldownsRef.current[skillId] || 0;
+      if (now - last < config.cooldown * 1000) {
+        console.log(`⏳ ${skillId} em cooldown!`);
+        return;
+      }
+      cooldownsRef.current[skillId] = now;
     }
     
     // Ações especiais (não precisam de verificação de desbloqueio)
@@ -109,6 +132,31 @@ export const useSkillHotkeys = () => {
         return;
       }
       console.log(`🎯 Atacando alvo com ${skillId}`);
+
+      // 🔥 APLICA DANO REAL NO ALVO SELECIONADO
+      const dmg = config.damage || 15;
+      if (config.hits > 1) {
+        for (let i = 0; i < config.hits; i++) {
+          applyDamageToTarget(target, dmg);
+        }
+      } else {
+        applyDamageToTarget(target, dmg);
+      }
+
+      // Sangue no inimigo
+      const targetPos = target.position || target.pos;
+      if (targetPos) {
+        window.dispatchEvent(new CustomEvent('combatBlood', {
+          detail: { position: { x: targetPos.x, y: targetPos.y, z: targetPos.z } },
+        }));
+      }
+      window.dispatchEvent(new CustomEvent('combatDamage', {
+        detail: {
+          damage: dmg * (config.hits || 1),
+          position: { x: window.innerWidth / 2, y: window.innerHeight / 3 },
+          isPlayer: false,
+        },
+      }));
     }
     
     // Skills de auto-cura
@@ -125,6 +173,10 @@ export const useSkillHotkeys = () => {
     if (skillId === 'heal' && config.healAmount) {
       healPlayer(config.healAmount);
       console.log(`💚 Curou ${config.healAmount} HP!`);
+      // 🔥 Feedback visual de cura
+      window.dispatchEvent(new CustomEvent('playerHeal', {
+        detail: { amount: config.healAmount, position: { x: window.innerWidth / 2, y: window.innerHeight / 2 } },
+      }));
     }
     
     if (skillId === 'use_potion') {
@@ -139,7 +191,7 @@ export const useSkillHotkeys = () => {
     }
     
     console.log(`✨ Usou: ${HOTKEY_CONFIG[Object.keys(HOTKEY_CONFIG).find(k => HOTKEY_CONFIG[k]?.skillId === skillId)]?.name || skillId}`);
-  }, [unlockedSkills, playerMana, setPlayerMana, healPlayer, currentTarget, findNearestEnemy, inventory, removeFromInventory]);
+  }, [unlockedSkills, playerMana, setPlayerMana, healPlayer, currentTarget, findNearestEnemy, inventory, removeFromInventory, applyDamageToTarget]);
   
   useEffect(() => {
     const handleKeyPress = (e) => {

@@ -2,7 +2,6 @@
   "name": "ar-game",
   "version": "0.0.0",
   "type": "module",
-  
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -13,6 +12,7 @@
     "@react-three/fiber": "^8.16.0",
     "@react-three/rapier": "^1.5.0",
     "@react-three/xr": "^5.4.0",
+    "ai": "^7.0.66",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "three": "^0.162.0",

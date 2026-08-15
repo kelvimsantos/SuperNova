@@ -29,6 +29,7 @@ import { Pet } from './pets/Pet';
 import { Mount } from './mounts/Mount';
 import { Glider } from './mounts/Glider';
 import { BloodEffect } from './BloodEffect';
+import { BowEffect } from './BowEffect';
 import { ArrowProjectile } from './ArrowProjectile';
 import { CombatController } from './CombatController';
 
@@ -311,6 +312,7 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
 
       {/* 🔥 EFEITOS DE COMBATE */}
       <BloodEffect />
+      <BowEffect />
       <ArrowProjectile />
       <CombatController />
 

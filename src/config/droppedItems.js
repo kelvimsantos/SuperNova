@@ -104,15 +104,24 @@ export const ENEMY_DROPS = {
     common: [
       { id: 'golden_coin', chance: 0.7, quantity: 2 },
       { id: 'small_health_potion', chance: 0.4, quantity: 1 },
+      { id: 'bow_wood', chance: 0.12, quantity: 1 },
+      { id: 'shield_wood', chance: 0.1, quantity: 1 },
     ],
     uncommon: [
       { id: 'iron_helmet', chance: 0.15, quantity: 1 },
       { id: 'iron_sword', chance: 0.1, quantity: 1 },
       { id: 'leather_chest', chance: 0.12, quantity: 1 },
+      { id: 'bow_hunter', chance: 0.08, quantity: 1 },
+      { id: 'shield_iron', chance: 0.08, quantity: 1 },
+      { id: 'medieval_shield', chance: 0.08, quantity: 1 },
     ],
     rare: [
       { id: 'strength_ring', chance: 0.07, quantity: 1 },
       { id: 'magic_sword', chance: 0.03, quantity: 1 },
+      { id: 'bow_elf', chance: 0.05, quantity: 1 },
+      { id: 'bow_magic', chance: 0.03, quantity: 1 },
+      { id: 'shield_gladiator', chance: 0.03, quantity: 1 },
+      { id: 'warrior_shield', chance: 0.03, quantity: 1 },
     ]
   }
 };

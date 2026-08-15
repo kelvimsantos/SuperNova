@@ -110,6 +110,22 @@ export class ZombiePool {
       hpGroup.visible = false;
       root.add(hpGroup);
 
+      // 🔥 Círculo de seleção (indicador visual de alvo selecionado)
+      const selGroup = new THREE.Group();
+      selGroup.position.set(0, 0.02 / baseScale.y, 0);
+      selGroup.scale.set(1 / baseScale.x, 1 / baseScale.y, 1 / baseScale.z);
+      const selMat = new THREE.MeshBasicMaterial({
+        color: 0x33ff66,
+        transparent: true,
+        opacity: 0.85,
+        depthTest: false,
+      });
+      const selRing = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.75, 32), selMat);
+      selRing.rotation.x = -Math.PI / 2;
+      selGroup.add(selRing);
+      selGroup.visible = false;
+      root.add(selGroup);
+
       this.entities.push({
         id: i,
         root,
@@ -134,6 +150,7 @@ export class ZombiePool {
         respawnTimer: null,
         hpGroup,
         hpFill: fill,
+        selGroup,
         _currentAction: null,
       });
     }
@@ -606,6 +623,11 @@ export class ZombiePool {
       e.hpFill.scale.x = Math.max(0.001, pct);
       e.hpFill.position.x = -(1 - pct) / 2;
     }
+
+    // 🔥 Indicador de seleção (círculo verde) — alvo selecionado por clique
+    const store = useGameStore.getState();
+    const isSelected = store.selectedTarget === e;
+    if (e.selGroup) e.selGroup.visible = isSelected;
   }
 
   // 🔥 Dano + hit reaction

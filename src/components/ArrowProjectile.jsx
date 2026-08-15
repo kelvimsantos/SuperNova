@@ -14,9 +14,11 @@ const SOLID_HIT_DISTANCE = 0.5; // para parar num obstáculo sólido
 export const ArrowProjectile = () => {
   const [arrows, setArrows] = useState([]);
   const idRef = useRef(0);
+  // 🔥 Cache das meshes de terreno (evita worldGroup.traverse() a cada frame)
+  const terrainCacheRef = useRef({ meshes: [], lastUpdate: 0 });
 
   // 🔥 Dispara uma flecha
-  const fire = useCallback((origin, direction) => {
+  const fire = useCallback((origin, direction, noDamage = false) => {
     const id = ++idRef.current;
     setArrows(prev => [...prev, {
       id,
@@ -25,14 +27,15 @@ export const ArrowProjectile = () => {
       pos: origin.clone(),
       traveled: 0,
       hit: false,
+      noDamage,
     }]);
   }, []);
 
   // 🔥 Listener do evento de disparo
   useEffect(() => {
     const handler = (e) => {
-      const { origin, direction } = e.detail;
-      if (origin && direction) fire(origin, direction);
+      const { origin, direction, noDamage } = e.detail;
+      if (origin && direction) fire(origin, direction, noDamage);
     };
     window.addEventListener('playerFireArrow', handler);
     return () => window.removeEventListener('playerFireArrow', handler);
@@ -45,6 +48,21 @@ export const ArrowProjectile = () => {
     const speed = 40;
     const raycaster = new THREE.Raycaster();
     const _tmp = new THREE.Vector3();
+
+    // 🔥 Coleta meshes de terreno com cache (só revarre o mundo de vez em quando)
+    const now = performance.now();
+    if (now - terrainCacheRef.current.lastUpdate > 1000) {
+      const worldGroup = useGameStore.getState().worldGroupRef;
+      const meshes = [];
+      if (worldGroup) {
+        worldGroup.traverse((o) => {
+          if (o.isMesh && o.userData.isTerrain) meshes.push(o);
+        });
+      }
+      terrainCacheRef.current.meshes = meshes;
+      terrainCacheRef.current.lastUpdate = now;
+    }
+    const terrainMeshes = terrainCacheRef.current.meshes;
 
     const alive = [];
     for (const a of arrows) {
@@ -73,18 +91,20 @@ export const ArrowProjectile = () => {
           const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
           if (d < 0.8) {
             hitEnemy = true;
-            const dmg = useGameStore.getState().getPlayerDamage();
-            horde.damage(z.id, dmg);
-            window.dispatchEvent(new CustomEvent('combatBlood', {
-              detail: { position: { x: a.pos.x, y: a.pos.y, z: a.pos.z } },
-            }));
-            window.dispatchEvent(new CustomEvent('combatDamage', {
-              detail: {
-                damage: dmg,
-                position: { x: window.innerWidth / 2, y: window.innerHeight / 3 },
-                isPlayer: false,
-              },
-            }));
+            if (!a.noDamage) {
+              const dmg = useGameStore.getState().getPlayerDamage();
+              horde.damage(z.id, dmg);
+              window.dispatchEvent(new CustomEvent('combatBlood', {
+                detail: { position: { x: a.pos.x, y: a.pos.y, z: a.pos.z } },
+              }));
+              window.dispatchEvent(new CustomEvent('combatDamage', {
+                detail: {
+                  damage: dmg,
+                  position: { x: window.innerWidth / 2, y: window.innerHeight / 3 },
+                  isPlayer: false,
+                },
+              }));
+            }
             break;
           }
         }
@@ -92,20 +112,13 @@ export const ArrowProjectile = () => {
 
       // Raycast contra o terreno (para a flecha perfurar no chão)
       if (!hitEnemy) {
-        const worldGroup = useGameStore.getState().worldGroupRef;
-        if (worldGroup) {
-          raycaster.set(a.pos, a.dir);
-          _tmp.copy(a.pos).addScaledVector(a.dir, -SOLID_HIT_DISTANCE);
-          raycaster.far = SOLID_HIT_DISTANCE;
-          const allMeshes = [];
-          worldGroup.traverse((o) => {
-            if (o.isMesh && o.userData.isTerrain) allMeshes.push(o);
-          });
-          if (allMeshes.length > 0) {
-            const hits = raycaster.intersectObjects(allMeshes, false);
-            if (hits.length > 0) {
-              hitEnemy = true;
-            }
+        raycaster.set(a.pos, a.dir);
+        _tmp.copy(a.pos).addScaledVector(a.dir, -SOLID_HIT_DISTANCE);
+        raycaster.far = SOLID_HIT_DISTANCE;
+        if (terrainMeshes.length > 0) {
+          const hits = raycaster.intersectObjects(terrainMeshes, false);
+          if (hits.length > 0) {
+            hitEnemy = true;
           }
         }
       }
@@ -115,9 +128,6 @@ export const ArrowProjectile = () => {
 
     // Remove flechas que já colidiram
     setArrows(prev => prev.filter(a => !a.hit));
-    if (alive.some(a => a.done)) {
-      // Flechas que colidiram ficam um instante então somem
-    }
   });
 
   // Renderiza flechas

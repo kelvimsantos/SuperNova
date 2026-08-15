@@ -24,6 +24,10 @@
   color: #ff4444;
 }
 
+.combat-text.player-damage {
+  color: #ff8844;
+}
+
 .combat-text.heal {
   color: #44ff44;
 }

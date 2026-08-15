@@ -25,9 +25,24 @@ const useGameStore = create((set, get) => ({
     }
     
     if (leveledUp) {
+      const stats = get().getPlayerStats();
+      const newMaxHealth = 100 * newLevel + (stats.stamina * 5);
+      const newMaxMana = 100 * newLevel + (stats.intelligence * 5);
+      
       window.dispatchEvent(new CustomEvent('playerLevelUp', { 
-        detail: { level: newLevel, skillPoints: newSkillPoints }
+        detail: { level: newLevel, skillPoints: newSkillPoints, maxHealth: newMaxHealth, maxMana: newMaxMana }
       }));
+      
+      return {
+        playerExp: newExp,
+        playerLevel: newLevel,
+        expToNextLevel: newExpToNext,
+        skillPoints: newSkillPoints,
+        playerMaxHealth: newMaxHealth,
+        playerMaxMana: newMaxMana,
+        playerHealth: newMaxHealth,
+        playerMana: newMaxMana
+      };
     }
     
     return {
@@ -41,9 +56,22 @@ const useGameStore = create((set, get) => ({
   setPlayerLevel: (level) => set({ playerLevel: level }),
   setPlayerExp: (exp) => set({ playerExp: exp }),
   setSkillPoints: (points) => set({ skillPoints: points }),
+
+  initializeStats: () => set((state) => {
+    const stats = get().getPlayerStats();
+    const maxHealth = 100 * state.playerLevel + (stats.stamina * 5);
+    const maxMana = 100 * state.playerLevel + (stats.intelligence * 5);
+    return {
+      playerMaxHealth: maxHealth,
+      playerMaxMana: maxMana,
+      playerHealth: maxHealth,
+      playerMana: maxMana
+    };
+  }),
   
   // 🔥 SKILLS DESBLOQUEADAS
-  unlockedSkills: [],
+  //    Começa com as básicas desbloqueadas para as hotkeys funcionarem.
+  unlockedSkills: ['heavy_attack', 'double_strike', 'fireball', 'ice_bolt', 'heal', 'quick_attack', 'special'],
   unlockSkill: (skillId) => set((state) => {
     if (state.skillPoints <= 0) {
       console.log('❌ Sem pontos de habilidade!');
@@ -182,7 +210,9 @@ const useGameStore = create((set, get) => ({
     return stats;
   },
   
-  getPlayerMaxHealth: () => 100 + (get().getPlayerStats().stamina * 5),
+  getPlayerMaxHealth: () => 100 * get().playerLevel + (get().getPlayerStats().stamina * 5),
+  
+  getPlayerMaxMana: () => 100 * get().playerLevel + (get().getPlayerStats().intelligence * 5),
   
   getPlayerDamage: () => {
     const stats = get().getPlayerStats();
@@ -192,9 +222,13 @@ const useGameStore = create((set, get) => ({
 // 🔥 SISTEMA DE COMBATE
   playerHealth: 100,
   playerMaxHealth: 100,
-  playerMana: 50,
-  playerMaxMana: 50,
+  playerMana: 100,
+  playerMaxMana: 100,
   playerDamage: 15,
+  
+  // 🔥 REGENERAÇÃO
+  healthRegenRate: 0.5,
+  manaRegenOnHit: 10,
 
   // 🔥 ESTADO DE ATAQUE (animação + timing)
   playerAttacking: false,
@@ -202,12 +236,15 @@ const useGameStore = create((set, get) => ({
   attackAnimIndex: 0,
   isAiming: false,
   pendingTarget: null,
+  selectedTarget: null,
 
   setPlayerAttacking: (val) => set({ playerAttacking: Boolean(val) }),
   setAttackReady: (val) => set({ attackReady: Boolean(val) }),
   setAttackAnimIndex: (idx) => set({ attackAnimIndex: idx }),
   setIsAiming: (val) => set({ isAiming: Boolean(val) }),
   setPendingTarget: (target) => set({ pendingTarget: target }),
+  setSelectedTarget: (target) => set({ selectedTarget: target }),
+  clearSelectedTarget: () => set({ selectedTarget: null }),
 
   // 🔥 HELPER: detecta se o equipamento atual é um arco
   isBowEquipped: () => {
@@ -226,7 +263,7 @@ const useGameStore = create((set, get) => ({
    * O dano só é aplicado quando a animação de ataque termina (AvatarPlayer).
    */
   requestAttack: (target) => {
-    // Armazena o alvo pendente
+    // Armazena o alvo pendente (o selectedTarget é definido pelo chamador com o entity real)
     set({ pendingTarget: target, playerAttacking: false, attackReady: false });
     // Notifica o AvatarPlayer para começar a animação de soco
     window.dispatchEvent(new CustomEvent('playerAttackRequested', { detail: { target } }));
@@ -248,6 +285,21 @@ const useGameStore = create((set, get) => ({
   
   healPlayer: (amount) => set((state) => ({ 
     playerHealth: Math.min(state.playerMaxHealth, state.playerHealth + amount)
+  })),
+
+  restoreFullHealthMana: () => set((state) => ({
+    playerHealth: state.playerMaxHealth,
+    playerMana: state.playerMaxMana
+  })),
+
+  regenHealth: (deltaTime) => set((state) => {
+    if (state.playerHealth >= state.playerMaxHealth) return state;
+    const regenAmount = state.healthRegenRate * deltaTime;
+    return { playerHealth: Math.min(state.playerMaxHealth, state.playerHealth + regenAmount) };
+  }),
+
+  regenManaOnHit: () => set((state) => ({
+    playerMana: Math.min(state.playerMaxMana, state.playerMana + state.manaRegenOnHit)
   })),
 
   // 🔥 SISTEMA DE QUESTS - KILLS

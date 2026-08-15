@@ -11,24 +11,39 @@ export const CombatText = () => {
       // Posição fixa na tela para o texto
       const screenX = position?.x || window.innerWidth / 2;
       const screenY = position?.y || window.innerHeight / 3;
-      
-      addMessage(`${damage}`, { x: screenX, y: screenY }, 'damage');
+
+      if (isPlayer) {
+        // 🔥 Dano sofrido pelo jogador
+        addMessage(`-${damage}`, { x: screenX, y: screenY }, 'player-damage');
+      } else {
+        addMessage(`${damage}`, { x: screenX, y: screenY }, 'damage');
+      }
     };
-    
+
+    const handleHeal = (e) => {
+      const { amount, position } = e.detail;
+      const screenX = position?.x || window.innerWidth / 2;
+      const screenY = position?.y || window.innerHeight / 2;
+
+      addMessage(`+${amount}`, { x: screenX, y: screenY }, 'heal');
+    };
+
     const handleExp = (e) => {
       const { amount, position } = e.detail;
       const screenX = position?.x || window.innerWidth / 2;
       const screenY = position?.y || window.innerHeight / 2;
-      
+
       addMessage(`+${amount} XP`, { x: screenX, y: screenY }, 'exp');
     };
-    
+
     window.addEventListener('combatDamage', handleDamage);
     window.addEventListener('combatExp', handleExp);
-    
+    window.addEventListener('playerHeal', handleHeal);
+
     return () => {
       window.removeEventListener('combatDamage', handleDamage);
       window.removeEventListener('combatExp', handleExp);
+      window.removeEventListener('playerHeal', handleHeal);
     };
   }, []);
   

@@ -94,6 +94,7 @@ export function ZombieHorde({
         const entity = pool.entities.find((e) => e.id === id);
         if (entity) pool.applyDamage(entity, amount);
       },
+      hitTest: (ndcX, ndcY, camera) => pool.hitTest(ndcX, ndcY, camera),
       getActive: () => pool.entities.filter((e) => e.active),
       getPool: () => pool.entities,
     };
@@ -120,12 +121,16 @@ export function ZombieHorde({
   //    animação de soco do avatar terminar (AvatarPlayer → applyPendingDamage).
   useEffect(() => {
     const handleClick = (e) => {
+      // 🔥 Só botão esquerdo (o direito é seleção de alvo pelo CombatController)
+      if (e.button !== 0) return;
       if (!poolRef.current) return;
       const ndcX = (e.clientX / window.innerWidth) * 2 - 1;
       const ndcY = -(e.clientY / window.innerHeight) * 2 + 1;
       const hit = poolRef.current.hitTest(ndcX, ndcY, camera);
       if (hit) {
         const store = useGameStore.getState();
+        // 🔥 Seleciona o entity real (para o círculo + hotkeys)
+        store.setSelectedTarget(hit);
         store.requestAttack({
           applyDamage: (amount) => {
             poolRef.current.applyDamage(hit, amount);

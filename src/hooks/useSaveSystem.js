@@ -115,6 +115,13 @@ export const useSaveSystem = () => {
       gameState.setPlayerLevel(saveData.player.level);
       gameState.setPlayerExp(saveData.player.exp);
       gameState.setSkillPoints(saveData.player.skillPoints);
+      
+      // 🔥 RECALCULA MAX HEALTH/MANA BASEADO NO LEVEL (nova fórmula)
+      const stats = gameState.getPlayerStats();
+      const newMaxHealth = 100 * saveData.player.level + (stats.stamina * 5);
+      const newMaxMana = 100 * saveData.player.level + (stats.intelligence * 5);
+      gameState.set({ playerMaxHealth: newMaxHealth, playerMaxMana: newMaxMana });
+      
       gameState.setPlayerHealth(saveData.player.health);
       gameState.setPlayerMana(saveData.player.mana);
       gameState.setCurrentScene(saveData.player.currentScene);

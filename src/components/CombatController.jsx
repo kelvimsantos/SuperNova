@@ -2,8 +2,10 @@
 // 🔥 Controle de combate via mouse:
 // - Botão esquerdo: ataque corpo-a-corpo (soco) — dispara 'playerAttackRequested'
 // - Com arco equipado (e NÃO montado):
-//     - Botão direito: entra em modo mira (rotação horizontal do avatar)
-//     - Botão esquerdo enquanto mira: dispara flecha (evento 'playerFireArrow')
+//     - Botão direito no inimigo: seleciona alvo, vira avatar, toca animação "Mira-arco"
+//       Ao terminar a animação, dispara raycast no alvo e aplica dano
+//     - Botão direito no vazio: entra em modo mira livre (rotação horizontal do avatar)
+//     - Botão esquerdo enquanto mira livre: dispara flecha (evento 'playerFireArrow')
 // - Só ataca se NÃO estiver montado
 import { useEffect, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
@@ -21,17 +23,44 @@ export const CombatController = () => {
     return !(mount?.isActive);
   };
 
-  // 🔥 Botão direto: entrar/sair do modo mira (com arco)
+  // 🔥 Botão direito: clique no inimigo = seleciona alvo (com arco dispara animação Mira-arco)
+  // Clique no vazio com arco = modo mira livre
   useEffect(() => {
     const onMouseDown = (e) => {
-      if (e.button === 2 && canAttack()) {
-        const isBow = useGameStore.getState().isBowEquipped();
-        if (isBow) {
-          aimingRef.current = true;
-          lastAimX.current = e.clientX;
-          useGameStore.getState().setIsAiming(true);
+      if (e.button !== 2) return;
+      if (!canAttack()) return;
+
+      const isBow = useGameStore.getState().isBowEquipped();
+
+      // 🔥 Usa o hitTest do pool (confiável, baseado na posição real dos zombies)
+      const horde = window.zombieHorde;
+      if (horde && horde.hitTest) {
+        const ndcX = (e.clientX / window.innerWidth) * 2 - 1;
+        const ndcY = -(e.clientY / window.innerHeight) * 2 + 1;
+        const hit = horde.hitTest(ndcX, ndcY, camera);
+        if (hit) {
+          // 🔥 Seleciona o zombie como alvo (para animação + hotkeys)
+          const store = useGameStore.getState();
+          store.setSelectedTarget(hit);
+          store.setPendingTarget(hit);
+          if (isBow) {
+            // Com arco: dispara evento para AvatarPlayer iniciar animação Mira-arco
+            window.dispatchEvent(new CustomEvent('playerBowAttackRequested', { detail: { target: hit } }));
+          } else {
+            // Sem arco: ataque corpo-a-corpo (dano imediato via handler do AvatarPlayer)
+            window.dispatchEvent(new CustomEvent('playerAttackRequested', { detail: { target: hit } }));
+          }
           e.preventDefault();
+          return;
         }
+      }
+
+      // 🔥 Clicou no vazio — entra em modo mira livre (só com arco)
+      if (isBow) {
+        aimingRef.current = true;
+        lastAimX.current = e.clientX;
+        useGameStore.getState().setIsAiming(true);
+        e.preventDefault();
       }
     };
 
@@ -54,9 +83,9 @@ export const CombatController = () => {
       window.removeEventListener('mouseup', onMouseUp);
       window.removeEventListener('contextmenu', onContextMenu);
     };
-  }, []);
+  }, [camera]);
 
-  // 🔥 Botão esquerdo: soco ou disparar flecha
+  // 🔥 Botão esquerdo: disparar flecha (modo mira livre)
   useEffect(() => {
     const onMouseDown = (e) => {
       if (e.button !== 0) return; // só botão esquerdo
@@ -65,7 +94,7 @@ export const CombatController = () => {
       const isBow = useGameStore.getState().isBowEquipped();
 
       if (isBow && aimingRef.current) {
-        // 🔥 Dispara flecha do raycast
+        // 🔥 Dispara flecha do raycast (modo mira livre)
         const origin = camera.position.clone();
         const direction = new THREE.Vector3();
         camera.getWorldDirection(direction);
@@ -77,20 +106,15 @@ export const CombatController = () => {
         e.preventDefault();
         return;
       }
-
-      // 🔥 Corpo-a-corpo: inicia animação de soco (o avatar dano aplica ao terminar)
-      //    O dano em si é aplicado pelo AvatarPlayer quando a animação termina.
-      //    Para o corpo-a-corpo, o alvo é o inimigo sob o mouse (tratado nos inimigos).
-      //    Aqui apenas notificamos que o jogador quer atacar (o alvo já foi registrado
-      //    pelo clique no inimigo via requestAttack nos handlers dos inimigos).
-      //    Se não houver alvo pendente, não faz nada.
+      // 🔥 Sem arco: corpo-a-corpo é tratado pelo onClick do inimigo (ZombieEnemy) 
+      //    ou pelo botão direito (que faz hitTest e dispara playerAttackRequested)
     };
 
     window.addEventListener('mousedown', onMouseDown);
     return () => window.removeEventListener('mousedown', onMouseDown);
   }, [camera]);
 
-  // 🔥 Pointer move: rotaciona o avatar horizontalmente durante a mira
+  // 🔥 Pointer move: rotaciona o avatar horizontalmente durante a mira livre
   useEffect(() => {
     const onPointerMove = (e) => {
       if (!aimingRef.current) return;

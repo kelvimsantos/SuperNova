@@ -122,7 +122,7 @@ export const SlimeEnemy = ({
     const store = useGameStore.getState();
     const dmg = store.getPlayerDamage();
 
-    store.requestAttack({
+    const targetObj = {
       applyDamage: (amount) => {
         const newHealth = Math.max(0, currentHealth - amount);
         setCurrentHealth(newHealth);
@@ -157,7 +157,11 @@ export const SlimeEnemy = ({
         y: ref.current.position.y + 0.4,
         z: ref.current.position.z,
       } : null,
-    });
+    };
+
+    // 🔥 Seleciona o slime como alvo (para hotkeys aplicarem poderes)
+    store.setSelectedTarget(targetObj);
+    store.requestAttack(targetObj);
 
     // 🔥 O AvatarPlayer dispara 'combatDamage' quando a animação termina,
     //    então não duplicamos o texto de dano aqui.
@@ -229,6 +233,11 @@ export const SlimeEnemy = ({
         onPointerEnter={() => setIsHovered(true)}
         onPointerLeave={() => setIsHovered(false)}
         onClick={attack}
+        onContextMenu={(ev) => {
+          ev.nativeEvent.preventDefault();
+          ev.stopPropagation();
+          attack();
+        }}
       >
         <meshStandardMaterial 
           color={bodyColor}

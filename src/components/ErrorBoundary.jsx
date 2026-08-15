@@ -11,11 +11,21 @@ export class ErrorBoundary extends Component {
   }
 
   static getDerivedStateFromError(error) {
-    return { hasError: true, message: error?.message || String(error) };
+    let message = '';
+    try {
+      message = error?.message || String(error);
+    } catch {
+      message = 'Erro desconhecido (não foi possível converter para string)';
+    }
+    return { hasError: true, message };
   }
 
   componentDidCatch(error, info) {
-    console.error('🔥 ErrorBoundary capturou erro:', error, info);
+    try {
+      console.error('🔥 ErrorBoundary capturou erro:', error, info);
+    } catch {
+      console.error('🔥 ErrorBoundary capturou erro (não serializável)');
+    }
   }
 
   handleReload = () => {

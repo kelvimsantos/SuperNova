@@ -44,6 +44,7 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const [isAdjusting, setIsAdjusting] = useState(false);
   const setPlayerPosition = useGameStore((state) => state.setPlayerPosition);
   const playerHealth = useGameStore((state) => state.playerHealth);
+  const regenHealth = useGameStore((state) => state.regenHealth);
   const isDead = playerHealth <= 0;
   
   const mount = useGameStore((s) => s.mount);
@@ -64,6 +65,8 @@ const equippedItems = useGameStore(state => state.equippedItems);
   const attackAnimDurationRef = useRef(0);
   const pendingTargetRef = useRef(null);
   const isAimingRef = useRef(false);
+  const isBowAttackRef = useRef(false);
+  const attackDamageAppliedRef = useRef(false);
 
   // 🔥 REFS DOS BRAÇOS (para rotacionar para cima enquanto plana)
   const leftArmRef = useRef(null);
@@ -108,21 +111,129 @@ const equippedItems = useGameStore(state => state.equippedItems);
     useGameStore.getState().setAttackAnimIndex(idx + 1);
   }, [actions]);
 
+  // 🔥 TOCA ANIMAÇÃO DE ARCO (Mira-arco)
+  const playShoot = useCallback((target) => {
+    if (!actions) return;
+    // Tenta animações de arco/mira
+    const shootNames = ['Mira-arco', 'Aim', 'Bow', 'Shoot', 'aim', 'shoot', 'Bow2', 'AimShot'];
+    const name = shootNames.find(n => actions[n]) || 'Punching1';
+    if (!actions[name]) return;
+    console.log('[BOW-DEBUG] >>> playShoot CHAMADO target:', target, 'animação:', name);
+
+    Object.values(actions).forEach(action => action.stop());
+    const action = actions[name];
+    action.reset().play();
+    currentAnim.current = name;
+    attackingRef.current = true;
+    attackAnimTimeRef.current = 0;
+    // 🔥 Duração do ataque de arco (0.5s — mais suave)
+    attackAnimDurationRef.current = 0.5;
+    // Acelera a animação para terminar em 0.5s
+    const clipDuration = action.getClip().duration || 1.0;
+    action.timeScale = clipDuration / 0.5;
+
+    // Guarda o alvo para aplicar dano quando a animação terminar
+    pendingTargetRef.current = target;
+    isBowAttackRef.current = true;
+    useGameStore.getState().setPlayerAttacking(true);
+    useGameStore.getState().setAttackReady(false);
+  }, [actions]);
+
   // 🔥 APLICA O DANO PENDENTE (chamado quando a animação termina)
   const applyPendingDamage = useCallback(() => {
     const target = pendingTargetRef.current;
-    if (!target) return;
-    const dmg = useGameStore.getState().getPlayerDamage();
-
-    // Aplica dano via callback do alvo (se existir)
-    if (target.applyDamage) {
-      target.applyDamage(dmg);
+    const wasBowAttack = isBowAttackRef.current;
+    console.log('[BOW-DEBUG] >>> applyPendingDamage INICIO wasBow:', wasBowAttack, 'target:', target);
+    if (target) {
+      console.log('[BOW-DEBUG]    target props:', { id: target.id, pos: target.pos, position: target.position, applyDamage: !!target.applyDamage });
     }
 
-    // Sangue
-    if (target.position) {
+    // 🔥 SEMPRE libera o estado de ataque (evita travar o personagem)
+    pendingTargetRef.current = null;
+    attackingRef.current = false;
+    useGameStore.getState().setPlayerAttacking(false);
+    useGameStore.getState().setAttackReady(true);
+    useGameStore.getState().setPendingTarget(null);
+    isBowAttackRef.current = false;
+
+    if (!target) {
+      console.log('[BOW-DEBUG] >>> SEM TARGET - retornando');
+      return;
+    }
+    const dmg = useGameStore.getState().getPlayerDamage();
+    console.log('[BOW-DEBUG]    dmg calculado:', dmg);
+
+    // 🔥 NÃO checa distância aqui - já foi checado ao iniciar o ataque
+    // O alvo pode ter se movido ligeiramente durante a animação
+
+    // 🔥 ATAQUE DE ARCO: dispara flecha visível (FX) em direção ao inimigo + aplica dano direto
+    if (wasBowAttack) {
+      console.log('[BOW-DEBUG] >>> PROCESSANDO ATAQUE DE ARCO');
+      const targetPos = target.position || target.pos;
+      const playerPos = rigidBodyRef.current ? rigidBodyRef.current.translation() : null;
+      if (targetPos && playerPos) {
+        const dir = new Vector3(
+          targetPos.x - playerPos.x,
+          (targetPos.y + 1.1) - playerPos.y,
+          targetPos.z - playerPos.z
+        ).normalize();
+        
+        // Dispara flecha visual (ArrowProjectile fará hit detection + partículas + dano)
+        window.dispatchEvent(new CustomEvent('playerFireArrow', {
+          detail: { origin: playerPos.clone(), direction: dir, noDamage: false },
+        }));
+        console.log('[BOW-DEBUG]    playerFireArrow disparado');
+      }
+      
+      // Aplica dano IMEDIATAMENTE no alvo travado (para garantir dano mesmo se flecha visual errar)
+      if (target.applyDamage) {
+        console.log('[BOW-DEBUG]    aplicando via target.applyDamage');
+        target.applyDamage(dmg);
+      } else if (window.zombieHorde && window.zombieHorde.damage && target.id !== undefined) {
+        console.log('[BOW-DEBUG]    aplicando via zombieHorde.damage id=', target.id, 'dmg=', dmg);
+        window.zombieHorde.damage(target.id, dmg);
+      } else {
+        console.log('[BOW-DEBUG]    ERRO: nenhum caminho de dano! target:', target);
+      }
+      
+      // Partículas de sangue no alvo
+      if (targetPos) {
+        window.dispatchEvent(new CustomEvent('combatBlood', {
+          detail: { position: { x: targetPos.x, y: targetPos.y, z: targetPos.z } },
+        }));
+        console.log('[BOW-DEBUG]    combatBlood disparado');
+      }
+      
+      // Texto de dano
+      window.dispatchEvent(new CustomEvent('combatDamage', {
+        detail: { damage: dmg, position: { x: window.innerWidth / 2, y: window.innerHeight / 3 }, isPlayer: false },
+      }));
+
+      // Mana regen on hit
+      useGameStore.getState().regenManaOnHit();
+      console.log('[BOW-DEBUG]    mana regen aplicado');
+      
+      return; // Arco já aplicou tudo, sai da função
+    }
+
+    // Aplica dano via callback do alvo (se existir - ZombieEnemy)
+    if (target.applyDamage) {
+      console.log('[BOW-DEBUG] aplicando via target.applyDamage');
+      target.applyDamage(dmg);
+    }
+    // Senão, usa o pool global (ZombiePool)
+    else if (window.zombieHorde && window.zombieHorde.damage && target.id !== undefined) {
+      console.log('[BOW-DEBUG] aplicando via zombieHorde.damage id=', target.id, 'dmg=', dmg);
+      window.zombieHorde.damage(target.id, dmg);
+    } else {
+      console.log('[BOW-DEBUG] NENHUM caminho de dano! id=', target.id, 'applyDamage=', !!target.applyDamage, 'horde=', !!window.zombieHorde);
+    }
+
+    // Sangue - suporta target.position (ZombieEnemy) ou target.pos (ZombiePool)
+    const targetPos = target.position || target.pos;
+    if (targetPos) {
       window.dispatchEvent(new CustomEvent('combatBlood', {
-        detail: { position: { x: target.position.x, y: target.position.y, z: target.position.z } },
+        detail: { position: { x: targetPos.x, y: targetPos.y, z: targetPos.z } },
       }));
     }
 
@@ -135,25 +246,251 @@ const equippedItems = useGameStore(state => state.equippedItems);
       },
     }));
 
-    pendingTargetRef.current = null;
-    attackingRef.current = false;
-    useGameStore.getState().setPlayerAttacking(false);
-    useGameStore.getState().setAttackReady(true);
-    useGameStore.getState().setPendingTarget(null);
+    // 🔥 REGENERAÇÃO DE MANA AO ACERTAR INIMIGO
+    useGameStore.getState().regenManaOnHit();
   }, []);
 
+  // 🔥 DANO DO ARCO (com delay baseado na distância)
+  const applyBowDamage = useCallback((target, targetPos, playerPos) => {
+    if (!target) return;
+    const dmg = useGameStore.getState().getPlayerDamage();
+    console.log('[BOW-DEBUG] >>> APLICANDO DANO DO ARCO (delayed) dmg:', dmg, 'target:', target);
+
+    // Dispara flecha visual
+    if (targetPos && playerPos) {
+      const dir = new Vector3(
+        targetPos.x - playerPos.x,
+        (targetPos.y + 1.1) - playerPos.y,
+        targetPos.z - playerPos.z
+      ).normalize();
+      window.dispatchEvent(new CustomEvent('playerFireArrow', {
+        detail: { origin: playerPos.clone(), direction: dir, noDamage: false },
+      }));
+    }
+
+    // Aplica dano direto no alvo - suporta tanto ZombieEnemy (applyDamage) quanto ZombiePool (id + window.zombieHorde)
+    if (target.applyDamage) {
+      console.log('[BOW-DEBUG]    aplicando via target.applyDamage');
+      target.applyDamage(dmg);
+    } else if (window.zombieHorde && window.zombieHorde.damage && target.id !== undefined) {
+      console.log('[BOW-DEBUG]    aplicando via zombieHorde.damage id=', target.id, 'dmg=', dmg);
+      window.zombieHorde.damage(target.id, dmg);
+    } else {
+      console.log('[BOW-DEBUG]    ERRO: nenhum caminho de dano! target:', { id: target.id, pos: target.pos, applyDamage: !!target.applyDamage, horde: !!window.zombieHorde });
+    }
+
+    // Partículas de sangue
+    if (targetPos) {
+      window.dispatchEvent(new CustomEvent('combatBlood', {
+        detail: { position: { x: targetPos.x, y: targetPos.y, z: targetPos.z } },
+      }));
+    }
+
+    // Texto de dano
+    window.dispatchEvent(new CustomEvent('combatDamage', {
+      detail: { damage: dmg, position: { x: window.innerWidth / 2, y: window.innerHeight / 3 }, isPlayer: false },
+    }));
+
+    // Mana regen
+    useGameStore.getState().regenManaOnHit();
+  }, []);
+
+  // 🔥 VIRA O AVATAR PARA ENFRENTAR O ALVO
+  const faceTarget = useCallback((target) => {
+    if (!visualRef.current || !rigidBodyRef.current) return;
+    const targetPos = target.position || target.pos;
+    if (!targetPos) return;
+    const playerPos = rigidBodyRef.current.translation();
+    const dx = targetPos.x - playerPos.x;
+    const dz = targetPos.z - playerPos.z;
+    const angle = Math.atan2(dx, dz);
+    visualRef.current.rotation.y = angle;
+    avatarFacingRef.current = angle;
+  }, [avatarFacingRef]);
+
   // 🔥 ESCUTA O EVENTO DE ATAQUE (clique no inimigo)
+  //    Com arco equipado e alvo > 2m → animação de arco (Mira-arco) + dano após delay.
+  //    Sem arco → dano IMEDIATO (corpo-a-corpo) + animação visual.
   useEffect(() => {
     const handler = (e) => {
       const target = e.detail?.target;
       if (!target) return;
-      if (isMounted) return; // não ataca montado
+      if (isMounted) return;
+
+      const targetPos = target.position || target.pos;
+      const isBow = useGameStore.getState().isBowEquipped();
+      const playerPos = rigidBodyRef.current ? rigidBodyRef.current.translation() : null;
+
+      let dist = Infinity;
+      if (targetPos && playerPos) {
+        const dx = targetPos.x - playerPos.x;
+        const dz = targetPos.z - playerPos.z;
+        dist = Math.sqrt(dx * dx + dz * dz);
+      }
+
       pendingTargetRef.current = target;
-      playPunch();
+      faceTarget(target);
+
+      if (isBow && dist > 2) {
+        // 🔥 ARCO: animação + dano com delay baseado na distância
+        const dmg = useGameStore.getState().getPlayerDamage();
+        
+        // Define delay baseado na distância
+        // Distância > 5m: 1.5s de delay | Distância 2-5m: 0.5s de delay
+        const delay = dist > 5 ? 1.5 : 0.5;
+        
+        // Agenda o dano com delay baseado na distância
+        const delayId = setTimeout(() => {
+          // Aplica dano direto (mesma lógica do melee)
+          if (target.applyDamage) {
+            target.applyDamage(dmg);
+          } else if (window.zombieHorde && window.zombieHorde.damage && target.id !== undefined) {
+            window.zombieHorde.damage(target.id, dmg);
+          }
+          
+          // Partículas direcionadas ao inimigo (do player ao alvo)
+          const targetPos = target.position || target.pos;
+          const playerPos = rigidBodyRef.current ? rigidBodyRef.current.translation() : null;
+          if (playerPos && targetPos) {
+            window.dispatchEvent(new CustomEvent('bowParticles', {
+              detail: { 
+                origin: playerPos.clone(), 
+                direction: new Vector3(
+                  targetPos.x - playerPos.x,
+                  (targetPos.y + 1.1) - playerPos.y,
+                  targetPos.z - playerPos.z
+                ).normalize()
+              },
+            }));
+          }
+          
+          // Partículas de sangue no alvo
+          if (targetPos) {
+            window.dispatchEvent(new CustomEvent('combatBlood', {
+              detail: { position: { x: targetPos.x, y: targetPos.y, z: targetPos.z } },
+            }));
+          }
+          window.dispatchEvent(new CustomEvent('combatDamage', {
+            detail: { damage: dmg, position: { x: window.innerWidth / 2, y: window.innerHeight / 3 }, isPlayer: false },
+          }));
+          useGameStore.getState().regenManaOnHit();
+        }, delay * 1000);
+        
+        // Toca animação de arco imediatamente (para feedback visual)
+        // O dano será aplicado após o delay acima
+        playShoot(target);
+      } else if (!isBow && dist <= 2.5) {
+        // 🔥 CORPO-A-CORPO: ataque com delay de 1 segundo
+        // (O dano será aplicado após 1s, enquanto a animação roda)
+        if (!attackDamageAppliedRef.current) {
+          attackDamageAppliedRef.current = true;
+          setTimeout(() => {
+            const dmg = useGameStore.getState().getPlayerDamage();
+            
+            // Aplica dano direto
+            if (target.applyDamage) {
+              target.applyDamage(dmg);
+            } else if (window.zombieHorde && window.zombieHorde.damage && target.id !== undefined) {
+              window.zombieHorde.damage(target.id, dmg);
+            }
+            
+            // Partículas + texto + mana
+            const targetPos = target.position || target.pos;
+            if (targetPos) {
+              window.dispatchEvent(new CustomEvent('combatBlood', {
+                detail: { position: { x: targetPos.x, y: targetPos.y, z: targetPos.z } },
+              }));
+            }
+            window.dispatchEvent(new CustomEvent('combatDamage', {
+              detail: { damage: dmg, position: { x: window.innerWidth / 2, y: window.innerHeight / 3 }, isPlayer: false },
+            }));
+            useGameStore.getState().regenManaOnHit();
+            
+            // Permite novo ataque após o delay
+            attackDamageAppliedRef.current = false;
+          }, 1000);
+        }
+        
+        // Toca animação de soco para feedback visual
+        playPunch();
+      } else if (!isBow) {
+        console.log('📏 Alvo muito longe para soco:', dist.toFixed(1));
+      }
     };
     window.addEventListener('playerAttackRequested', handler);
     return () => window.removeEventListener('playerAttackRequested', handler);
-  }, [playPunch, isMounted]);
+  }, [playPunch, playShoot, isMounted, faceTarget]);
+
+  // 🔥 ESCUTA EVENTO DE ATAQUE COM ARCO (botão direito no inimigo)
+  useEffect(() => {
+    const handler = (e) => {
+      const target = e.detail?.target;
+      if (!target) return;
+      if (isMounted) return;
+
+      // 🔥 Vira o avatar para enfrentar o alvo (suporta target.position e target.pos)
+      faceTarget(target);
+      
+      // 🔥 Calcula delay baseado na distância
+      const targetPos = target.position || target.pos;
+      const playerPos = rigidBodyRef.current ? rigidBodyRef.current.translation() : null;
+      let dist = 0;
+      if (targetPos && playerPos) {
+        const dx = targetPos.x - playerPos.x;
+        const dz = targetPos.z - playerPos.z;
+        dist = Math.sqrt(dx * dx + dz * dz);
+      }
+      
+      // Define delay baseado na distância
+      // Distância > 5m: 1.5s de delay | Distância 2-5m: 0.5s de delay
+      const delay = dist > 5 ? 1.5 : 0.5;
+      
+      // Agenda o dano com delay baseado na distância
+      const delayId = setTimeout(() => {
+        const dmg = useGameStore.getState().getPlayerDamage();
+        
+        // Aplica dano direto (mesma lógica do melee)
+        if (target.applyDamage) {
+          target.applyDamage(dmg);
+        } else if (window.zombieHorde && window.zombieHorde.damage && target.id !== undefined) {
+          window.zombieHorde.damage(target.id, dmg);
+        }
+        
+        // Partículas direcionadas ao inimigo (do player ao alvo)
+        const targetPos = target.position || target.pos;
+        const playerPos = rigidBodyRef.current ? rigidBodyRef.current.translation() : null;
+        if (playerPos && targetPos) {
+          window.dispatchEvent(new CustomEvent('bowParticles', {
+            detail: { 
+              origin: playerPos.clone(), 
+              direction: new Vector3(
+                targetPos.x - playerPos.x,
+                (targetPos.y + 1.1) - playerPos.y,
+                targetPos.z - playerPos.z
+              ).normalize()
+            },
+          }));
+        }
+        
+        // Partículas de sangue no alvo
+        if (targetPos) {
+          window.dispatchEvent(new CustomEvent('combatBlood', {
+            detail: { position: { x: targetPos.x, y: targetPos.y, z: targetPos.z } },
+          }));
+        }
+        window.dispatchEvent(new CustomEvent('combatDamage', {
+          detail: { damage: dmg, position: { x: window.innerWidth / 2, y: window.innerHeight / 3 }, isPlayer: false },
+        }));
+        useGameStore.getState().regenManaOnHit();
+      }, delay * 1000);
+      
+      // Toca animação de arco imediatamente (para feedback visual)
+      // O dano será aplicado após o delay acima
+      playShoot(target);
+    };
+    window.addEventListener('playerBowAttackRequested', handler);
+    return () => window.removeEventListener('playerBowAttackRequested', handler);
+  }, [playShoot, isMounted, faceTarget, rigidBodyRef]);
 
   // 🔥 ESCUTA MIRA (arco) — rotação horizontal
   useEffect(() => {
@@ -435,14 +772,47 @@ useFrame(({ camera }, delta) => {
       return;
     }
 
-    // 🔥 ATAQUE: se estiver atacando, mantém a animação de soco e,
-    //    quando ela terminar, aplica o dano pendente (só então tira sangue).
+    // 🔥 REGENERAÇÃO DE VIDA (lenta, fora de combate)
+    if (playerHealth < useGameStore.getState().playerMaxHealth && !attackingRef.current) {
+      regenHealth(delta);
+    }
+
+    // 🔥 ATAQUE: se estiver atacando, mantém a animação e quando termina agenda dano
     if (attackingRef.current) {
       attackAnimTimeRef.current += delta;
       if (attackAnimTimeRef.current >= attackAnimDurationRef.current) {
-        applyPendingDamage();
-        // volta ao idle quando o golpe termina
+        console.log('[BOW-DEBUG] Animação de ataque terminou! agendando dano...');
+        
+        const wasBowAttack = isBowAttackRef.current;
+        const target = pendingTargetRef.current;
+        
+        // Libera estado de ataque IMEDIATAMENTE (não trava personagem)
+        pendingTargetRef.current = null;
+        attackingRef.current = false;
+        useGameStore.getState().setPlayerAttacking(false);
+        useGameStore.getState().setAttackReady(true);
+        useGameStore.getState().setPendingTarget(null);
+        isBowAttackRef.current = false;
+        
+        // Volta ao idle
         playAnimation('idle2');
+        
+        if (!target) return;
+        
+        if (wasBowAttack) {
+          // 🔥 ARCO: dano já foi aplicado imediatamente nos handlers de evento
+          // Não aplica novamente aqui para evitar dano duplicado
+          console.log('[BOW-DEBUG] Dano do arco já aplicado imediatamente');
+        } else {
+          // 🔥 CORPO-A-CORPO: verifica se o dano de 1s ainda não foi aplicado
+          if (!attackDamageAppliedRef.current) {
+            // Dano ainda não foi aplicado pelo timer de 1s - aplicar agora via animação
+            applyPendingDamage();
+          } else {
+            // Dano já foi aplicado pelo timer de 1s - apenas resetar estado
+            console.log('[MELEE-DEBUG] Dano de 1s já foi aplicado, resetando estado');
+          }
+        }
       }
       return;
     }

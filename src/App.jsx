@@ -138,6 +138,8 @@ function App() {
         applySaveToGame(saveData);
         console.log('✅ Save carregado:', saveData.player.currentScene);
       }
+    } else {
+      useGameStore.getState().initializeStats();
     }
     
     setLoadingProgress(100);
