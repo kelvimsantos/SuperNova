@@ -28,6 +28,22 @@ const GROUND_OFFSET = 0.01;
 const VISUAL_OFFSET_Y = -1.6;
 const VISUAL_OFFSET_Z = -0.1;
 
+// 🏊 Os "pés" do personagem ficam 2.3m abaixo da origem do rigid body
+//    (usado para detectar se o player está dentro da água)
+const WATER_ENTRY_DEPTH = VISUAL_OFFSET_Y - 0.7;
+
+// 🫁 OXIGÊNIO
+const OXYGEN_TIME = 12;   // segundos de ar debaixo d'água
+const OXYGEN_REGEN = 2;   // segundos para encher o ar com a cabeça fora
+const OXYGEN_DAMAGE = 8;  // dano por segundo sem ar
+
+// 🏊 NATAÇÃO
+const SWIM_RISE_SPEED = 2.2;      // subir com espaço
+const SWIM_DIVE_SPEED = 1.2;      // descer com X (lento)
+const SWIM_SINK_SPEED = 0.5;      // afundar devagar ao entrar na água
+const SWIM_BOB_FREQ = 2.2;        // velocidade das ondinhas (rad/s)
+const SWIM_BOB_VELOCITY = 0.6;    // força do balanço na superfície
+
 export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const rigidBodyRef = useRef();
   const visualRef = useRef();
@@ -45,6 +61,10 @@ export const AvatarPlayer = ({ userId, avatarConfig, loadingAvatar }) => {
   const setPlayerPosition = useGameStore((state) => state.setPlayerPosition);
   const playerHealth = useGameStore((state) => state.playerHealth);
   const regenHealth = useGameStore((state) => state.regenHealth);
+  const takeDamage = useGameStore((state) => state.takeDamage);
+  const setPlayerAir = useGameStore((state) => state.setPlayerAir);
+  const setPlayerUnderwater = useGameStore((state) => state.setPlayerUnderwater);
+  const airRef = useRef(1);
   const isDead = playerHealth <= 0;
   
   const mount = useGameStore((s) => s.mount);
@@ -58,6 +78,9 @@ const equippedItems = useGameStore(state => state.equippedItems);
   const frameCounter = useRef(0);
   const isFallingRef = useRef(false);
   const wasMountedRef = useRef(false);
+  const isSwimmingRef = useRef(false);
+  const wasStandingRef = useRef(false);
+  const swimTimeRef = useRef(0);
 
 // 🔥 ESTADO DE ATAQUE
   const attackingRef = useRef(false);
@@ -693,10 +716,28 @@ function findHeadBone(model) {
     return null;
   }, [worldGroupRef]);
 
+  // 🏊 ENCONTRA O CORPO D'ÁGUA SOB UMA POSIÇÃO (X,Z)
+  const findWaterAt = useCallback((x, z) => {
+    const bodies = window.__waterSystem?.bodies;
+    if (!bodies || bodies.length === 0) return null;
+    for (const w of bodies) {
+      if (Math.abs(x - w.x) < w.halfSize && Math.abs(z - w.z) < w.halfSize) return w;
+    }
+    return null;
+  }, []);
+
   const forceSnapToGround = useCallback(() => {
     if (!rigidBodyRef.current || isMounted) return;
     
     const currentPos = rigidBodyRef.current.translation();
+
+    // 🏊 Nadando: não puxa para o chão
+    const water = findWaterAt(currentPos.x, currentPos.z);
+    if (water && currentPos.y + WATER_ENTRY_DEPTH < water.y - 0.05) {
+      isFallingRef.current = false;
+      return false;
+    }
+    
     const groundY = findGroundY(currentPos.x, currentPos.z);
     
     if (groundY !== null) {
@@ -713,11 +754,15 @@ function findHeadBone(model) {
       return true;
     }
     return false;
-  }, [isMounted, findGroundY, setPlayerPosition]);
+  }, [isMounted, findGroundY, setPlayerPosition, findWaterAt]);
 
   useEffect(() => {
     window.forceSnapToGround = forceSnapToGround;
-    return () => { delete window.forceSnapToGround; };
+    window.__isPlayerSwimming = () => isSwimmingRef.current;
+    return () => {
+      delete window.forceSnapToGround;
+      delete window.__isPlayerSwimming;
+    };
   }, [forceSnapToGround]);
 
   useEffect(() => {
@@ -747,8 +792,16 @@ function findHeadBone(model) {
   useFrame(() => {
     if (!rigidBodyRef.current || loadingAvatar || isMounted) return;
     
-    const vel = rigidBodyRef.current.linvel();
     const pos = rigidBodyRef.current.translation();
+    
+    // 🏊 Dentro da água: não verifica queda nem puxa para o chão
+    const water = findWaterAt(pos.x, pos.z);
+    if (isSwimmingRef.current || (water && pos.y + WATER_ENTRY_DEPTH < water.y - 0.05)) {
+      isFallingRef.current = false;
+      return;
+    }
+    
+    const vel = rigidBodyRef.current.linvel();
     
     if (vel.y < -2 && pos.y > 2) {
       isFallingRef.current = true;
@@ -765,6 +818,11 @@ useFrame(({ camera }, delta) => {
     frameCounter.current++;
 
     if (isMounted) {
+      // 🏊 Saiu da água (montou): restaura a gravidade
+      if (isSwimmingRef.current) {
+        rigidBodyRef.current.setGravityScale(1, true);
+        isSwimmingRef.current = false;
+      }
       playAnimation('idle2');
       if (visualRef.current) {
         visualRef.current.rotation.y = mountRotation;
@@ -820,6 +878,82 @@ useFrame(({ camera }, delta) => {
     const position = rigidBodyRef.current.translation();
     setPlayerPosition({ x: position.x, y: position.y, z: position.z });
 
+    // 🏊 NATAÇÃO: ao entrar na água o player flutua.
+    //    Espaço = sobe | X = desce | nada pressionado = flutua na altura atual.
+    const water = findWaterAt(position.x, position.z);
+    let swimming = !!water && position.y + WATER_ENTRY_DEPTH < water.y - 0.05;
+
+    // 🏊 Perto da borda com os pés no chão e a cabeça fora d'água:
+    //    comportamento normal (anda e pula, sem flutuar)
+    if (swimming) {
+      const groundY = findGroundY(position.x, position.z);
+      if (groundY !== null) {
+        const distToGround = position.y + WATER_ENTRY_DEPTH - groundY;
+        const headOut = position.y + VISUAL_OFFSET_Y + 0.8 >= water.y - 0.1;
+        if (distToGround < 0.8 && headOut) {
+          swimming = false;
+          wasStandingRef.current = true;
+        } else if (wasStandingRef.current && distToGround < 1.5) {
+          // Histérese: no meio do pulo não volta a nadar (senão trava no ar)
+          swimming = false;
+        } else {
+          wasStandingRef.current = false;
+        }
+      }
+    }
+
+    let swimVy = null;
+    if (swimming && !isMounted) {
+      if (!isSwimmingRef.current) {
+        rigidBodyRef.current.setGravityScale(0, true);
+        isSwimmingRef.current = true;
+      }
+      const keys = rigidBodyRef.current.keysPressed?.current || {};
+      swimTimeRef.current += delta;
+      // Limites: o topo da flutuação deixa a cabeça para fora,
+      // o fundo é o chão da água
+      const minY = water.y - water.depth + 1.6;
+      const maxY = water.y + 1.3;
+      let targetVy = 0;
+      if (keys.space) {
+        targetVy = SWIM_RISE_SPEED;
+      } else if (keys.x) {
+        targetVy = -SWIM_DIVE_SPEED;
+      } else {
+        // 🏄 Boiando: na superfície ondula devagar (desce um pouco e volta);
+        // afundado, fica parado naquela altura
+        if (position.y >= maxY - 0.6) {
+          targetVy = Math.sin(swimTimeRef.current * SWIM_BOB_FREQ) * SWIM_BOB_VELOCITY;
+          if (position.y < maxY - 0.15 && targetVy <= 0) targetVy = SWIM_BOB_VELOCITY * 0.4;
+        } else {
+          targetVy = 0;
+        }
+      }
+      // Entrou andando acima do nível: afunda devagar até a cabeça ficar fora
+      if (position.y > maxY + 0.05 && targetVy >= 0) targetVy = -SWIM_SINK_SPEED;
+      if (position.y >= maxY + 0.15 && targetVy > 0) targetVy = 0;
+      if (position.y <= minY && targetVy < 0) targetVy = 0;
+      swimVy = targetVy;
+      rigidBodyRef.current.setTranslation(
+        { x: position.x, y: Math.max(minY, position.y), z: position.z },
+        true
+      );
+    } else if (isSwimmingRef.current) {
+      rigidBodyRef.current.setGravityScale(1, true);
+      isSwimmingRef.current = false;
+    }
+
+    // 🫁 OXIGÊNIO: com a cabeça submersa o ar acaba e a vida começa a cair
+    const headUnderWater = !!water && position.y + VISUAL_OFFSET_Y + 0.8 < water.y;
+    setPlayerUnderwater(headUnderWater);
+    if (headUnderWater) {
+      airRef.current = Math.max(0, airRef.current - delta / OXYGEN_TIME);
+      if (airRef.current <= 0) takeDamage(OXYGEN_DAMAGE * delta);
+    } else {
+      airRef.current = Math.min(1, airRef.current + delta / OXYGEN_REGEN);
+    }
+    setPlayerAir(airRef.current);
+
     const { x: dx, z: dz } = moveDir.current;
     const currentVel = rigidBodyRef.current.linvel();
     const grounded = Math.abs(currentVel.y) < 0.05;
@@ -859,7 +993,9 @@ const gliding = useGameStore.getState().gliderOpenRef.current;
       if (R && armRestRot.current.right) R.rotation.copy(armRestRot.current.right);
     }
 
-    if (!isMoving) {
+    if (swimming) {
+      playAnimation(isMoving ? 'Run' : 'idle2');
+    } else if (!isMoving) {
       playAnimation(grounded ? 'idle2' : 'Fall');
     } else {
       playAnimation('Run');
@@ -879,7 +1015,7 @@ const gliding = useGameStore.getState().gliderOpenRef.current;
 
     const speed = 2;
     rigidBodyRef.current.setLinvel(
-      { x: moveVector.x * speed, y: currentVel.y, z: moveVector.z * speed },
+      { x: moveVector.x * speed, y: swimVy !== null ? swimVy : currentVel.y, z: moveVector.z * speed },
       true
     );
 
@@ -891,11 +1027,11 @@ const gliding = useGameStore.getState().gliderOpenRef.current;
       }
     }
 
-    if (frameCounter.current % 10 === 0 && grounded && !isFallingRef.current) {
+    if (frameCounter.current % 10 === 0 && grounded && !isFallingRef.current && !swimming) {
       forceSnapToGround();
     }
 
-    if (frameCounter.current % 30 === 0) {
+    if (!swimming && frameCounter.current % 30 === 0) {
       const vel = rigidBodyRef.current.linvel();
       const horizontalSpeed = Math.sqrt((vel.x * vel.x) + (vel.z * vel.z));
       const isMovingCheck = moveDir.current.x !== 0 || moveDir.current.z !== 0;

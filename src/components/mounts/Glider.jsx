@@ -73,6 +73,17 @@ export function Glider() {
     if (isMounted) setGliderOpen(false);
   }, [isMounted, setGliderOpen]);
 
+  // 🔥 VERIFICA SE ESTÁ NA ÁGUA
+  const isPlayerInWater = useCallback(() => {
+    if (!playerRigidBody) return false;
+    try {
+      const p = playerRigidBody.translation();
+      return !!window.__waterSystem?.isPlayerInWater(p.x, p.y, p.z);
+    } catch (e) {
+      return false;
+    }
+  }, [playerRigidBody]);
+
   // 🔥 VERIFICA SE ESTÁ NO AR
   const isPlayerAirborne = useCallback(() => {
     if (!playerRigidBody) return false;
@@ -115,7 +126,10 @@ export function Glider() {
     const d = Math.min(delta, 0.1);
 
     // ==== DECISÃO DE ABRIR ====
-    if (!isMounted) {
+    // 🏊 Não abre o planador enquanto estiver nadando de verdade
+    //    (na borda, com os pés no chão, o pulo+planador funciona)
+    const swimming = window.__isPlayerSwimming ? window.__isPlayerSwimming() : isPlayerInWater();
+    if (!isMounted && !swimming) {
       if (spaceDown.current) {
         spaceHeld.current += d;
         if (spaceHeld.current >= GLIDER_OPEN_HOLD && isPlayerAirborne()) {
@@ -127,6 +141,11 @@ export function Glider() {
     }
 
     const open = useGameStore.getState().gliderOpenRef.current;
+
+    // 🏊 FECHA AO ENTRAR NA ÁGUA
+    if (open && isPlayerInWater()) {
+      setGliderOpen(false);
+    }
 
     // ==== FECHA AO TOCAR O CHÃO ====
     if (open && playerRigidBody) {

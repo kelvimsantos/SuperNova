@@ -1,4 +1,5 @@
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useEffect } from 'react'
+import * as THREE from 'three'
 import { WaterSurfacePRO } from './WaterSurface_PRO'
 import { UnderwaterEffect } from './UnderwaterEffect'
 import { WaterVolume } from './WaterVolume'
@@ -6,6 +7,22 @@ import { WaterGlass } from './WaterGlass'
 import useGameStore from '../../hooks/useGameStore'
 import { SceneEffects } from './SceneEffects'
 import { WaterSurface_Light } from './WaterSurface_Light.jsx'
+
+// 🌊 Registro global de corpos d'água (usado pela natação do player)
+if (typeof window !== 'undefined') {
+  window.__waterSystem = window.__waterSystem || {
+    bodies: [],
+    // 🏊 Os "pés" do personagem ficam ~2.3m abaixo da origem do rigid body do player
+    bodyOffsetY: -2.3,
+    isPlayerInWater(x, y, z) {
+      const bodyY = y + (this.bodyOffsetY ?? -2.3);
+      for (const w of this.bodies) {
+        if (Math.abs(x - w.x) < w.halfSize && Math.abs(z - w.z) < w.halfSize && bodyY < w.y) return w;
+      }
+      return null;
+    },
+  };
+}
 
 
 
@@ -45,6 +62,36 @@ export const WaterExperience = ({ obj, onRef }) => {
     min: { x: -config.size / 2, y: -config.depth, z: -config.size / 2 },
     max: { x: config.size / 2, y: 0, z: config.size / 2 }
   }
+
+  // 🌊 Registra este corpo d'água para a natação do player
+  useEffect(() => {
+    const node = groupRef.current;
+    if (!node) return;
+    const id = obj?.id ?? Math.random();
+    const s = obj?.scale || [1, 1, 1];
+    const body = {
+      id,
+      x: 0, y: 0, z: 0,
+      halfSize: (size * s[0]) / 2,
+      depth: depth * s[1],
+    };
+    const update = () => {
+      const worldPos = new THREE.Vector3();
+      node.getWorldPosition(worldPos);
+      body.x = worldPos.x;
+      body.y = worldPos.y;
+      body.z = worldPos.z;
+    };
+    update();
+    const t = setTimeout(update, 100);
+    window.__waterSystem?.bodies.push(body);
+    return () => {
+      clearTimeout(t);
+      if (window.__waterSystem) {
+        window.__waterSystem.bodies = window.__waterSystem.bodies.filter(b => b.id !== id);
+      }
+    };
+  }, [obj, size, depth]);
 
   return (
     <group

@@ -163,7 +163,7 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
   const pos = playerRigidBody.translation();
   
   // Teleporta para cima
-  playerRigidBody.setTranslation({ x: pos.x, y: pos.y + 8, z: pos.z }, true);
+  playerRigidBody.setTranslation({ x: pos.x, y: pos.y + 1.5, z: pos.z }, true);
   playerRigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
   
   // 🔥 AGUARDA A QUEDA E USA A FUNÇÃO GLOBAL

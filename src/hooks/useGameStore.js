@@ -226,6 +226,12 @@ const useGameStore = create((set, get) => ({
   playerMaxMana: 100,
   playerDamage: 15,
   
+  // 🫁 OXIGÊNIO (0..1) — debaixo d'água o ar acaba e a vida cai
+  playerAir: 1,
+  setPlayerAir: (air) => set({ playerAir: Math.max(0, Math.min(1, air)) }),
+  playerUnderwater: false,
+  setPlayerUnderwater: (underwater) => set({ playerUnderwater: underwater }),
+  
   // 🔥 REGENERAÇÃO
   healthRegenRate: 0.5,
   manaRegenOnHit: 10,

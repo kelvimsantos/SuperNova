@@ -13,7 +13,7 @@ export const KeyboardControls = () => {
   const keysPressed = useRef({
     ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false,
     w: false, s: false, a: false, d: false,
-    space: false
+    space: false, x: false
   });
   
   const moveDir = useRef({ x: 0, z: 0 });
@@ -44,6 +44,10 @@ export const KeyboardControls = () => {
   };
   
   useEffect(() => {
+    if (playerRigidBody) playerRigidBody.keysPressed = keysPressed;
+  }, [playerRigidBody]);
+
+  useEffect(() => {
     const handleKeyDown = (e) => {
       const key = e.key;
       
@@ -73,15 +77,22 @@ export const KeyboardControls = () => {
         e.preventDefault();
       }
       
-// Pulo (espaço)
+// Pulo (espaço) / subir nadando na água
       if (key === ' ' || key === 'Space') {
         keysPressed.current.space = true;
         e.preventDefault();
+        if (e.repeat) return;
         
         // 🔥 ENQUANTO O PLANADOR ESTIVER ABERTO, NÃO PODE PULAR
         if (useGameStore.getState().gliderOpenRef.current) {
           console.log('🪂 Planando — não pode pular!');
           keysPressed.current.space = false;
+          return;
+        }
+
+        // 🏊 NADANDO DE VERDADE o espaço serve para SUBIR (nadar para cima).
+        //    Perto da borda (com os pés no chão) o pulo normal funciona.
+        if (window.__isPlayerSwimming && window.__isPlayerSwimming()) {
           return;
         }
         
@@ -100,7 +111,12 @@ export const KeyboardControls = () => {
             console.log('⛔ Não pode pular no ar! Use o espaço segurado para planar.');
           }
         }
-        keysPressed.current.space = false;
+      }
+
+      // 🏊 Mergulhar na água (X)
+      if (key === 'x' || key === 'X') {
+        keysPressed.current.x = true;
+        e.preventDefault();
       }
       
       // Montar/Desmontar (M)
@@ -151,6 +167,14 @@ export const KeyboardControls = () => {
         keysPressed.current.ArrowRight = false;
         keysPressed.current.d = false;
         updateDirection();
+        e.preventDefault();
+      }
+      if (key === ' ' || key === 'Space') {
+        keysPressed.current.space = false;
+        e.preventDefault();
+      }
+      if (key === 'x' || key === 'X') {
+        keysPressed.current.x = false;
         e.preventDefault();
       }
     };

@@ -206,7 +206,7 @@ function App() {
         <Canvas
           shadows
           dpr={[1, Math.min(window.devicePixelRatio || 1, 1.5)]}
-          camera={{ position: [8, 6, 12], fov: 60, far: 35, near: 0.5 }}
+          camera={{ position: [5, 5, 12], fov: 60, far: 35, near: 0.5 }}
           style={{
             width: '100vw',
             height: '100vh',
@@ -235,7 +235,7 @@ function App() {
 
           <SmoothTarget onTargetUpdate={setSmoothTarget} />
 
-          <SmartFollowCamera maxDistanceLimite={10} />
+          <SmartFollowCamera maxDistanceLimite={5} />
 
           <OrbitControls
             enabled={!followMode}

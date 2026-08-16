@@ -6,10 +6,13 @@ export const HealthBar = () => {
   const playerMaxHealth = useGameStore(state => state.playerMaxHealth);
   const playerMana = useGameStore(state => state.playerMana);
   const playerMaxMana = useGameStore(state => state.playerMaxMana);
+  const playerAir = useGameStore(state => state.playerAir);
+  const playerUnderwater = useGameStore(state => state.playerUnderwater);
   const inventory = useGameStore(state => state.inventory);
   
   const healthPercent = (playerHealth / playerMaxHealth) * 100;
   const manaPercent = (playerMana / playerMaxMana) * 100;
+  const airPercent = playerAir * 100;
   
   return (
     <div style={{
@@ -61,6 +64,28 @@ export const HealthBar = () => {
           transition: 'width 0.3s ease',
         }} />
       </div>
+      {(playerUnderwater || playerAir < 1) && (
+        <div style={{ marginTop: '8px' }}>
+          <div style={{ fontSize: '11px', color: playerAir > 0.3 ? '#33ccff' : '#ff4444' }}>
+            🫧 Oxigênio {Math.ceil(airPercent)}%
+          </div>
+          <div style={{
+            width: '100%',
+            height: '5px',
+            background: '#333',
+            borderRadius: '3px',
+            overflow: 'hidden',
+            marginTop: '3px',
+          }}>
+            <div style={{
+              width: `${airPercent}%`,
+              height: '100%',
+              background: playerAir > 0.3 ? '#33ccff' : '#ff4444',
+              transition: 'width 0.2s ease',
+            }} />
+          </div>
+        </div>
+      )}
       <div style={{ fontSize: '11px', color: '#aaa', marginTop: '8px' }}>
         💡 Clique nos inimigos para atacar!
       </div>
