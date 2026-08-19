@@ -231,13 +231,15 @@ return {
     const state = useGameStore.getState();
     const playerPosition = state.playerPosition;
     
-    // Culling por distância
+    // Culling por distância (distância configurável no menu: Curta/Média/Longa)
     if (playerPosition && meshRef.current.parent) {
       const worldPos = meshRef.current.parent.position;
       const dx = worldPos.x - playerPosition.x;
       const dz = worldPos.z - playerPosition.z;
       const dist = Math.sqrt(dx*dx + dz*dz);
-      const shouldRender = dist < 40;
+      const grassDist = state.graphicsSettings?.grassDistance || 'short';
+      const renderRadius = grassDist === 'long' ? 120 : grassDist === 'medium' ? 70 : 40;
+      const shouldRender = dist < renderRadius;
       meshRef.current.visible = shouldRender;
       if (!shouldRender) return;
     }

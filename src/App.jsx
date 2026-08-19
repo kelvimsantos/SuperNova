@@ -24,6 +24,7 @@ import { RPGUI } from './components/ui/RPGUI';
 import { SkillBar } from './components/ui/SkillBar';
 import { CombatText } from './components/ui/CombatText';
 import { GameInfo } from './components/ui/GameInfo';
+import { FpsHud } from './components/FpsHud';
 import { EquipmentPanel } from './components/equipment/EquipmentPanel';
 import { QuestDialogGlobal } from './components/quests/QuestDialogGlobal';
 import { QuestMenu } from './components/quests/QuestMenu';
@@ -259,6 +260,9 @@ function App() {
           <RadialFarFade innerRadius={0.60} softness={0.35} maxOpacity={0.90} />
         </Canvas>
       </ErrorBoundary>
+
+      {/* 🔥 FPS mínimo e seguro: DOM puro FORA do Canvas (não toca no GL/título) */}
+      <FpsHud />
     </Suspense>
   );
 }

@@ -89,6 +89,11 @@ export function GraphicsSettings({ onClose, onApply }) {
       title: '🌿 Mundo',
       options: [
         { key: 'grass', label: 'Grama Instanciada', type: 'toggle', desc: 'Pode reduzir FPS em áreas abertas' },
+        { key: 'grassDistance', label: 'Distância da Grama', type: 'select', options: [
+          { value: 'short', label: 'Curta (40u - Leve)' },
+          { value: 'medium', label: 'Média (70u)' },
+          { value: 'long', label: 'Longa (120u - Pesada)' },
+        ]},
       ],
     },
     {
