@@ -406,6 +406,18 @@ const useGameStore = create((set, get) => ({
     return { waterMode: mode };
   }),
 
+  // 🔥 CONFIGURAÇÕES GRÁFICAS (persistidas)
+  graphicsSettings: (() => {
+    try {
+      return JSON.parse(localStorage.getItem('graphicsSettings') || '{}');
+    } catch (e) { return {}; }
+  })(),
+  updateGraphicsSetting: (key, value) => set((state) => {
+    const next = { ...state.graphicsSettings, [key]: value };
+    try { localStorage.setItem('graphicsSettings', JSON.stringify(next)); } catch (e) {}
+    return { graphicsSettings: next };
+  }),
+
 // 🔥 SISTEMA DE LUZ (objetos cacheados para evitar new a cada frame)
   _lightDirCache: new THREE.Vector3(0.5, 0.8, 0.3),
   _lightIntensityCache: 1.0,

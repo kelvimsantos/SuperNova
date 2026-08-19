@@ -8,6 +8,9 @@ import { RepositionButton } from './RepositionButton';
 import useGameStore from '../hooks/useGameStore';
 import { World } from './World';
 import { GameGrass } from './GameGrass';
+import { FluffyGrass } from './fluffy/FluffyGrass';
+import { FluffyTree } from './fluffy/FluffyTree';
+import { FluffyEnvironment } from './fluffy/FluffyEnvironment';
 import { Html } from '@react-three/drei';
 import { WeatherController } from './WeatherController';
 import { VolumetricClouds } from './VolumetricClouds';
@@ -32,6 +35,7 @@ import { BloodEffect } from './BloodEffect';
 import { BowEffect } from './BowEffect';
 import { ArrowProjectile } from './ArrowProjectile';
 import { CombatController } from './CombatController';
+import { DistanceShadows } from './DistanceShadows';
 
 const weatherNames = {
   clear: '☀️ Claro',
@@ -57,11 +61,13 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
   const { setWorldGroupRef, playerRigidBody, setIsNight, currentScene, setPlayerPosition } = useGameStore();
   const [sceneData, setSceneData] = useState(null);
   const [grassData, setGrassData] = useState(null);
+  const [fluffyData, setFluffyData] = useState(null);
   const [currentWeather, setCurrentWeather] = useState('clear');
   const [cameraInitialized, setCameraInitialized] = useState(false);
   const [showStars, setShowStars] = useState(false);
   const [isNightUI, setIsNightUI] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const enableShadows = useGameStore((s) => s.graphicsSettings)?.shadows !== false;
 
   // 🔥 CORREÇÃO CRÍTICA: worldGroupRef agora é setado via REF CALLBACK.
   //    Antes era um useEffect que rodava NA MONTAGEM (isLoading=true), quando
@@ -112,6 +118,7 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
      //   console.log(`✅ JSON carregado:`, data);
         setSceneData(data);
         setGrassData(data.grassInstances);
+        setFluffyData(data.fluffy || null);
         
         if (playerRigidBody && data.spawnPoint) {
           const spawnPos = Array.isArray(data.spawnPoint) 
@@ -253,6 +260,7 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
 
   return (
     <WeatherController
+      fluffyConfig={fluffyData}
       onWeatherChange={setCurrentWeather}
       onStarsChange={setShowStars}
       onNightChange={handleNightChange}
@@ -274,6 +282,23 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
             terrainSize={terrainSize}
             terrainResolution={terrainResolution}
           />
+        )}
+        {fluffyData && (
+          <>
+            <FluffyEnvironment config={fluffyData} />
+            {fluffyData.showFluffyGrass && heightmap && (
+              <FluffyGrass
+                config={fluffyData}
+                instances={fluffyData.fluffyGrassInstances}
+                heightmap={heightmap}
+                terrainSize={terrainSize}
+                terrainResolution={terrainResolution}
+              />
+            )}
+            {fluffyData.showFluffyTrees && (
+              <FluffyTree config={fluffyData} trees={fluffyData.fluffyTrees} />
+            )}
+          </>
         )}
         {sceneData?.water?.map(water => (
           <WaterExperience key={water.id} obj={water} />
@@ -329,8 +354,12 @@ scale={cloud.scale * 0.25}
         />
       )}
 
-      <RepositionButton />
-      <Pet />
+<RepositionButton />
+        <Pet />
+
+        {/* 🔥 Sombras só no que está perto do jogador (distância gerenciada
+            automaticamente; liga/desliga no menu Configurações) */}
+        {enableShadows && <DistanceShadows />}
       
       <Html transform={false}>
         <div style={{

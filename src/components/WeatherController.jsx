@@ -123,7 +123,7 @@ const getBackgroundColor = (angle, weather) => {
   }
 };
 
-export const WeatherController = ({ children, onWeatherChange, onNightChange, onStarsChange }) => {
+export const WeatherController = ({ children, onWeatherChange, onNightChange, onStarsChange, fluffyConfig }) => {
   const sunLightRef = useRef();
   const ambientRef = useRef();
   const hemisphereLightRef = useRef();
@@ -136,6 +136,18 @@ const isLightningRef = useRef(false);
 
   const setLight = useGameStore((state) => state.setLight);
   const setIsNight = useGameStore((state) => state.setIsNight);
+  // 🔥 Configurações gráficas: ciclo dia/noite e sombras por proximidade
+  const graphicsSettings = useGameStore((state) => state.graphicsSettings);
+  const enableDayNight = graphicsSettings?.dayNightCycle !== false;
+  const enableShadows = graphicsSettings?.shadows !== false;
+
+  // 🔥 INTENSIDADES DO EDITOR (exportadas no scene.json junto com o fluffy).
+  //    Usadas como multiplicador relativo (default do editor = 1.5 → sem
+  //    alteração quando não exportadas). O sol anda pelo ciclo dia/noite,
+  //    mas a intensidade da luz ambiente + direcional é a do editor.
+  const ambientScale = (fluffyConfig?.fluffyAmbientIntensity ?? 1.5) / 1.5;
+  const sunScale = (fluffyConfig?.fluffyDirectionalIntensity ?? 1.5) / 1.5;
+  const shadowBias = fluffyConfig?.fluffyShadowBias ?? -0.0002;
 
   const triggerLightning = () => {
     if (!isLightningRef.current && lightningLightRef.current) {
@@ -238,7 +250,10 @@ const nightColor = useRef(new THREE.Color(0x000000));
     const weather = weatherList[currentWeather];
     const time = clock.getElapsedTime();
     const cycleTime = (time % CYCLE_DURATION) / CYCLE_DURATION;
-    const angle = cycleTime * Math.PI * 2;
+    let angle = cycleTime * Math.PI * 2;
+    // 🔥 Com o ciclo DIA/NOITE desligado, o sol fica fixo no meio-dia
+    //    (dia claro constante — não tem noite nem lua).
+    if (!enableDayNight) angle = Math.PI / 2;
     const sunX = Math.cos(angle) * 28;
     const sunZ = Math.sin(angle) * 28;
     const sunY = Math.sin(angle) * 18 + 6;
@@ -248,6 +263,10 @@ const nightColor = useRef(new THREE.Color(0x000000));
 
     // ===== LUZ DIRECIONAL (SOL) =====
     if (sunLightRef.current) {
+      // 🔥 Sombras liga/desliga pelo menu (poupa GPU em PCs fracos)
+      const wantShadow = enableShadows && sunLightRef.current.castShadow !== enableShadows;
+      if (wantShadow) sunLightRef.current.castShadow = enableShadows;
+
       sunLightRef.current.position.set(sunX, sunY, sunZ);
       sunLightRef.current.color.setRGB(sunColor.r, sunColor.g, sunColor.b);
       let weatherIntensity = 1.0;
@@ -257,7 +276,7 @@ const nightColor = useRef(new THREE.Color(0x000000));
       if (currentWeather === 'snowy') weatherIntensity = 0.78;
       if (currentWeather === 'foggy') weatherIntensity = 0.58;
       if (currentWeather === 'cloudy') weatherIntensity = 0.82;
-      let baseIntensity = sunColor.intensity * weatherIntensity;
+      let baseIntensity = sunColor.intensity * weatherIntensity * sunScale;
 
       if (isNight) {
         baseIntensity = 0.08;
@@ -279,7 +298,7 @@ const nightColor = useRef(new THREE.Color(0x000000));
 
     // ===== LUZ AMBIENTE =====
     if (ambientRef.current) {
-      let ambientIntensity = 0.52 + Math.max(0, Math.sin(angle)) * 0.28;
+      let ambientIntensity = (0.52 + Math.max(0, Math.sin(angle)) * 0.28) * ambientScale;
       if (isNight) ambientIntensity *= 0.08;
       ambientRef.current.intensity = ambientIntensity;
     }
@@ -323,9 +342,15 @@ const nightColor = useRef(new THREE.Color(0x000000));
         position={[10, 15, 5]}
         intensity={1.5}
         castShadow
-        shadow-mapSize-width={256}
-        shadow-mapSize-height={256}
-        shadow-camera-far={30}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-far={120}
+        shadow-camera-near={1}
+        shadow-camera-left={-50}
+        shadow-camera-right={50}
+        shadow-camera-top={50}
+        shadow-camera-bottom={-50}
+        shadow-bias={shadowBias}
       />
       <pointLight
         ref={lightningLightRef}

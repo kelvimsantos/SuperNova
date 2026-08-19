@@ -74,10 +74,16 @@ function App() {
     }
 
     const fetchAvatar = async () => {
+      // 🔥 Timeout de 8s: se o servidor do avatar não responder, o jogo
+      //    segue com o placeholder em vez de ficar esperando para sempre
+      //    (deixava a tela preta: loadingAvatar=true eterno).
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
       try {
         setLoadingAvatar(true);
         const response = await fetch(
-          `https://nodejs-passport-login-master.onrender.com/api/avatar-config/${userId}`
+          `https://nodejs-passport-login-master.onrender.com/api/avatar-config/${userId}`,
+          { signal: controller.signal }
         );
         
         if (!response.ok) {
@@ -95,6 +101,7 @@ function App() {
           hairIndex: 0
         });
       } finally {
+        clearTimeout(timer);
         setLoadingAvatar(false);
       }
     };

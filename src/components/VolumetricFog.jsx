@@ -56,7 +56,7 @@ const fogFragmentShader = `
     finalDensity = clamp(finalDensity, 0.0, 0.96);
     
     vec3 finalColor = uColor;
-    finalColor += vec3(0.08, 0.06, 0,9) * n2;
+    finalColor += vec3(0.08, 0.06, 0.9) * n2;
     
     gl_FragColor = vec4(finalColor, finalDensity);
   }

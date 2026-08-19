@@ -1,6 +1,7 @@
 // components/MenuScreen.jsx
 import { useState, useEffect } from 'react';
 import { useSaveSystem } from '../hooks/useSaveSystem';
+import { GraphicsSettings } from './ui/GraphicsSettings';
 import './MenuScreen.css';
 
 export const MenuScreen = ({ onStartNewGame, onLoadGame }) => {
@@ -9,6 +10,7 @@ export const MenuScreen = ({ onStartNewGame, onLoadGame }) => {
   const [hoveredBtn, setHoveredBtn] = useState(null);
   const [showCredits, setShowCredits] = useState(false);
   const [showStory, setShowStory] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     if (hasSave()) {
@@ -25,7 +27,7 @@ export const MenuScreen = ({ onStartNewGame, onLoadGame }) => {
       </div>
 
       {/* TELA PRINCIPAL */}
-      {!showStory && !showCredits && (
+      {!showStory && !showCredits && !showSettings && (
         <div className="menu-container">
           <div className="game-logo">
             <h1 className="game-title">✨ O Encantador de Flechas</h1>
@@ -69,6 +71,16 @@ export const MenuScreen = ({ onStartNewGame, onLoadGame }) => {
             >
               <span className="btn-icon">📖</span>
               A História
+            </button>
+
+            <button 
+              className={`menu-btn ${hoveredBtn === 'settings' ? 'hover' : ''}`}
+              onClick={() => setShowSettings(true)}
+              onMouseEnter={() => setHoveredBtn('settings')}
+              onMouseLeave={() => setHoveredBtn(null)}
+            >
+              <span className="btn-icon">⚙️</span>
+              Configurações
             </button>
             
             <button 
@@ -124,6 +136,11 @@ export const MenuScreen = ({ onStartNewGame, onLoadGame }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* TELA DE CONFIGURAÇÕES */}
+      {showSettings && (
+        <GraphicsSettings onClose={() => setShowSettings(false)} />
       )}
 
       {/* TELA DE CRÉDITOS */}

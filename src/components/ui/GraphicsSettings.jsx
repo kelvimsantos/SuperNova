@@ -11,7 +11,8 @@ const GRAPHICS_DEFAULTS = {
   weatherEffects: true,
   combatEffects: true,
   particles: true,
-  shadows: false,
+  shadows: true,
+  dayNightCycle: true,
   antialias: false,
   dpr: 1,
 };
@@ -75,6 +76,8 @@ export function GraphicsSettings({ onClose, onApply }) {
     {
       title: '☁️ Atmosfera e Céu',
       options: [
+        { key: 'dayNightCycle', label: 'Ciclo Dia/Noite', type: 'toggle', desc: 'Sol anda pelo céu, luz muda de cor; desligue em PCs fracos' },
+        { key: 'shadows', label: 'Sombras (só perto)', type: 'toggle', desc: 'Sombras só no que está próximo do jogador' },
         { key: 'volumetricClouds', label: 'Nuvens Volumétricas', type: 'toggle', desc: 'Muito pesado em GPUs integradas' },
         { key: 'dynamicFog', label: 'Névoa Dinâmica', type: 'toggle' },
         { key: 'radialFarFade', label: 'Fade Circular (Far)', type: 'toggle' },
