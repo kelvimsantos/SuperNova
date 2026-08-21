@@ -44,8 +44,10 @@ export default function DynamicFogController() {
     let density;
 
     if (isNight) {
-      colorHex = '#000000';
-      density = 0.080;
+      // 🔥 Névoa noturna azul-ROXA escura e visível (igual o nublado muda o
+      //    chão de dia, a madrugada lava o cenário com azul-roxo escuro).
+      colorHex = '#251a55';
+      density = 0.045;
     } else {
       switch (currentWeather) {
         case 'clear':

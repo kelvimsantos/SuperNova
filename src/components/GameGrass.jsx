@@ -130,6 +130,7 @@ return {
         windStrength: { value: currentWindStrength.current },
         uLightDir: { value: new THREE.Vector3(0.5, 0.8, 0.3) },
         uLightIntensity: { value: 1.0 },
+        uLightColor: { value: new THREE.Color(1, 1, 1) },
         uAmbientIntensity: { value: ambientIntensity },
       },
       vertexShader: `
@@ -195,6 +196,7 @@ return {
         uniform float time;
         uniform vec3 uLightDir;
         uniform float uLightIntensity;
+        uniform vec3 uLightColor;
         uniform float uAmbientIntensity;
 
         void main() {
@@ -210,8 +212,8 @@ return {
           vec3 normal = vec3(0.0, 1.0, 0.0);
           float diff = max(dot(normal, normalize(uLightDir)), 0.0);
           float lightFactor = 0.2;
-          vec3 diffuse = diff * uLightIntensity * lightFactor * color;
-          vec3 ambient = uAmbientIntensity * color;
+          vec3 diffuse = diff * uLightIntensity * lightFactor * color * uLightColor;
+          vec3 ambient = uAmbientIntensity * color * uLightColor;
           
           vec3 finalColor = clamp(ambient + diffuse, 0.0, 1.0);
           
@@ -274,6 +276,10 @@ return {
     }
     lightIntensityCache.current = state.lightIntensity ?? 1.0;
     material.uniforms.uLightIntensity.value = lightIntensityCache.current;
+    const lightColor = state.lightColor;
+    if (lightColor) {
+      material.uniforms.uLightColor.value.set(lightColor.r, lightColor.g, lightColor.b);
+    }
   });
 
   useEffect(() => {

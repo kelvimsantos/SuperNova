@@ -3,7 +3,8 @@ import { Vector3 } from 'three';
 import useGameStore from '../hooks/useGameStore';
 
 export const MovementController = () => {
-  const { playerRigidBody, movementDirection } = useGameStore();
+  const playerRigidBody = useGameStore((s) => s.playerRigidBody);
+  const movementDirection = useGameStore((s) => s.movementDirection);
 
   useFrame(({ camera }) => {
     if (!playerRigidBody || !movementDirection) return;

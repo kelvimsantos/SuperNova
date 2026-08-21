@@ -5,12 +5,12 @@ import useQuestStore, { QuestStatus } from './useQuestStore';
 const SAVE_KEY = 'rpg_game_save';
 
 export const useSaveSystem = () => {
-  const gameState = useGameStore();
   const questState = useQuestStore();
   
   // 🔥 SALVAR JOGO (inclui quests)
   const saveGame = () => {
     try {
+      const gameState = useGameStore.getState();
       const saveData = {
         version: '1.0',
         timestamp: Date.now(),
@@ -65,8 +65,9 @@ export const useSaveSystem = () => {
   // 🔥 APLICAR SAVE AO JOGO (inclui quests)
   const applySaveToGame = (saveData) => {
     if (!saveData) return false;
-    
+
     try {
+      const gameState = useGameStore.getState();
       // 🔥 RESTAURA AS QUESTS
       if (saveData.quests) {
         // Limpa quests existentes

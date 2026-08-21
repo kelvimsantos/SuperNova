@@ -2,7 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// ========== RAIN VERTEX SHADER (sem timeScale) ==========
+// ========== RAIN VERTEX SHADER ==========
 const rainVertexShader = `
   attribute float speed;
   attribute vec3 direction;
@@ -19,7 +19,7 @@ const rainVertexShader = `
   void main() {
     vec3 pos = position;
     
-    float fallSpeed = speed * intensity * 2.2;
+    float fallSpeed = speed * intensity * 9.0;
     float fallDistance = time * fallSpeed;
     pos.y -= fallDistance;
     
@@ -34,11 +34,11 @@ const rainVertexShader = `
       pos.z = (fract(cos(position.z * 23.456) * 43758.5453) - 0.5) * 55.0;
     }
     
-    vAlpha = 0.85 * intensity;
+    vAlpha = 0.95 * intensity;
     vTrail = trailLength;
     
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-    float pointSize = size * (450.0 / -mvPosition.z) * intensity;
+    float pointSize = size * (600.0 / -mvPosition.z) * intensity;
     
     gl_PointSize = pointSize;
     gl_Position = projectionMatrix * mvPosition;
@@ -55,8 +55,7 @@ const rainFragmentShader = `
     vec2 coord = gl_PointCoord;
     float y = coord.y;
     float x = coord.x - 0.5;
-    float verticalStretch = 5.0;
-    float horizontalWidth = 0.3;
+    float horizontalWidth = 0.25;
     float intensityY = 1.0 - abs(y - 0.5) * 1.0;
     intensityY = clamp(intensityY, 0.4, 1.0);
     float tipFade = 1.0 - abs(y - 0.5) * 0.6;
@@ -70,12 +69,12 @@ const rainFragmentShader = `
     float alpha = shape * vAlpha;
     alpha = clamp(alpha, 0.0, 0.98);
     vec3 finalColor = color;
-    finalColor += vec3(0.55, 0.65, 0.85) * centerGlow;
+    finalColor += vec3(0.20, 0.35, 0.80) * centerGlow;
     gl_FragColor = vec4(finalColor, alpha);
   }
 `;
 
-// ========== SNOW VERTEX SHADER (sem timeScale) ==========
+// ========== SNOW VERTEX SHADER ==========
 const snowVertexShader = `
   attribute float speed;
   attribute vec3 direction;
@@ -89,7 +88,7 @@ const snowVertexShader = `
 
   void main() {
     vec3 pos = position;
-    float fallSpeed = speed * intensity * 0.45;
+    float fallSpeed = speed * intensity * 0.55;
     pos.y -= time * fallSpeed;
     float windX = sin(time * 1.2 + position.z) * 0.08 * windStrength;
     float windZ = cos(time * 1.0 + position.x) * 0.08 * windStrength;
@@ -100,7 +99,7 @@ const snowVertexShader = `
       pos.x = (fract(sin(position.x * 12.9898) * 43758.5453) - 0.5) * 55.0;
       pos.z = (fract(cos(position.z * 78.233) * 43758.5453) - 0.5) * 55.0;
     }
-    vAlpha = (1.0 - (pos.y + 2.0) / 20.0) * 0.85 * intensity;
+    vAlpha = (1.0 - (pos.y + 2.0) / 40.0) * 0.85 * intensity;
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     gl_PointSize = size * (350.0 / -mvPosition.z) * intensity;
     gl_Position = projectionMatrix * mvPosition;
@@ -124,32 +123,32 @@ const snowFragmentShader = `
 `;
 
 const particleTypes = {
-  rain: {
-    count: 1800,
-    color: [0.55, 0.75, 0.98],
-    speed: 0.32,
-    size: 0.14,
-    trailLength: 1.8,
+rain: {
+    count: 5000,
+    color: [0.30, 0.60, 1.0],
+    speed: 0.70,
+    size: 0.20,
+    trailLength: 2.2,
     windInfluence: 1.5,
     isRain: true,
     yMin: -2.0,
     yMax: 38.0,
   },
   heavyRain: {
-    count: 2500,
-    color: [0.50, 0.70, 0.95],
-    speed: 0.38,
-    size: 0.15,
-    trailLength: 2.0,
+    count: 3800,
+    color: [0.25, 0.55, 1.0],
+    speed: 0.80,
+    size: 0.22,
+    trailLength: 2.5,
     windInfluence: 1.8,
     isRain: true,
     yMin: -2.0,
     yMax: 38.0,
   },
   snow: {
-    count: 1200,
+    count: 2000,
     color: [0.96, 0.98, 1.00],
-    speed: 0.08,
+    speed: 0.55,
     size: 0.35,
     windInfluence: 0.9,
     isRain: false,
@@ -159,7 +158,7 @@ const particleTypes = {
   blizzard: {
     count: 1600,
     color: [0.94, 0.97, 1.00],
-    speed: 0.12,
+    speed: 0.60,
     size: 0.24,
     windInfluence: 1.5,
     isRain: false,
@@ -176,37 +175,34 @@ export const ParticleSystem = ({
 }) => {
   const pointsRef = useRef();
   const timeRef = useRef(0);
-  
   const config = particleTypes[type] || particleTypes.rain;
   const count = Math.floor(config.count * Math.min(1.2, intensity));
   const isRain = config.isRain;
-  
+
+  // Buffers criados por tipo (chuva/neve) com as velocidades/tamanhos
+  // próprios do clima. Recriados só quando o clima muda (a cada 4 min).
   const { positions, speeds, directions, sizes, trails } = useMemo(() => {
     const positions = new Float32Array(count * 3);
     const speeds = new Float32Array(count);
     const directions = new Float32Array(count * 3);
     const sizes = new Float32Array(count);
     const trails = new Float32Array(count);
-    
-    const rangeXZ = isRain ? 70 : 55;
-    const yMin = config.yMin;
-    const yMax = config.yMax;
-    
+    const rangeXZ = 70;
     for (let i = 0; i < count; i++) {
       positions[i*3] = (Math.random() - 0.5) * rangeXZ;
-      positions[i*3+1] = yMin + Math.random() * (yMax - yMin);
+      positions[i*3+1] = config.yMin + Math.random() * (config.yMax - config.yMin);
       positions[i*3+2] = (Math.random() - 0.5) * rangeXZ;
-      speeds[i] = config.speed + Math.random() * config.speed * 0.5;
+      speeds[i] = config.speed * (0.5 + Math.random() * 0.5);
       const angle = Math.random() * Math.PI * 2;
       directions[i*3] = Math.cos(angle) * 0.8;
       directions[i*3+1] = 0;
       directions[i*3+2] = Math.sin(angle) * 0.8;
-      sizes[i] = config.size * (0.7 + Math.random() * 1.0);
-      trails[i] = config.trailLength || 1.0;
+      sizes[i] = config.size * (0.75 + Math.random() * 0.5);
+      trails[i] = config.trailLength || 2.0;
     }
     return { positions, speeds, directions, sizes, trails };
-  }, [count, config.speed, config.size, config.trailLength, config.yMin, config.yMax, isRain]);
-  
+  }, [type, count]);
+
   const material = useMemo(() => {
     const uniforms = {
       time: { value: 0 },
@@ -216,28 +212,16 @@ export const ParticleSystem = ({
       yMin: { value: config.yMin },
       yMax: { value: config.yMax },
     };
-    
-    if (isRain) {
-      return new THREE.ShaderMaterial({
-        uniforms,
-        vertexShader: rainVertexShader,
-        fragmentShader: rainFragmentShader,
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      });
-    } else {
-      return new THREE.ShaderMaterial({
-        uniforms,
-        vertexShader: snowVertexShader,
-        fragmentShader: snowFragmentShader,
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      });
-    }
+    return new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: isRain ? rainVertexShader : snowVertexShader,
+      fragmentShader: isRain ? rainFragmentShader : snowFragmentShader,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
   }, [config.color, isRain, config.yMin, config.yMax]);
-  
+
   useFrame(() => {
     if (!pointsRef.current || !enabled || intensity < 0.1) return;
     
@@ -246,9 +230,9 @@ export const ParticleSystem = ({
     material.uniforms.intensity.value = intensity;
     material.uniforms.windStrength.value = windStrength;
   });
-  
+
   if (!enabled || intensity < 0.1) return null;
-  
+
   return (
     <points ref={pointsRef}>
       <bufferGeometry>

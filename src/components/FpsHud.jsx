@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import useGameStore from '../hooks/useGameStore';
 
 // Contador de FPS MÍNIMO e SEGURO: DOM puro (rAF + setInterval), NÃO toca
 // no WebGL, no canvas, no useFrame, no store e NÃO escreve document.title.
@@ -13,6 +14,8 @@ export const FpsHud = () => {
   );
   const [fps, setFps] = useState(0);
   const framesRef = useRef(0);
+  // 🔥 Indicador de dia/noite (muda raramente — não causa re-render por frame)
+  const isNight = useGameStore((s) => s.isNight);
 
   useEffect(() => {
     let rafId;
@@ -62,7 +65,10 @@ export const FpsHud = () => {
         userSelect: 'none',
       }}
     >
-      {fps} FPS
+      {fps} FPS{' '}
+      <span style={{ color: isNight ? '#88aaff' : '#ffd75e' }}>
+        {isNight ? '🌙 NOITE' : '☀️ DIA'}
+      </span>
     </div>
   );
 };

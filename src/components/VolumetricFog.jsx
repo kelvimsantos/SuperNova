@@ -1,6 +1,7 @@
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import useGameStore from '../hooks/useGameStore';
 
 // Shader para névoa volumétrica com geometria no mundo
 const fogVertexShader = `
@@ -72,6 +73,8 @@ export const VolumetricFog = ({
   const meshRef = useRef();
   const materialRef = useRef();
   const timeRef = useRef(0);
+  // 🔥 À noite a névoa volumétrica fica azul-ROXA escura (não lava a madrugada)
+  const isNight = useGameStore((s) => s.isNight);
   
   const geometry = useMemo(() => {
     // Plano fixo no mundo — NÃO ACOMPANHA A CÂMERA
@@ -79,8 +82,8 @@ export const VolumetricFog = ({
     const heightPlane = 50;
     const geometry = new THREE.PlaneGeometry(width, heightPlane, 32, 32);
     geometry.rotateX(-Math.PI / 2);
-    geometry.translate(0, 1.8, -8);
-    return geometry;
+    geometry.translate(0, 0.8, -8);
+   // return geometry;
   }, []);
   
   const material = useMemo(() => {
@@ -107,7 +110,11 @@ export const VolumetricFog = ({
       timeRef.current += 0.016;
       materialRef.current.uniforms.uTime.value = timeRef.current;
       materialRef.current.uniforms.uDensity.value = density;
-      materialRef.current.uniforms.uColor.value.setRGB(color[0], color[1], color[2]);
+      if (isNight) {
+        materialRef.current.uniforms.uColor.value.setRGB(0.10, 0.03, 0.32);
+      } else {
+        materialRef.current.uniforms.uColor.value.setRGB(color[0], color[1], color[2]);
+      }
     }
   });
   

@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import { createFluffyGrassMaterial, updateGrassUniforms } from './fluffyShaders';
+import useGameStore from '../../hooks/useGameStore';
 
 // Touceira de grama igual ao projeto original: 3 planos em triângulo
 // (0°, 60° e 120°) se cruzando, cada um com a textura inteira do campo.
@@ -224,6 +225,23 @@ export const FluffyGrass = ({
   useFrame(() => {
     timeRef.current += 0.01;
     updateGrassUniforms(config, timeRef.current);
+    // 🔥 Distância de renderização da grama respeita a opção do menu
+    //    (grassDistance: short 40 / medium 70 / long 120) — chunks longe
+    //    do jogador ficam invisíveis, sem custo de draw call.
+    const settings = useGameStore.getState().graphicsSettings;
+    const grassDist = settings?.grassDistance || 'short';
+    const renderRadius = grassDist === 'long' ? 120 : grassDist === 'medium' ? 70 : 40;
+    const playerPos = useGameStore.getState().playerPosition;
+    if (playerPos) {
+      for (let i = 0; i < meshRefs.current.length; i++) {
+        const mesh = meshRefs.current[i];
+        if (!mesh) continue;
+        const chunkCenter = chunks[i]?.center;
+        const dx = chunkCenter.x - playerPos.x;
+        const dz = chunkCenter.z - playerPos.z;
+        mesh.visible = dx * dx + dz * dz < renderRadius * renderRadius;
+      }
+    }
   });
 
   if (!material || !chunkGeos || !chunks) return null;

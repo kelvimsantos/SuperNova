@@ -15,6 +15,7 @@ import { setCanopyLightDirectionOverride } from './fluffyShaders';
 export const FluffyEnvironment = ({ config = {} }) => {
   const { scene } = useThree();
   const sunDir = useRef(new THREE.Vector3());
+  const ambientRef = useRef();
 
   useEffect(() => {
     scene.environmentIntensity = config.fluffyHDRIIntensity ?? 0.5;
@@ -25,9 +26,21 @@ export const FluffyEnvironment = ({ config = {} }) => {
     const arc = isNight ? getMoonArcPosition(angle) : getSunArcPosition(angle);
     sunDir.current.set(arc.x, arc.y, arc.z).normalize();
     setCanopyLightDirectionOverride(sunDir.current);
+    // 🔥 A ambiente do fluffy também respeita dia/noite: azul à noite (senão o
+    //    branco constante dela engole a cor do sol noturno), branco de dia.
+    if (ambientRef.current) {
+      const base = config.fluffyAmbientIntensity ?? 1.5;
+      if (isNight) {
+        ambientRef.current.color.setRGB(0.30, 0.40, 1.6);
+        ambientRef.current.intensity = base * 0.15;
+      } else {
+        ambientRef.current.color.setRGB(1, 1, 1);
+        ambientRef.current.intensity = base;
+      }
+    }
   });
 
   return (
-    <ambientLight intensity={config.fluffyAmbientIntensity ?? 1.5} />
+    <ambientLight ref={ambientRef} intensity={config.fluffyAmbientIntensity ?? 1.5} />
   );
 };

@@ -10,7 +10,7 @@ export function JoystickOverlay() {
   // o player será acessado via store, como antes.
   // Vamos importar o store e usar playerRigidBody.
  
-  const { playerRigidBody } = useGameStore();
+  const playerRigidBody = useGameStore((s) => s.playerRigidBody);
 
   useEffect(() => {
     console.log('🎮 JoystickOverlay montado');

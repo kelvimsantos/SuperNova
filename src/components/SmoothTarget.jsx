@@ -4,20 +4,20 @@ import { useRef } from 'react';
 import { Vector3 } from 'three';
 import useGameStore from '../hooks/useGameStore';
 
-export const SmoothTarget = ({ onTargetUpdate }) => {
-  const playerPosition = useGameStore((state) => state.playerPosition);
+export const SmoothTarget = ({ controlsRef }) => {
   const currentTarget = useRef(new Vector3(0, 0, 0));
   const targetRef = useRef(new Vector3(0, 0, 0));
 
   useFrame(() => {
+    const playerPosition = useGameStore.getState().playerPosition;
     if (!playerPosition) return;
     // Ponto desejado: posição do jogador + altura (0.8)
-    const desired = new Vector3(playerPosition.x, playerPosition.y + 0.8, playerPosition.z);
-    targetRef.current.copy(desired);
+    targetRef.current.set(playerPosition.x, playerPosition.y + 0.8, playerPosition.z);
     // Interpola linear para suavizar
     currentTarget.current.lerp(targetRef.current, 0.1);
-    if (onTargetUpdate) {
-      onTargetUpdate([currentTarget.current.x, currentTarget.current.y, currentTarget.current.z]);
+    const controls = controlsRef?.current;
+    if (controls) {
+      controls.target.copy(currentTarget.current);
     }
   });
 

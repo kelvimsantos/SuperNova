@@ -423,12 +423,19 @@ const useGameStore = create((set, get) => ({
   _lightIntensityCache: 1.0,
   lightDir: new THREE.Vector3(0.5, 0.8, 0.3),
   lightIntensity: 1.0,
-  setLight: (dir, intensity) => {
+  lightColor: { r: 1, g: 1, b: 1 },
+  setLight: (dir, intensity, color) => {
     const cache = get()._lightDirCache;
-    if (cache.distanceTo(dir) < 0.001 && Math.abs(get()._lightIntensityCache - intensity) < 0.001) return;
+    const currentColor = get().lightColor;
+    const colorChanged = color && (
+      Math.abs(currentColor.r - color.r) > 0.01 ||
+      Math.abs(currentColor.g - color.g) > 0.01 ||
+      Math.abs(currentColor.b - color.b) > 0.01
+    );
+    if (cache.distanceTo(dir) < 0.001 && Math.abs(get()._lightIntensityCache - intensity) < 0.001 && !colorChanged) return;
     cache.copy(dir);
     get()._lightIntensityCache = intensity;
-    set({ lightDir: dir.clone(), lightIntensity: intensity });
+    set({ lightDir: dir.clone(), lightIntensity: intensity, lightColor: color ? { ...color } : currentColor });
   },
 
 // 🔥 SISTEMA DE MONTARIA

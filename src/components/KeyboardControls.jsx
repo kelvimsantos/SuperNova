@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import useGameStore from '../hooks/useGameStore';
 
 export const KeyboardControls = () => {
-  const { playerRigidBody } = useGameStore();
+  const playerRigidBody = useGameStore((s) => s.playerRigidBody);
   const mount = useGameStore((s) => s.mount);
   const setMountMoveDir = useGameStore((s) => s.setMountMoveDir);
   const mountSummon = useGameStore((s) => s.mountSummon);

@@ -6,7 +6,9 @@ import { useState, useRef, useEffect } from 'react';
 
 export const RepositionButton = () => {
   const { camera } = useThree();
-  const { playerPosition, followMode, toggleFollowMode } = useGameStore();
+  const playerPosition = useGameStore((s) => s.playerPosition);
+  const followMode = useGameStore((s) => s.followMode);
+  const toggleFollowMode = useGameStore((s) => s.toggleFollowMode);
   const [visible, setVisible] = useState(false);
 
   // Offset e orientação capturados ao ativar o modo seguir

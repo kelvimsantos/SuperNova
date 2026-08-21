@@ -1,8 +1,9 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { VolumetricFog } from './VolumetricFog';
 import { ParticleSystem } from './ParticleSystem';
+import { LightningBolt } from './LightningBolt';
 import { updateWindFromWeather } from '../config/windConfig';
 import useGameStore from '../hooks/useGameStore';
 
@@ -73,8 +74,8 @@ const sunColors = {
 };
 
 const lightningColors = {
-  flash: { r: 1.2, g: 1.1, b: 1.0, intensity: 3.5 },
-  afterglow: { r: 0.8, g: 0.7, b: 1.0, intensity: 1.2 }
+  flash: { r: 2.0, g: 1.9, b: 1.8, intensity: 18.0 },
+  afterglow: { r: 1.0, g: 0.9, b: 1.3, intensity: 4.0 }
 };
 
 const getSunColor = (angle) => {
@@ -132,7 +133,9 @@ export const WeatherController = ({ children, onWeatherChange, onNightChange, on
 
 const isLightningRef = useRef(false);
   const lightningTimerRef = useRef(null);
-  const weatherResetTimeoutRef = useRef(null);
+  const strikeTimerRef = useRef(null);
+  const lightningBoostRef = useRef(0);
+  const [strikes, setStrikes] = useState([]);
 
   const setLight = useGameStore((state) => state.setLight);
   const setIsNight = useGameStore((state) => state.setIsNight);
@@ -140,6 +143,64 @@ const isLightningRef = useRef(false);
   const graphicsSettings = useGameStore((state) => state.graphicsSettings);
   const enableDayNight = graphicsSettings?.dayNightCycle !== false;
   const enableShadows = graphicsSettings?.shadows !== false;
+  const enableWeatherFx = graphicsSettings?.weatherEffects !== false;
+
+  // 🔥 Pega a altura do chão num ponto (raycast no mundo) — para os raios
+  //    atingirem o terreno em lugares aleatórios.
+  const findGroundAt = (x, z) => {
+    try {
+      const world = useGameStore.getState().worldGroupRef;
+      if (!world) return null;
+      const origin = new THREE.Vector3(x, 100, z);
+      const raycaster = new THREE.Raycaster();
+      raycaster.set(origin, new THREE.Vector3(0, -1, 0));
+      raycaster.far = 200;
+      const meshes = [];
+      const collect = (o) => {
+        if (o.isMesh && o.visible) meshes.push(o);
+        if (o.children) o.children.forEach(collect);
+      };
+      collect(world);
+      let hit = null;
+      let closest = Infinity;
+      for (const m of meshes) {
+        const ints = raycaster.intersectObject(m, true);
+        if (ints.length > 0 && ints[0].distance < closest) {
+          closest = ints[0].distance;
+          hit = ints[0];
+        }
+      }
+      return hit ? hit.point.y : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const removeStrike = useCallback((id) => {
+    setStrikes(prev => prev.filter(s => s.id !== id));
+  }, []);
+
+  // ⚡ Relâmpago atingindo um lugar aleatório perto do jogador
+  const spawnStrike = () => {
+    try {
+      const pos = useGameStore.getState().playerPosition;
+      if (!pos) return;
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 12 + Math.random() * 32;
+      const x = pos.x + Math.cos(angle) * radius;
+      const z = pos.z + Math.sin(angle) * radius;
+      const groundY = findGroundAt(x, z);
+      if (groundY == null) return;
+      const id = Date.now() + Math.random();
+      const from = new THREE.Vector3(x, groundY + 20 + Math.random() * 10, z);
+      const to = new THREE.Vector3(x, groundY, z);
+      setStrikes(prev => [...prev, { id, from, to }]);
+      // 🔥 Garantia de limpeza (o bolt também se remove sozinho via onDone)
+      setTimeout(() => removeStrike(id), 700);
+    } catch (e) {
+      console.warn('Erro ao criar raio:', e);
+    }
+  };
 
   // 🔥 INTENSIDADES DO EDITOR (exportadas no scene.json junto com o fluffy).
   //    Usadas como multiplicador relativo (default do editor = 1.5 → sem
@@ -152,49 +213,81 @@ const isLightningRef = useRef(false);
   const triggerLightning = () => {
     if (!isLightningRef.current && lightningLightRef.current) {
       isLightningRef.current = true;
+      // 🔥 Clarão DUPLO (relâmpago real pisca 2-3 vezes): pulso principal forte
+      //    + mini pulso logo atrás + brilho residual.
       lightningLightRef.current.intensity = lightningColors.flash.intensity;
       lightningLightRef.current.color.setRGB(lightningColors.flash.r, lightningColors.flash.g, lightningColors.flash.b);
+      lightningBoostRef.current = 2.5;
+      if (ambientRef.current) ambientRef.current.color.setRGB(0.95, 0.98, 1.0);
       setTimeout(() => {
         if (lightningLightRef.current) {
-          lightningLightRef.current.intensity = lightningColors.afterglow.intensity;
-          lightningLightRef.current.color.setRGB(lightningColors.afterglow.r, lightningColors.afterglow.g, lightningColors.afterglow.b);
+          lightningLightRef.current.intensity = 12.0;
         }
+        lightningBoostRef.current = 1.6;
         setTimeout(() => {
-          isLightningRef.current = false;
-          if (lightningLightRef.current) lightningLightRef.current.intensity = 0;
-        }, 150);
-      }, 100);
+          if (lightningLightRef.current) {
+            lightningLightRef.current.intensity = lightningColors.afterglow.intensity;
+            lightningLightRef.current.color.setRGB(lightningColors.afterglow.r, lightningColors.afterglow.g, lightningColors.afterglow.b);
+          }
+          lightningBoostRef.current = 0.6;
+          setTimeout(() => {
+            isLightningRef.current = false;
+            lightningBoostRef.current = 0;
+            if (lightningLightRef.current) lightningLightRef.current.intensity = 0;
+            if (ambientRef.current) ambientRef.current.color.setRGB(1, 1, 1);
+          }, 150);
+        }, 80);
+      }, 70);
     }
   };
 
   useEffect(() => {
     const weather = weatherList[currentWeather];
-    if (weather.lightning) {
+    if (weather.lightning && enableWeatherFx) {
       if (lightningTimerRef.current) clearTimeout(lightningTimerRef.current);
       const scheduleLightning = () => {
-        const delay = 3000 + Math.random() * 5000;
+        const delay = 2000 + Math.random() * 4000;
         lightningTimerRef.current = setTimeout(() => {
           triggerLightning();
           scheduleLightning();
         }, delay);
       };
       scheduleLightning();
+
+      // ⚡ Raios atingindo lugares aleatórios (independente do flash global)
+      if (strikeTimerRef.current) clearTimeout(strikeTimerRef.current);
+      const scheduleStrike = () => {
+        const delay = 2000 + Math.random() * 4500;
+        strikeTimerRef.current = setTimeout(() => {
+          spawnStrike();
+          scheduleStrike();
+        }, delay);
+      };
+      scheduleStrike();
     } else {
       if (lightningTimerRef.current) clearTimeout(lightningTimerRef.current);
+      if (strikeTimerRef.current) clearTimeout(strikeTimerRef.current);
+      setStrikes([]);
       if (lightningLightRef.current) lightningLightRef.current.intensity = 0;
+      lightningBoostRef.current = 0;
       isLightningRef.current = false;
     }
-    return () => { if (lightningTimerRef.current) clearTimeout(lightningTimerRef.current); };
-  }, [currentWeather]);
+    return () => {
+      if (lightningTimerRef.current) clearTimeout(lightningTimerRef.current);
+      if (strikeTimerRef.current) clearTimeout(strikeTimerRef.current);
+    };
+  }, [currentWeather, enableWeatherFx]);
 
   const CYCLE_DURATION = 1200;
-  const WEATHER_INTERVAL = 120000;
-  const WEATHER_DURATION = 240000;
+  const WEATHER_INTERVAL = 240000;
   const weatherQueue = useRef(['cloudy', 'windy', 'rainy', 'heavyRain', 'snowy', 'blizzard', 'foggy']);
   let weatherIndex = 0;
 
   const setGameCurrentWeather = useGameStore((s) => s.setCurrentWeather);
 
+  // 🔥 Cada clima dura 4 MINUTOS contínuos (sem corte no meio do evento):
+  //    chuva/neve caem o evento inteiro. Sem timer de "voltar ao claro"
+  //    brigando com o próximo clima — a fila só avança no fim de cada evento.
   useEffect(() => {
     const getNextWeather = () => {
       const next = weatherQueue.current[weatherIndex % weatherQueue.current.length];
@@ -208,22 +301,12 @@ const isLightningRef = useRef(false);
       if (onWeatherChange) onWeatherChange(newWeather);
       const weather = weatherList[newWeather];
       console.log(`🌤️ CLIMA: ${weather.name} | Relâmpagos: ${weather.lightning ? '⚡ ATIVADO' : '❌'}`);
-      if (weatherResetTimeoutRef.current) clearTimeout(weatherResetTimeoutRef.current);
-      weatherResetTimeoutRef.current = setTimeout(() => {
-        setCurrentWeather('clear');
-        if (setGameCurrentWeather) setGameCurrentWeather('clear');
-        if (onWeatherChange) onWeatherChange('clear');
-        console.log(`🌤️ CLIMA: Voltou ao normal (Claro)`);
-      }, WEATHER_DURATION);
     };
     const interval = setInterval(changeWeather, WEATHER_INTERVAL);
-    return () => {
-      clearInterval(interval);
-      if (weatherResetTimeoutRef.current) clearTimeout(weatherResetTimeoutRef.current);
-    };
+    return () => clearInterval(interval);
   }, [onWeatherChange, setGameCurrentWeather]);
 
-const nightColor = useRef(new THREE.Color(0x000000));
+const nightColor = useRef(new THREE.Color(0x1a2a6a));
   const frameCount = useRef(0);
 
   // 🔥 Refs de throttle (evitam notificar o store / re-render sem necessidade)
@@ -279,8 +362,9 @@ const nightColor = useRef(new THREE.Color(0x000000));
       let baseIntensity = sunColor.intensity * weatherIntensity * sunScale;
 
       if (isNight) {
-        baseIntensity = 0.08;
-        sunLightRef.current.color.setRGB(0.3, 0.35, 0.8);
+        // 🔥 Madrugada: bem mais ESCURA e fortemente azulada
+        baseIntensity = 0.22;
+        sunLightRef.current.color.setRGB(0.15, 0.25, 1.8);
       }
       sunLightRef.current.intensity = baseIntensity;
 
@@ -292,20 +376,36 @@ const nightColor = useRef(new THREE.Color(0x000000));
         prevLightIntensity.current = baseIntensity;
         lastLightStoreUpdate.current = now;
         sunDirCache.current.set(sunX, sunY, sunZ).normalize();
-        setLight(sunDirCache.current, baseIntensity);
+        setLight(sunDirCache.current, baseIntensity, isNight ? { r: 0.25, g: 0.35, b: 1.6 } : { r: 1, g: 1, b: 1 });
       }
     }
 
     // ===== LUZ AMBIENTE =====
     if (ambientRef.current) {
       let ambientIntensity = (0.52 + Math.max(0, Math.sin(angle)) * 0.28) * ambientScale;
-      if (isNight) ambientIntensity *= 0.08;
-      ambientRef.current.intensity = ambientIntensity;
+      if (isNight) ambientIntensity *= 0.25;
+      // 🔥 À noite a ambiente também fica azulada (senão o branco dela engole o azul)
+      if (isNight) {
+        ambientRef.current.color.setRGB(0.25, 0.35, 1.6);
+      } else {
+        ambientRef.current.color.setRGB(1, 1, 1);
+      }
+      // 🔥 + boost do clarão de relâmpago (zera sozinho depois do flash)
+      ambientRef.current.intensity = ambientIntensity + lightningBoostRef.current;
     }
 
     // ===== LUZ HEMISFÉRICA =====
     if (hemisphereLightRef.current) {
-      hemisphereLightRef.current.intensity = isNight ? 0.05 : 0.42;
+      let hemiIntensity = isNight ? 0.18 : 0.42;
+      hemisphereLightRef.current.intensity = hemiIntensity + lightningBoostRef.current * 0.6;
+      // 🔥 À noite, tom de céu mais azulado
+      if (isNight) {
+        hemisphereLightRef.current.color.setHex(0x5588ff);
+        hemisphereLightRef.current.groundColor.setHex(0x2a4a88);
+      } else {
+        hemisphereLightRef.current.color.setHex(0x88aaff);
+        hemisphereLightRef.current.groundColor.setHex(0x553322);
+      }
     }
 
     // ===== FUNDO (usando cache de cores) =====
@@ -327,6 +427,7 @@ const nightColor = useRef(new THREE.Color(0x000000));
     // 🔥 Só chama onNightChange/setIsNight quando o estado REALMENTE muda
     if (prevNight.current !== isNight) {
       prevNight.current = isNight;
+      console.log(isNight ? '🌙 NOITE — luz azulada ativa' : '☀️ DIA — luz normal', `(dayNightCycle: ${enableDayNight})`);
       if (onNightChange) onNightChange(isNight);
       if (setIsNight) setIsNight(isNight);
     }
@@ -357,9 +458,18 @@ const nightColor = useRef(new THREE.Color(0x000000));
         position={[0, 8, 0]}
         intensity={0}
         color={0xaaccff}
-        distance={50}
-        decay={1.5}
+        distance={90}
+        decay={1.2}
       />
+      {/* ⚡ Raios atingindo lugares aleatórios (leve: line segments + luz pequena) */}
+      {strikes.map((strike) => (
+        <LightningBolt
+          key={strike.id}
+          from={strike.from}
+          to={strike.to}
+          onDone={() => removeStrike(strike.id)}
+        />
+      ))}
       <ambientLight ref={ambientRef} intensity={0.52} />
       <hemisphereLight ref={hemisphereLightRef} intensity={0.42} color={0x88aaff} groundColor={0x553322} />
 <VolumetricFog

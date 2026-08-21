@@ -58,7 +58,11 @@ const cloudConfig = {
 const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
   const { camera } = useThree();
   const worldGroupRef = useRef(null);
-  const { setWorldGroupRef, playerRigidBody, setIsNight, currentScene, setPlayerPosition } = useGameStore();
+  const setWorldGroupRef = useGameStore((s) => s.setWorldGroupRef);
+  const playerRigidBody = useGameStore((s) => s.playerRigidBody);
+  const setIsNight = useGameStore((s) => s.setIsNight);
+  const currentScene = useGameStore((s) => s.currentScene);
+  const setPlayerPosition = useGameStore((s) => s.setPlayerPosition);
   const [sceneData, setSceneData] = useState(null);
   const [grassData, setGrassData] = useState(null);
   const [fluffyData, setFluffyData] = useState(null);
@@ -68,6 +72,7 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
   const [isNightUI, setIsNightUI] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const enableShadows = useGameStore((s) => s.graphicsSettings)?.shadows !== false;
+  const enableGrass = useGameStore((s) => s.graphicsSettings)?.grass !== false;
 
   // 🔥 CORREÇÃO CRÍTICA: worldGroupRef agora é setado via REF CALLBACK.
   //    Antes era um useEffect que rodava NA MONTAGEM (isLoading=true), quando
@@ -275,7 +280,7 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
         {sceneData?.portals?.map(portal => (
           <Portal key={portal.id} data={portal} />
         ))}
-        {grassData && heightmap && (
+        {enableGrass && grassData && heightmap && (
           <GameGrass
             instances={grassData}
             heightmap={heightmap}
@@ -286,7 +291,7 @@ const ARScene = ({ userId, avatarConfig, loadingAvatar }) => {
         {fluffyData && (
           <>
             <FluffyEnvironment config={fluffyData} />
-            {fluffyData.showFluffyGrass && heightmap && (
+            {enableGrass && fluffyData.showFluffyGrass && heightmap && (
               <FluffyGrass
                 config={fluffyData}
                 instances={fluffyData.fluffyGrassInstances}

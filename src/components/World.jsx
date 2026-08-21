@@ -1,11 +1,14 @@
 import { RigidBody } from '@react-three/rapier';
 import { useGLTF } from '@react-three/drei';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import useGameStore from '../hooks/useGameStore';
 
 export const World = () => {
   const currentScene = useGameStore((state) => state.currentScene);
+  const isNight = useGameStore((state) => state.isNight);
+  // 🔥 Cores originais dos materiais do terreno (para restaurar de dia)
+  const originalColors = useRef(new Map());
 
   // Define o caminho do GLB baseado na cena atual
   let path;
@@ -52,6 +55,31 @@ export const World = () => {
       }
     });
   }, [scene, currentScene]);
+
+  // 🔥 TINT NOTURNO no chão: à noite o terreno escurece e ganha tom
+  //    azul-roxo escuro (mesma "mudança de cor" que o nublado causa de dia,
+  //    mas pro lado da madrugada). De dia, volta à cor original.
+  useEffect(() => {
+    if (!scene) return;
+    const nightTint = new THREE.Color(0x4a4aad);
+    scene.traverse((child) => {
+      if (child.isMesh && child.material) {
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach((mat) => {
+          if (!originalColors.current.has(mat)) {
+            originalColors.current.set(mat, mat.color.clone());
+          }
+          const orig = originalColors.current.get(mat);
+          if (isNight) {
+            mat.color.copy(orig).multiply(nightTint);
+          } else {
+            mat.color.copy(orig);
+          }
+          mat.needsUpdate = true;
+        });
+      }
+    });
+  }, [scene, isNight]);
 
   if (!scene) return null;
 

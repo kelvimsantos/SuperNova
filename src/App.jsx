@@ -1,5 +1,5 @@
 // src/App.jsx
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
 import { OrbitControls } from '@react-three/drei';
@@ -64,7 +64,7 @@ function App() {
   const setCurrentScene = useGameStore((state) => state.setCurrentScene);
   const setPlayerPosition = useGameStore((state) => state.setPlayerPosition);
   const { hasSave, loadGameData, applySaveToGame } = useSaveSystem();
-  const [smoothTarget, setSmoothTarget] = useState([0, 1, 0]);
+  const controlsRef = useRef(null);
 
   useSkillHotkeys();
 
@@ -241,13 +241,13 @@ function App() {
             />
           </Physics>
 
-          <SmoothTarget onTargetUpdate={setSmoothTarget} />
+          <SmoothTarget controlsRef={controlsRef} />
 
           <SmartFollowCamera maxDistanceLimite={5} />
 
           <OrbitControls
+            ref={controlsRef}
             enabled={!followMode}
-            target={smoothTarget}
             enablePan={false}
             enableZoom={true}
             enableRotate={true}
